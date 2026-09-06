@@ -1,0 +1,18 @@
+{
+    "name": "yikes",
+    "version": "2.0.0",
+    "description": "Yikes - Premium Discord Bot",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "dev": "node --watch index.js"
+    },
+    "dependencies": {
+        "discord.js": "^14.14.1",
+        "dotenv": "^16.3.1",
+        "chalk": "^4.1.2"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}
