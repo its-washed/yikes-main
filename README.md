@@ -1,2 +1,0 @@
-# yikes-main
-
