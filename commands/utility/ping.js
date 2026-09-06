@@ -1,4 +1,4 @@
-const { createEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
     data: {
@@ -6,25 +6,21 @@ module.exports = {
         description: 'Check bot latency',
         usage: ',ping'
     },
-    aliases: [],
-    cooldown: 3,
+    aliases: ['latency'],
+    cooldown: 5,
 
-    async execute(message, args, client) {
-        const sent = await message.reply({
-            embeds: [createEmbed({ color: 0x6c5ce7, description: 'Pinging...' })]
-        });
+    async execute(message, client) {
+        const sent = await message.reply({ embeds: [createEmbed({ color: 0xfbbf24, description: 'Pinging...' })] });
 
         const roundtrip = sent.createdTimestamp - message.createdTimestamp;
-        const wsLatency = client.ws.ping;
 
-        await sent.edit({
+        return sent.edit({
             embeds: [createEmbed({
-                color: 0x6c5ce7,
+                color: 0x22c55e,
                 title: 'Pong!',
                 fields: [
                     { name: 'Roundtrip', value: `${roundtrip}ms`, inline: true },
-                    { name: 'WebSocket', value: `${wsLatency}ms`, inline: true },
-                    { name: 'Status', value: wsLatency < 100 ? '🟢 Excellent' : wsLatency < 200 ? '🟡 Good' : '🔴 Poor', inline: true }
+                    { name: 'API', value: `${client.ws.ping}ms`, inline: true }
                 ]
             })]
         });

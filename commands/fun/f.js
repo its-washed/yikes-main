@@ -1,29 +1,16 @@
-const { createEmbed } = require('../../utils/embeds');
-
-const respectMessages = [
-    "F",
-    "Pressing F to pay respects...",
-    "We pay our respects. F.",
-    "Respects have been paid. F.",
-    "F in the chat.",
-    "Everyone pays their respects. F."
-];
+const { createEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
     data: {
         name: 'f',
         description: 'Pay respects',
-        usage: ',f [reason]'
+        usage: ',f [text]'
     },
-    aliases: ['payrespects', 'pressf'],
+    aliases: ['payrespects'],
     cooldown: 5,
 
     async execute(message, args) {
-        const reason = args.join(' ') || 'something';
-        const msg = respectMessages[Math.floor(Math.random() * respectMessages.length)];
-
-        return message.reply({
-            embeds: [createEmbed({ color: 0x2f3542, description: `**F** — ${msg}\nPaying respects for **${reason}**` })]
-        });
+        const text = args.join(' ') || '';
+        return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'F', description: `${message.author.tag} paid their respects.\n\n${text}` })] });
     }
 };

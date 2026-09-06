@@ -1,40 +1,24 @@
-const { PermissionFlagsBits } = require('discord.js');
-const { errorEmbed, successEmbed } = require('../../utils/embeds');
-const { updateGuildConfig } = require('../../utils/config');
+const { createEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
     data: {
         name: 'freeze',
-        description: 'Freeze a channel (lock + disable all reactions/embeds)',
-        usage: ',freeze [#channel]'
+        description: 'Freeze a channel (only admins can send)',
+        usage: ',freeze [channel]'
     },
-    aliases: [],
-    cooldown: 10,
+    aliases: ['freezechannel'],
+    cooldown: 5,
 
     async execute(message, args) {
-        if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
-            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Administrator` permission.')] });
+        if (!message.member.permissions.has('ManageChannels')) {
+            return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Channels permission.')] });
         }
 
         const channel = message.mentions.channels.first() || message.channel;
 
-        try {
-            const everyone = message.guild.roles.everyone;
-            await channel.permissionOverwrites.edit(everyone, {
-                SendMessages: false,
-                AddReactions: false,
-                SendMessagesInThreads: false,
-                CreatePublicThreads: false,
-                CreatePrivateThreads: false
-            }, { reason: `Frozen by ${message.author.tag}` });
+        await channel.permissionOverwrites.edit(message.guild.roles.everyone, { SendMessages: false });
+        await channel.permissionOverwrites.edit(message.guild.roles.cache.find(r => r.name === 'Admin') || message.guild.roles.everyone, { SendMessages: true });
 
-            updateGuildConfig(message.guild.id, {
-                frozenChannels: [...(message.guild.frozenChannels || []), channel.id]
-            });
-
-            return message.reply({ embeds: [successEmbed('Channel Frozen', `${channel} has been frozen. All messages and reactions disabled.`)] });
-        } catch (error) {
-            return message.reply({ embeds: [errorEmbed('Error', `Failed: ${error.message}`)] });
-        }
+        return message.reply({ embeds: [createEmbed({ color: 0x06b6d4, title: 'Channel Frozen', description: `Frozen **${channel.name}**. Only admins can send messages.` })] });
     }
 };

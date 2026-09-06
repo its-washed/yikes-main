@@ -1,38 +1,29 @@
-const { PermissionFlagsBits } = require('discord.js');
-const { parseMember, parseChannel } = require('../../utils/helpers');
-const { errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
     data: {
         name: 'move',
         description: 'Move a user to another voice channel',
-        usage: ',move @user #channel'
+        usage: ',move [@user] [channel]'
     },
     aliases: [],
     cooldown: 5,
 
     async execute(message, args) {
-        if (!message.member.permissions.has(PermissionFlagsBits.MoveMembers)) {
-            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Move Members` permission.')] });
+        if (!message.member.permissions.has('MoveMembers')) {
+            return message.reply({ embeds: [errorEmbed('No Permission', 'You need Move Members permission.')] });
         }
 
-        const target = parseMember(message, args[0]);
-        if (!target) return message.reply({ embeds: [errorEmbed('User Not Found', 'Could not find that user.')] });
+        const target = message.mentions.members.first();
+        if (!target) return message.reply({ embeds: [errorEmbed('Missing User', 'Usage: ,move [@user] [#channel]')] });
 
-        if (!target.voice.channel) {
-            return message.reply({ embeds: [errorEmbed('Not in Voice', 'That user is not in a voice channel.')] });
-        }
+        if (!target.voice.channel) return message.reply({ embeds: [errorEmbed('Not in Voice', 'That user is not in a voice channel.')] });
 
-        const channel = parseChannel(message, args[1] || '');
-        if (!channel || channel.type !== 2) {
-            return message.reply({ embeds: [errorEmbed('Invalid Channel', 'Please mention a voice channel.')] });
-        }
+        const channel = message.mentions.channels.first() || message.member.voice.channel;
+        if (!channel || channel.type !== 2) return message.reply({ embeds: [errorEmbed('Invalid Channel', 'Provide a voice channel.')] });
 
-        try {
-            await target.voice.setChannel(channel, `Moved by ${message.author.tag}`);
-            return message.reply({ embeds: [successEmbed('Member Moved', `**${target.user.tag}** moved to ${channel}.`)] });
-        } catch (error) {
-            return message.reply({ embeds: [errorEmbed('Error', `Failed: ${error.message}`)] });
-        }
+        await target.voice.setChannel(channel);
+
+        return message.reply({ embeds: [createEmbed({ color: 0x22c55e, title: 'Moved', description: `Moved **${target.user.tag}** to **${channel.name}**.` })] });
     }
 };

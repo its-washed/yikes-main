@@ -3,7 +3,7 @@ const { createEmbed, errorEmbed } = require('../../utils/embeds');
 module.exports = {
     data: {
         name: 'spoiler',
-        description: 'Send a spoiler text',
+        description: 'Send spoiler text',
         usage: ',spoiler [text]'
     },
     aliases: ['sp'],
@@ -13,7 +13,6 @@ module.exports = {
         const text = args.join(' ');
         if (!text) return message.reply({ embeds: [errorEmbed('Missing Text', 'Usage: ,spoiler [text]')] });
 
-        await message.delete().catch(() => {});
-        return message.channel.send({ content: `||${text}||` });
+        return message.reply({ content: `||${text}||` });
     }
 };

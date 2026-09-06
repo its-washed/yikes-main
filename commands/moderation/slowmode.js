@@ -1,48 +1,26 @@
-const { PermissionFlagsBits } = require('discord.js');
-const { parseDuration, formatDuration } = require('../../utils/helpers');
-const { errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
     data: {
         name: 'slowmode',
         description: 'Set slowmode for a channel',
-        usage: ',slowmode [duration]'
+        usage: ',slowmode [seconds]'
     },
     aliases: ['sm'],
     cooldown: 5,
 
-    async execute(message, args, client, config) {
-        if (!message.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
-            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Manage Channels` permission.')] });
+    async execute(message, args) {
+        if (!message.member.permissions.has('ManageChannels')) {
+            return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Channels permission.')] });
         }
 
-        if (!message.guild.members.me.permissions.has(PermissionFlagsBits.ManageChannels)) {
-            return message.reply({ embeds: [errorEmbed('Bot Permission', 'I need `Manage Channels` permission.')] });
+        const seconds = parseInt(args[0]);
+        if (isNaN(seconds) || seconds < 0 || seconds > 21600) {
+            return message.reply({ embeds: [errorEmbed('Invalid Duration', 'Provide a number between 0 and 21600 seconds.')] });
         }
 
-        const channel = message.mentions.channels.first() || message.channel;
-        let duration = 0;
+        await message.channel.setRateLimitPerUser(seconds);
 
-        if (args[0] && args[0] !== 'off') {
-            const parsed = parseDuration(args[0]);
-            if (parsed) {
-                duration = Math.min(parsed / 1000, 21600);
-            } else {
-                duration = parseInt(args[0]) || 0;
-                duration = Math.min(Math.max(duration, 0), 21600);
-            }
-        }
-
-        try {
-            await channel.setRateLimitPerUser(duration, `Set by ${message.author.tag}`);
-
-            const durationStr = duration === 0 ? 'Disabled' : formatDuration(duration * 1000);
-
-            return message.reply({
-                embeds: [successEmbed('Slowmode Updated', `Slowmode for ${channel} set to **${durationStr}**.`)]
-            });
-        } catch (error) {
-            return message.reply({ embeds: [errorEmbed('Error', `Failed to set slowmode: ${error.message}`)] });
-        }
+        return message.reply({ embeds: [createEmbed({ color: 0x22c55e, title: 'Slowmode Set', description: `Slowmode set to **${seconds}** seconds.` })] });
     }
 };

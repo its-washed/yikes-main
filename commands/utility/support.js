@@ -6,7 +6,7 @@ module.exports = {
         description: 'Get support server link',
         usage: ',support'
     },
-    aliases: [],
+    aliases: ['supportserver'],
     cooldown: 5,
 
     async execute(message) {
@@ -14,7 +14,7 @@ module.exports = {
             embeds: [createEmbed({
                 color: 0x6c5ce7,
                 title: 'Support Server',
-                description: 'Need help? Join our support server!\n\n[Click here to join](https://discord.gg/yikes)'
+                description: '[Join our support server](https://discord.gg/yikes)'
             })]
         });
     }

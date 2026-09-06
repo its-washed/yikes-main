@@ -3,7 +3,7 @@ const { createEmbed, errorEmbed } = require('../../utils/embeds');
 module.exports = {
     data: {
         name: 'google',
-        description: 'Search Google',
+        description: 'Google search',
         usage: ',google [query]'
     },
     aliases: ['g', 'search'],
@@ -11,20 +11,13 @@ module.exports = {
 
     async execute(message, args) {
         const query = args.join(' ');
-        if (!query) {
-            return message.reply({ embeds: [errorEmbed('Missing Query', 'Usage: ,google [search query]')] });
-        }
-
-        const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+        if (!query) return message.reply({ embeds: [errorEmbed('Missing Query', 'Usage: ,google [query]')] });
 
         return message.reply({
             embeds: [createEmbed({
-                color: 0x4285f4,
-                title: `Google — ${query}`,
-                description: `[Click here to search](${searchUrl})`,
-                fields: [
-                    { name: 'Quick Links', value: `[Google](${searchUrl}) | [YouTube](https://www.youtube.com/results?search_query=${encodeURIComponent(query)}) | [Wikipedia](https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(query)})` }
-                ]
+                color: 0x6c5ce7,
+                title: 'Google Search',
+                description: `[Search for "${query}"](https://www.google.com/search?q=${encodeURIComponent(query)})`
             })]
         });
     }
