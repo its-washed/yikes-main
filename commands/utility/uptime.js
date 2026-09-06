@@ -6,32 +6,21 @@ module.exports = {
         description: 'Show bot uptime',
         usage: ',uptime'
     },
-    aliases: [],
+    aliases: ['ut'],
     cooldown: 5,
 
-    async execute(message, args, client) {
+    async execute(message, client) {
         const uptime = client.uptime;
-        const seconds = Math.floor(uptime / 1000) % 60;
-        const minutes = Math.floor(uptime / 60000) % 60;
-        const hours = Math.floor(uptime / 3600000) % 24;
         const days = Math.floor(uptime / 86400000);
-
-        const parts = [];
-        if (days > 0) parts.push(`${days}d`);
-        if (hours > 0) parts.push(`${hours}h`);
-        if (minutes > 0) parts.push(`${minutes}m`);
-        parts.push(`${seconds}s`);
+        const hours = Math.floor((uptime % 86400000) / 3600000);
+        const minutes = Math.floor((uptime % 3600000) / 60000);
+        const seconds = Math.floor((uptime % 60000) / 1000);
 
         return message.reply({
             embeds: [createEmbed({
-                color: 0x00d26a,
+                color: 0x6c5ce7,
                 title: 'Uptime',
-                description: `I've been online for **${parts.join(' ')}**`,
-                fields: [
-                    { name: 'Ping', value: `${client.ws.ping}ms`, inline: true },
-                    { name: 'Servers', value: `${client.guilds.cache.size}`, inline: true },
-                    { name: 'Users', value: `${client.users.cache.size}`, inline: true }
-                ]
+                description: `**${days}**d **${hours}**h **${minutes}**m **${seconds}**s`
             })]
         });
     }

@@ -1,37 +1,46 @@
-const { PermissionFlagsBits } = require('discord.js');
-const { parseMember, checkHierarchy } = require('../../utils/helpers');
-const { errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
     data: {
         name: 'masskick',
         description: 'Kick multiple users at once',
-        usage: ',masskick @user1 @user2 ...'
+        usage: ',masskick [user_ids]'
     },
-    aliases: ['mkick'],
-    cooldown: 30,
+    aliases: [],
+    cooldown: 60,
 
     async execute(message, args) {
-        if (!message.member.permissions.has(PermissionFlagsBits.KickMembers)) {
-            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Kick Members` permission.')] });
+        if (!message.member.permissions.has('KickMembers')) {
+            return message.reply({ embeds: [errorEmbed('No Permission', 'You need Kick Members permission.')] });
         }
 
-        const members = message.mentions.members;
-        if (members.size === 0) {
-            return message.reply({ embeds: [errorEmbed('Missing Users', 'Mention users to kick.')] });
-        }
+        if (!args.length) return message.reply({ embeds: [errorEmbed('Missing Users', 'Usage: ,masskick [id1] [id2]...')] });
+
+        const reason = args.find(a => !/^\d+$/.test(a)) || 'No reason provided';
+        const ids = args.filter(a => /^\d+$/.test(a));
 
         let kicked = 0;
         let failed = 0;
 
-        for (const [, member] of members) {
-            if (!checkHierarchy(message.member, member, message.guild)) { failed++; continue; }
+        for (const id of ids) {
             try {
-                await member.kick(`Mass kick by ${message.author.tag}`);
+                const member = await message.guild.members.fetch(id);
+                await member.kick(reason);
                 kicked++;
-            } catch { failed++; }
+            } catch {
+                failed++;
+            }
         }
 
-        return message.reply({ embeds: [successEmbed('Mass Kick', `Kicked **${kicked}** member(s).${failed > 0 ? ` Failed: ${failed}` : ''}`)] });
+        return message.reply({
+            embeds: [createEmbed({
+                color: 0xff4757,
+                title: 'Mass Kick Complete',
+                fields: [
+                    { name: 'Kicked', value: `${kicked}`, inline: true },
+                    { name: 'Failed', value: `${failed}`, inline: true }
+                ]
+            })]
+        });
     }
 };

@@ -1,30 +1,23 @@
-const { PermissionFlagsBits } = require('discord.js');
-const { errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
 
 module.exports = {
     data: {
         name: 'hide',
         description: 'Hide a channel from everyone',
-        usage: ',hide [#channel]'
+        usage: ',hide [channel]'
     },
-    aliases: [],
+    aliases: ['hidechannel'],
     cooldown: 5,
 
     async execute(message, args) {
-        if (!message.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
-            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Manage Channels` permission.')] });
+        if (!message.member.permissions.has('ManageChannels')) {
+            return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Channels permission.')] });
         }
 
         const channel = message.mentions.channels.first() || message.channel;
 
-        try {
-            await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
-                ViewChannel: false
-            }, { reason: `Hidden by ${message.author.tag}` });
+        await channel.permissionOverwrites.edit(message.guild.roles.everyone, { ViewChannel: false });
 
-            return message.reply({ embeds: [successEmbed('Channel Hidden', `${channel} is now hidden from everyone.`)] });
-        } catch (error) {
-            return message.reply({ embeds: [errorEmbed('Error', `Failed: ${error.message}`)] });
-        }
+        return message.reply({ embeds: [successEmbed('Channel Hidden', `Hidden **${channel.name}** from everyone.`)] });
     }
 };

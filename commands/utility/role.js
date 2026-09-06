@@ -1,53 +1,31 @@
-const { PermissionFlagsBits } = require('discord.js');
-const { parseMember, parseRole } = require('../../utils/helpers');
-const { errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
 
 module.exports = {
     data: {
         name: 'role',
-        description: 'Add or remove a role from a member',
+        description: 'Add or remove a role from a user',
         usage: ',role [@user] [@role]'
     },
-    aliases: ['r'],
+    aliases: ['addrole', 'removerole'],
     cooldown: 5,
 
     async execute(message, args) {
-        if (!message.member.permissions.has(PermissionFlagsBits.ManageRoles)) {
-            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Manage Roles` permission.')] });
+        if (!message.member.permissions.has('ManageRoles')) {
+            return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Roles permission.')] });
         }
 
-        if (!message.guild.members.me.permissions.has(PermissionFlagsBits.ManageRoles)) {
-            return message.reply({ embeds: [errorEmbed('Bot Permission', 'I need `Manage Roles` permission.')] });
-        }
+        const target = message.mentions.members.first();
+        if (!target) return message.reply({ embeds: [errorEmbed('Missing User', 'Usage: ,role [@user] [@role]')] });
 
-        if (!args[0] || !args[1]) {
-            return message.reply({ embeds: [errorEmbed('Missing Arguments', 'Usage: ,role [@user] [@role]')] });
-        }
+        const role = message.mentions.roles.first();
+        if (!role) return message.reply({ embeds: [errorEmbed('Missing Role', 'Usage: ,role [@user] [@role]')] });
 
-        const member = parseMember(message, args[0]);
-        if (!member) {
-            return message.reply({ embeds: [errorEmbed('User Not Found', 'Could not find that user.')] });
-        }
-
-        const role = parseRole(message, args[1]);
-        if (!role) {
-            return message.reply({ embeds: [errorEmbed('Role Not Found', 'Could not find that role.')] });
-        }
-
-        if (role.position >= message.guild.members.me.roles.highest.position) {
-            return message.reply({ embeds: [errorEmbed('Role Hierarchy', 'I cannot manage this role.')] });
-        }
-
-        try {
-            if (member.roles.cache.has(role.id)) {
-                await member.roles.remove(role, `Removed by ${message.author.tag}`);
-                return message.reply({ embeds: [successEmbed('Role Removed', `Removed ${role} from ${member}.`)] });
-            } else {
-                await member.roles.add(role, `Added by ${message.author.tag}`);
-                return message.reply({ embeds: [successEmbed('Role Added', `Added ${role} to ${member}.`)] });
-            }
-        } catch (error) {
-            return message.reply({ embeds: [errorEmbed('Error', `Failed to modify role: ${error.message}`)] });
+        if (target.roles.cache.has(role.id)) {
+            await target.roles.remove(role);
+            return message.reply({ embeds: [successEmbed('Role Removed', `Removed **${role.name}** from **${target.user.tag}**.`)] });
+        } else {
+            await target.roles.add(role);
+            return message.reply({ embeds: [successEmbed('Role Added', `Added **${role.name}** to **${target.user.tag}**.`)] });
         }
     }
 };

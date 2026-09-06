@@ -1,42 +1,23 @@
-const { PermissionFlagsBits } = require('discord.js');
-const { errorEmbed, successEmbed } = require('../../utils/embeds');
-const { updateGuildConfig, getGuildConfig } = require('../../utils/config');
+const { createEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
     data: {
         name: 'unfreeze',
         description: 'Unfreeze a channel',
-        usage: ',unfreeze [#channel]'
+        usage: ',unfreeze [channel]'
     },
-    aliases: [],
-    cooldown: 10,
+    aliases: ['unfreezechannel'],
+    cooldown: 5,
 
     async execute(message, args) {
-        if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
-            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Administrator` permission.')] });
+        if (!message.member.permissions.has('ManageChannels')) {
+            return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Channels permission.')] });
         }
 
         const channel = message.mentions.channels.first() || message.channel;
 
-        try {
-            const everyone = message.guild.roles.everyone;
-            await channel.permissionOverwrites.edit(everyone, {
-                SendMessages: true,
-                AddReactions: true,
-                SendMessagesInThreads: true,
-                CreatePublicThreads: true,
-                CreatePrivateThreads: true
-            }, { reason: `Unfrozen by ${message.author.tag}` });
+        await channel.permissionOverwrites.edit(message.guild.roles.everyone, { SendMessages: true });
 
-            const config = getGuildConfig(message.guild.id);
-            const frozen = config.frozenChannels || [];
-            const idx = frozen.indexOf(channel.id);
-            if (idx !== -1) frozen.splice(idx, 1);
-            updateGuildConfig(message.guild.id, { frozenChannels: frozen });
-
-            return message.reply({ embeds: [successEmbed('Channel Unfrozen', `${channel} has been unfrozen.`)] });
-        } catch (error) {
-            return message.reply({ embeds: [errorEmbed('Error', `Failed: ${error.message}`)] });
-        }
+        return message.reply({ embeds: [createEmbed({ color: 0x22c55e, title: 'Channel Unfrozen', description: `Unfrozen **${channel.name}**.` })] });
     }
 };

@@ -3,43 +3,21 @@ const { createEmbed, errorEmbed } = require('../../utils/embeds');
 module.exports = {
     data: {
         name: 'calc',
-        description: 'Calculate a math expression',
+        description: 'Simple calculator',
         usage: ',calc [expression]'
     },
-    aliases: ['calculate', 'math'],
+    aliases: ['calculate'],
     cooldown: 3,
 
     async execute(message, args) {
-        if (!args.length) {
-            return message.reply({ embeds: [errorEmbed('Missing Expression', 'Usage: ,calc [expression]\nExample: ,calc 2 + 2 * 3')] });
-        }
-
-        const expression = args.join(' ');
-
-        if (!/^[\d\s+\-*/().%^]+$/.test(expression)) {
-            return message.reply({ embeds: [errorEmbed('Invalid Expression', 'Only numbers and math operators are allowed.')] });
-        }
+        const expr = args.join(' ');
+        if (!expr) return message.reply({ embeds: [errorEmbed('Missing Expression', 'Usage: ,calc [expression]\nExample: ,calc 2+2*3')] });
 
         try {
-            const sanitized = expression.replace(/\^/g, '**');
-            const result = new Function(`return (${sanitized})`)();
-
-            if (typeof result !== 'number' || !isFinite(result)) {
-                return message.reply({ embeds: [errorEmbed('Invalid Result', 'The expression could not be evaluated.')] });
-            }
-
-            return message.reply({
-                embeds: [createEmbed({
-                    color: 0x6c5ce7,
-                    title: 'Calculator',
-                    fields: [
-                        { name: 'Expression', value: `\`${expression}\``, inline: false },
-                        { name: 'Result', value: `\`${result}\``, inline: false }
-                    ]
-                })]
-            });
+            const result = Function('"use strict"; return (' + expr.replace(/[^-()\d/*+.]/g, '') + ')')();
+            return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Calculator', description: `\`${expr}\` = **${result}**` })] });
         } catch {
-            return message.reply({ embeds: [errorEmbed('Calculation Error', 'Invalid mathematical expression.')] });
+            return message.reply({ embeds: [errorEmbed('Invalid Expression', 'Could not calculate that.')] });
         }
     }
 };

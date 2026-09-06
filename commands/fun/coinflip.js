@@ -1,4 +1,4 @@
-const { createEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
     data: {
@@ -6,19 +6,15 @@ module.exports = {
         description: 'Flip a coin',
         usage: ',coinflip'
     },
-    aliases: ['flip', 'coin'],
+    aliases: ['flip'],
     cooldown: 3,
 
     async execute(message) {
         const result = Math.random() < 0.5 ? 'Heads' : 'Tails';
-        const emoji = result === 'Heads' ? '🪙' : '🔵';
+        const emoji = result === 'Heads' ? '🪙' : '🌙';
 
         return message.reply({
-            embeds: [createEmbed({
-                color: 0x6c5ce7,
-                title: 'Coin Flip',
-                description: `${emoji} **${result}**!`
-            })]
+            embeds: [createEmbed({ color: 0xfbbf24, title: 'Coin Flip', description: `${emoji} **${result}**` })]
         });
     }
 };

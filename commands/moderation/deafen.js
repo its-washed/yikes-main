@@ -1,35 +1,26 @@
-const { PermissionFlagsBits } = require('discord.js');
-const { parseMember } = require('../../utils/helpers');
-const { errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
     data: {
         name: 'deafen',
-        description: 'Deafen a member in voice',
-        usage: ',deafen @user [reason]'
+        description: 'Deafen a member',
+        usage: ',deafen [@user]'
     },
-    aliases: ['deaf'],
+    aliases: ['def'],
     cooldown: 5,
 
-    async execute(message, args, client, config) {
-        if (!message.member.permissions.has(PermissionFlagsBits.DeafenMembers)) {
-            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Deafen Members` permission.')] });
+    async execute(message, args) {
+        if (!message.member.permissions.has('DeafenMembers')) {
+            return message.reply({ embeds: [errorEmbed('No Permission', 'You need Deafen Members permission.')] });
         }
 
-        const target = parseMember(message, args[0]);
-        if (!target) return message.reply({ embeds: [errorEmbed('User Not Found', 'Could not find that user.')] });
+        const target = message.mentions.members.first();
+        if (!target) return message.reply({ embeds: [errorEmbed('Missing User', 'Usage: ,deafen [@user]')] });
 
-        if (!target.voice.channel) {
-            return message.reply({ embeds: [errorEmbed('Not in Voice', 'That user is not in a voice channel.')] });
-        }
+        if (!target.voice.channel) return message.reply({ embeds: [errorEmbed('Not in Voice', 'That user is not in a voice channel.')] });
 
-        const reason = args.slice(1).join(' ') || 'No reason provided';
+        await target.voice.setDeaf(true);
 
-        try {
-            await target.voice.setDeaf(true, reason);
-            return message.reply({ embeds: [successEmbed('Member Deafened', `**${target.user.tag}** has been deafened.`)] });
-        } catch (error) {
-            return message.reply({ embeds: [errorEmbed('Error', `Failed: ${error.message}`)] });
-        }
+        return message.reply({ embeds: [createEmbed({ color: 0x22c55e, title: 'Deafened', description: `Deafened **${target.user.tag}**.` })] });
     }
 };

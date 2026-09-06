@@ -3,7 +3,7 @@ const { createEmbed, errorEmbed } = require('../../utils/embeds');
 module.exports = {
     data: {
         name: 'youtube',
-        description: 'Search YouTube',
+        description: 'YouTube search',
         usage: ',youtube [query]'
     },
     aliases: ['yt'],
@@ -11,17 +11,13 @@ module.exports = {
 
     async execute(message, args) {
         const query = args.join(' ');
-        if (!query) {
-            return message.reply({ embeds: [errorEmbed('Missing Query', 'Usage: ,youtube [search query]')] });
-        }
-
-        const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+        if (!query) return message.reply({ embeds: [errorEmbed('Missing Query', 'Usage: ,youtube [query]')] });
 
         return message.reply({
             embeds: [createEmbed({
                 color: 0xff0000,
-                title: `YouTube — ${query}`,
-                description: `[Click here to search](${url})`
+                title: 'YouTube Search',
+                description: `[Search for "${query}"](https://www.youtube.com/results?search_query=${encodeURIComponent(query)})`
             })]
         });
     }
