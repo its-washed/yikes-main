@@ -1,11 +1,12 @@
 const { createEmbed, errorEmbed } = require('../../utils/embeds');
+const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
     data: { name: 'auditlog', description: 'View audit log', usage: ',auditlog [amount]' },
     aliases: ['alog'],
     cooldown: 10,
     async execute(message, args) {
-        if (!message.member.permissions.has('ViewAuditLog')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need View Audit Log.')] });
+        if (!hasPermission(message.member, 'ViewAuditLog')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need View Audit Log.')] });
         const amount = parseInt(args[0]) || 10;
         const logs = await message.guild.fetchAuditLogs({ limit: amount });
         const entries = logs.entries.first(amount);

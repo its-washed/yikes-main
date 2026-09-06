@@ -4,6 +4,8 @@ const { Client, Collection, GatewayIntentBits, Partials, Events, ActivityType } 
 const { loadConfig, getGuildConfig } = require('./utils/config');
 const { initDatabase, closeDatabase } = require('./utils/database');
 const { logger } = require('./utils/logger');
+const { isBlacklisted, isDeveloper, isServerBlacklisted, isCommandDisabled } = require('./utils/developer');
+const { isPremium, isPremiumCommand } = require('./utils/premium');
 
 const client = new Client({
     intents: [
@@ -38,7 +40,7 @@ client.editSnipes = new Map();
 client.aliases = new Collection();
 
 function loadCommands() {
-    const categories = ['moderation', 'server', 'utility', 'fun'];
+    const categories = ['moderation', 'server', 'utility', 'fun', 'developer', 'economy'];
     let totalCommands = 0;
 
     for (const category of categories) {
@@ -100,6 +102,13 @@ client.on(Events.ClientReady, async () => {
 
     initDatabase();
 
+    for (const [, guild] of client.guilds.cache) {
+        if (isServerBlacklisted(guild.id)) {
+            logger.warn(`Leaving blacklisted server: ${guild.name} (${guild.id})`);
+            await guild.leave().catch(() => {});
+        }
+    }
+
     try {
         const rest = client.rest;
         logger.info('Registering slash commands...');
@@ -108,8 +117,17 @@ client.on(Events.ClientReady, async () => {
     }
 });
 
+client.on(Events.GuildCreate, async (guild) => {
+    if (isServerBlacklisted(guild.id)) {
+        logger.warn(`Leaving blacklisted server: ${guild.name} (${guild.id})`);
+        await guild.leave().catch(() => {});
+    }
+});
+
 client.on(Events.MessageCreate, async (message) => {
     if (message.author.bot || !message.guild) return;
+    if (isBlacklisted(message.author.id)) return;
+    if (isServerBlacklisted(message.guild.id)) return;
 
     const config = getGuildConfig(message.guild.id);
     const prefix = config.prefix || ',';
@@ -122,30 +140,52 @@ client.on(Events.MessageCreate, async (message) => {
     const command = client.commands.get(commandName) || client.commands.get(client.aliases.get(commandName));
     if (!command) return;
 
-    const { cooldowns } = client;
-    if (!cooldowns.has(command.data.name)) {
-        cooldowns.set(command.data.name, new Collection());
+    if (isCommandDisabled(command.data.name, message.guild.id)) {
+        return message.reply({
+            embeds: [{
+                color: 0xff6b6b,
+                description: `The command \`${command.data.name}\` is disabled.`
+            }]
+        }).then(msg => setTimeout(() => msg.delete().catch(() => {}), 5000));
     }
 
-    const now = Date.now();
-    const timestamps = cooldowns.get(command.data.name);
-    const cooldownAmount = (command.cooldown || 3) * 1000;
+    if (isPremiumCommand(command.data.name) && !isPremium(message.author.id) && !isDeveloper(message.author.id)) {
+        return message.reply({
+            embeds: [{
+                color: 0xffd700,
+                description: `The command \`${command.data.name}\` is **premium only**. Purchase premium to access it.`
+            }]
+        }).then(msg => setTimeout(() => msg.delete().catch(() => {}), 5000));
+    }
 
-    if (timestamps.has(message.author.id)) {
-        const expirationTime = timestamps.get(message.author.id) + cooldownAmount;
-        if (now < expirationTime) {
-            const timeLeft = (expirationTime - now) / 1000;
-            return message.reply({
-                embeds: [{
-                    color: 0xff6b6b,
-                    description: `Please wait ${timeLeft.toFixed(1)} more second(s) before using \`${command.data.name}\`.`
-                }]
-            }).then(msg => setTimeout(() => msg.delete().catch(() => {}), 5000));
+    const dev = isDeveloper(message.author.id);
+
+    if (!dev) {
+        const { cooldowns } = client;
+        if (!cooldowns.has(command.data.name)) {
+            cooldowns.set(command.data.name, new Collection());
         }
-    }
 
-    timestamps.set(message.author.id, now);
-    setTimeout(() => timestamps.delete(message.author.id), cooldownAmount);
+        const now = Date.now();
+        const timestamps = cooldowns.get(command.data.name);
+        const cooldownAmount = (command.cooldown || 3) * 1000;
+
+        if (timestamps.has(message.author.id)) {
+            const expirationTime = timestamps.get(message.author.id) + cooldownAmount;
+            if (now < expirationTime) {
+                const timeLeft = (expirationTime - now) / 1000;
+                return message.reply({
+                    embeds: [{
+                        color: 0xff6b6b,
+                        description: `Please wait ${timeLeft.toFixed(1)} more second(s) before using \`${command.data.name}\`.`
+                    }]
+                }).then(msg => setTimeout(() => msg.delete().catch(() => {}), 5000));
+            }
+        }
+
+        timestamps.set(message.author.id, now);
+        setTimeout(() => timestamps.delete(message.author.id), cooldownAmount);
+    }
 
     try {
         await command.execute(message, args, client, config);

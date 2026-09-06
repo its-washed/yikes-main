@@ -1,11 +1,12 @@
 const { createEmbed, errorEmbed } = require('../../utils/embeds');
+const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
     data: { name: 'roleall', description: 'Give role to all members', usage: ',roleall [@role]' },
     aliases: [],
     cooldown: 300,
     async execute(message, args) {
-        if (!message.member.permissions.has('Administrator')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Administrator.')] });
+        if (!isAdmin(message.member)) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Administrator.')] });
         const role = message.mentions.roles.first();
         if (!role) return message.reply({ embeds: [errorEmbed('Missing Role', 'Usage: ,roleall [@role]')] });
         const msg = await message.reply({ embeds: [createEmbed({ color: 0xfbbf24, description: 'Adding role to all members...' })] });

@@ -1,6 +1,7 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed } = require('../../utils/embeds');
 const fs = require('fs');
 const path = require('path');
+const { isPremium } = require('../../utils/premium');
 
 const DATA_FILE = path.join(__dirname, '../../data/cards.json');
 
@@ -135,23 +136,45 @@ const CHARACTERS = [
     { name: 'Arceus', series: 'Pokemon', tier: 'S' }
 ];
 
-module.exports = {
-    data: {
-        name: 'claim',
-        description: 'Claim a random anime character card',
-        usage: ',claim'
-    },
-    aliases: ['roll', 'summon'],
-    cooldown: 10,
+        const CLAIM_COOLDOWN = 3 * 60 * 60 * 1000;
 
-    async execute(message) {
+        module.exports = {
+            data: {
+                name: 'claim',
+                description: 'Claim a random anime character card (3h cooldown, Premium = no cooldown)',
+                usage: ',claim'
+            },
+            aliases: ['summon'],
+            cooldown: 10,
+
+            async execute(message) {
+                const data = loadData();
+                const guildId = message.guild.id;
+                if (!data[guildId]) data[guildId] = {};
+                if (!data[guildId].cards) data[guildId].cards = [];
+                if (!data[guildId].cooldowns) data[guildId].cooldowns = {};
+
+                const premium = isPremium(message.author.id);
+
+                if (!premium) {
+            const lastClaim = data[guildId].cooldowns[message.author.id] || 0;
+            const now = Date.now();
+            const elapsed = now - lastClaim;
+
+            if (elapsed < CLAIM_COOLDOWN) {
+                const remaining = CLAIM_COOLDOWN - elapsed;
+                const hours = Math.floor(remaining / 3600000);
+                const minutes = Math.floor((remaining % 3600000) / 60000);
+                const seconds = Math.floor((remaining % 60000) / 1000);
+
+                return message.reply({
+                    embeds: [errorEmbed('Cooldown', `You must wait **${hours}h ${minutes}m ${seconds}s** before claiming again.\n\n*Premium users have no cooldown!*`)]
+                });
+            }
+        }
+
         const char = CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)];
         const rarity = getRarity();
-
-        const data = loadData();
-        const guildId = message.guild.id;
-        if (!data[guildId]) data[guildId] = {};
-        if (!data[guildId].cards) data[guildId].cards = [];
 
         const card = {
             id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
@@ -166,6 +189,7 @@ module.exports = {
         };
 
         data[guildId].cards.push(card);
+        data[guildId].cooldowns[message.author.id] = Date.now();
         saveData(data);
 
         return message.reply({
@@ -178,7 +202,7 @@ module.exports = {
                     { name: 'Tier', value: char.tier, inline: true },
                     { name: 'Card ID', value: `\`${card.id}\``, inline: true }
                 ],
-                footer: { text: `Claimed by ${message.author.tag}` },
+                footer: { text: `Claimed by ${message.author.tag}${premium ? ' (Premium)' : ''}` },
                 timestamp: new Date().toISOString()
             })]
         });

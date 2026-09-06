@@ -1,11 +1,12 @@
 const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
     data: { name: 'creategiveaway', description: 'Create a giveaway', usage: ',creategiveaway [time] [prize]' },
     aliases: ['cgw'],
     cooldown: 60,
     async execute(message, args) {
-        if (!message.member.permissions.has('ManageMessages')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Messages.')] });
+        if (!hasPermission(message.member, 'ManageMessages')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Messages.')] });
         const timeStr = args[0];
         const prize = args.slice(1).join(' ');
         if (!timeStr || !prize) return message.reply({ embeds: [errorEmbed('Missing Args', 'Usage: ,creategiveaway [time] [prize]')] });

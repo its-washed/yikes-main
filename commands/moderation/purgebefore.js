@@ -1,11 +1,12 @@
 const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
     data: { name: 'purgebefore', description: 'Delete messages before a message ID', usage: ',purgebefore [messageId] [amount]' },
     aliases: ['pbf'],
     cooldown: 10,
     async execute(message, args) {
-        if (!message.member.permissions.has('ManageMessages')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Messages.')] });
+        if (!hasPermission(message.member, 'ManageMessages')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Messages.')] });
         const targetId = args[0];
         if (!targetId) return message.reply({ embeds: [errorEmbed('Missing ID', 'Usage: ,purgebefore [messageId] [amount]')] });
         const amount = parseInt(args[1]) || 50;

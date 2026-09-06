@@ -1,11 +1,12 @@
 const { createEmbed, errorEmbed } = require('../../utils/embeds');
+const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
     data: { name: 'pin', description: 'Pin a message by ID', usage: ',pin [messageId]' },
     aliases: ['pinmessage'],
     cooldown: 5,
     async execute(message, args) {
-        if (!message.member.permissions.has('ManageMessages')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Messages.')] });
+        if (!hasPermission(message.member, 'ManageMessages')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Messages.')] });
         const msgId = args[0];
         if (!msgId) return message.reply({ embeds: [errorEmbed('Missing ID', 'Usage: ,pin [messageId]')] });
         try {

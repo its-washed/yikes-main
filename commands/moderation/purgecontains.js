@@ -1,11 +1,12 @@
 const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
     data: { name: 'purgecontains', description: 'Delete messages containing text', usage: ',purgecontains [text] [amount]' },
     aliases: ['pc'],
     cooldown: 10,
     async execute(message, args) {
-        if (!message.member.permissions.has('ManageMessages')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Messages.')] });
+        if (!hasPermission(message.member, 'ManageMessages')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Messages.')] });
         const text = args[0];
         if (!text) return message.reply({ embeds: [errorEmbed('Missing Text', 'Usage: ,purgecontains [text] [amount]')] });
         const amount = parseInt(args[1]) || 50;
