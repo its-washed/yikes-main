@@ -1,0 +1,2 @@
+const { createEmbed } = require('../../utils/embeds');
+module.exports = { data: { name: 'wake', description: 'Wake someone up', usage: ',wake [@user]' }, aliases: [], cooldown: 3, async execute(message) { const target = message.mentions.users.first() || message.author; return message.reply({ embeds: [createEmbed({ color: 0xfbbf24, title: 'Wake Up!', description: `${message.author} wakes ${target} up! ⏰` })] }); } };

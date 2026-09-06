@@ -1,0 +1,2 @@
+const { createEmbed, errorEmbed } = require('../../utils/embeds');
+module.exports = { data: { name: 'spank', description: 'Spank someone', usage: ',spank [@user]' }, aliases: [], cooldown: 5, async execute(message) { const target = message.mentions.users.first(); if (!target) return message.reply({ embeds: [errorEmbed('Missing User', 'Usage: ,spank [@user]')] }); return message.reply({ embeds: [createEmbed({ color: 0xec4899, title: 'Spank!', description: `${message.author} spanks ${target}! 🍑` })] }); } };

@@ -1,0 +1,2 @@
+const { createEmbed, errorEmbed } = require('../../utils/embeds');
+module.exports = { data: { name: 'howrich', description: 'How rich are you?', usage: ',howrich' }, aliases: ['rich'], cooldown: 5, async execute(message) { const user = message.mentions.users.first() || message.author; const amount = Math.floor(Math.random() * 1000000); return message.reply({ embeds: [createEmbed({ color: 0xfbbf24, title: 'Rich Check', description: `${user} has **$${amount.toLocaleString()}**!` })] }); } };

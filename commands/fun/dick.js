@@ -1,0 +1,2 @@
+const { createEmbed } = require('../../utils/embeds');
+module.exports = { data: { name: 'dick', description: 'Dick size', usage: ',dick [@user]' }, aliases: ['size2'], cooldown: 3, async execute(message) { const user = message.mentions.users.first() || message.author; const size = Math.floor(Math.random() * 12) + 1; return message.reply({ embeds: [createEmbed({ color: 0xec4899, title: 'Size Check', description: `${user}'s size is **${size}** inches!` })] }); } };

@@ -1,0 +1,2 @@
+const { createEmbed, errorEmbed } = require('../../utils/embeds');
+module.exports = { data: { name: 'snuggle', description: 'Snuggle someone', usage: ',snuggle [@user]' }, aliases: ['cuddle2'], cooldown: 5, async execute(message) { const target = message.mentions.users.first() || message.author; return message.reply({ embeds: [createEmbed({ color: 0xec4899, title: 'Snuggle!', description: `${message.author} snuggles ${target}! 🥰` })] }); } };

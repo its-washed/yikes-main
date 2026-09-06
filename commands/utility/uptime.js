@@ -1,27 +1,2 @@
 const { createEmbed, errorEmbed } = require('../../utils/embeds');
-
-module.exports = {
-    data: {
-        name: 'uptime',
-        description: 'Show bot uptime',
-        usage: ',uptime'
-    },
-    aliases: ['ut'],
-    cooldown: 5,
-
-    async execute(message, client) {
-        const uptime = client.uptime;
-        const days = Math.floor(uptime / 86400000);
-        const hours = Math.floor((uptime % 86400000) / 3600000);
-        const minutes = Math.floor((uptime % 3600000) / 60000);
-        const seconds = Math.floor((uptime % 60000) / 1000);
-
-        return message.reply({
-            embeds: [createEmbed({
-                color: 0x6c5ce7,
-                title: 'Uptime',
-                description: `**${days}**d **${hours}**h **${minutes}**m **${seconds}**s`
-            })]
-        });
-    }
-};
+module.exports = { data: { name: 'uptime', description: 'Bot uptime', usage: ',uptime' }, aliases: ['ut'], cooldown: 3, async execute(message, client) { const u = client.uptime; const d = Math.floor(u / 86400000); const h = Math.floor((u % 86400000) / 3600000); const m = Math.floor((u % 3600000) / 60000); const s = Math.floor((u % 60000) / 1000); return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Uptime', description: `**${d}**d **${h}**h **${m}**m **${s}**s` })] }); } };
