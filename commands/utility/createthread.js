@@ -1,11 +1,12 @@
 const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
     data: { name: 'createthread', description: 'Create a thread', usage: ',createthread [name]' },
     aliases: ['ct'],
     cooldown: 10,
     async execute(message, args) {
-        if (!message.member.permissions.has('ManageThreads')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Threads.')] });
+        if (!hasPermission(message.member, 'ManageThreads')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Threads.')] });
         const name = args.join(' ');
         if (!name) return message.reply({ embeds: [errorEmbed('Missing Name', 'Usage: ,createthread [name]')] });
         try {

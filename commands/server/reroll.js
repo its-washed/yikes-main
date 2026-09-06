@@ -1,11 +1,12 @@
 const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
     data: { name: 'reroll', description: 'Reroll a giveaway', usage: ',reroll [messageId]' },
     aliases: [],
     cooldown: 10,
     async execute(message, args) {
-        if (!message.member.permissions.has('ManageMessages')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Messages.')] });
+        if (!hasPermission(message.member, 'ManageMessages')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Messages.')] });
         const msgId = args[0];
         if (!msgId) return message.reply({ embeds: [errorEmbed('Missing Message ID', 'Usage: ,reroll [messageId]')] });
         try {

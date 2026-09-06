@@ -1,6 +1,7 @@
 const { PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 const { updateGuildConfig, getGuildConfig } = require('../../utils/config');
 const { errorEmbed, successEmbed, createEmbed } = require('../../utils/embeds');
+const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
     data: {
@@ -32,7 +33,7 @@ module.exports = {
         }
 
         if (action === 'setup') {
-            if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
+            if (!isAdmin(message.member)) {
                 return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Administrator` permission.')] });
             }
 
@@ -87,7 +88,7 @@ module.exports = {
         }
 
         if (action === 'role') {
-            if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
+            if (!isAdmin(message.member)) {
                 return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Administrator` permission.')] });
             }
 
@@ -102,7 +103,7 @@ module.exports = {
         }
 
         if (action === 'log') {
-            if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
+            if (!isAdmin(message.member)) {
                 return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Administrator` permission.')] });
             }
 
@@ -142,7 +143,7 @@ module.exports = {
         }
 
         if (action === 'disable') {
-            if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
+            if (!isAdmin(message.member)) {
                 return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Administrator` permission.')] });
             }
             updateGuildConfig(message.guild.id, { tickets: { enabled: false } });

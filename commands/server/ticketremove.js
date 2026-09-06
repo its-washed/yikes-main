@@ -1,11 +1,12 @@
 const { createEmbed, errorEmbed } = require('../../utils/embeds');
+const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
     data: { name: 'ticketremove', description: 'Remove user from ticket', usage: ',ticketremove [@user]' },
     aliases: ['ticketkick'],
     cooldown: 5,
     async execute(message, args) {
-        if (!message.member.permissions.has('ManageMessages')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Messages.')] });
+        if (!hasPermission(message.member, 'ManageMessages')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Messages.')] });
         const target = message.mentions.members.first();
         if (!target) return message.reply({ embeds: [errorEmbed('Missing User', 'Usage: ,ticketremove [@user]')] });
         if (!message.channel.name.startsWith('ticket-')) return message.reply({ embeds: [errorEmbed('Not a Ticket', 'This is not a ticket channel.')] });

@@ -1,5 +1,6 @@
 const { PermissionFlagsBits, ChannelType } = require('discord.js');
 const { errorEmbed, successEmbed } = require('../../utils/embeds');
+const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
     data: {
@@ -11,7 +12,7 @@ module.exports = {
     cooldown: 10,
 
     async execute(message, args, client, config) {
-        if (!message.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
+        if (!hasPermission(message.member, PermissionFlagsBits.ManageMessages)) {
             return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Manage Messages` permission.')] });
         }
 

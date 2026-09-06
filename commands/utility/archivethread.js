@@ -1,11 +1,12 @@
 const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
     data: { name: 'archivethread', description: 'Archive a thread', usage: ',archivethread [#thread]' },
     aliases: ['at'],
     cooldown: 10,
     async execute(message, args) {
-        if (!message.member.permissions.has('ManageThreads')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Threads.')] });
+        if (!hasPermission(message.member, 'ManageThreads')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Threads.')] });
         const thread = message.mentions.channels.first() || message.channel;
         if (!thread.isThread()) return message.reply({ embeds: [errorEmbed('Not a Thread', 'That is not a thread.')] });
         try {

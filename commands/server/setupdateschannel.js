@@ -1,11 +1,12 @@
 const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
     data: { name: 'setupdateschannel', description: 'Set updates channel', usage: ',setupdateschannel [#channel]' },
     aliases: ['updateschannel'],
     cooldown: 10,
     async execute(message, args) {
-        if (!message.member.permissions.has('ManageGuild')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Server.')] });
+        if (!hasPermission(message.member, 'ManageGuild')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Server.')] });
         const channel = message.mentions.channels.first();
         if (!channel) return message.reply({ embeds: [errorEmbed('Missing Channel', 'Usage: ,setupdateschannel [#channel]')] });
         try {

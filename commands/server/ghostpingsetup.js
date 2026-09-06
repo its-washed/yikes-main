@@ -1,6 +1,7 @@
 const { PermissionFlagsBits } = require('discord.js');
 const { updateGuildConfig, getGuildConfig } = require('../../utils/config');
 const { errorEmbed, successEmbed, createEmbed } = require('../../utils/embeds');
+const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
     data: {
@@ -12,7 +13,7 @@ module.exports = {
     cooldown: 10,
 
     async execute(message, args) {
-        if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
+        if (!isAdmin(message.member)) {
             return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Administrator` permission.')] });
         }
 

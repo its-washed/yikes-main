@@ -1,11 +1,12 @@
 const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
     data: { name: 'timeoutall', description: 'Timeout multiple users', usage: ',timeoutall [@user1] [@user2] [duration]' },
     aliases: ['tmall'],
     cooldown: 30,
     async execute(message, args) {
-        if (!message.member.permissions.has('ModerateMembers')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Moderate Members.')] });
+        if (!hasPermission(message.member, 'ModerateMembers')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Moderate Members.')] });
         const users = message.mentions.members;
         if (users.size === 0) return message.reply({ embeds: [errorEmbed('Missing Users', 'Usage: ,timeoutall [@user1] [@user2] [duration]')] });
         const duration = args.find(a => /^\d+[mhd]$/.test(a)) || '10m';

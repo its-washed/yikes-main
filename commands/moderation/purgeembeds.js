@@ -1,11 +1,12 @@
 const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
     data: { name: 'purgeembeds', description: 'Delete messages with embeds', usage: ',purgeembeds [amount]' },
     aliases: ['pe'],
     cooldown: 10,
     async execute(message, args) {
-        if (!message.member.permissions.has('ManageMessages')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Messages.')] });
+        if (!hasPermission(message.member, 'ManageMessages')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Messages.')] });
         const amount = parseInt(args[0]) || 50;
         const msgs = await message.channel.messages.fetch({ limit: 100 });
         const embedMsgs = msgs.filter(m => m.embeds.length > 0 && m.id !== message.id).first(amount);

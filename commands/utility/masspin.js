@@ -1,11 +1,12 @@
 const { createEmbed, errorEmbed } = require('../../utils/embeds');
+const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
     data: { name: 'masspin', description: 'Pin multiple messages', usage: ',masspin [amount]' },
     aliases: [],
     cooldown: 30,
     async execute(message, args) {
-        if (!message.member.permissions.has('ManageMessages')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Messages.')] });
+        if (!hasPermission(message.member, 'ManageMessages')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Messages.')] });
         const amount = parseInt(args[0]) || 5;
         if (amount < 1 || amount > 25) return message.reply({ embeds: [errorEmbed('Invalid Amount', 'Must be 1-25.')] });
         const msgs = await message.channel.messages.fetch({ limit: amount + 1 });

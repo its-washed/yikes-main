@@ -1,11 +1,12 @@
 const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
     data: { name: 'setsplash', description: 'Set server splash', usage: ',setsplash [image URL]' },
     aliases: ['splash'],
     cooldown: 30,
     async execute(message, args) {
-        if (!message.member.permissions.has('ManageGuild')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Server.')] });
+        if (!hasPermission(message.member, 'ManageGuild')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Server.')] });
         const url = args[0];
         if (!url) return message.reply({ embeds: [errorEmbed('Missing URL', 'Usage: ,setsplash [image URL]')] });
         try {

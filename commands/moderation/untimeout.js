@@ -1,4 +1,5 @@
 const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
     data: {
@@ -10,7 +11,7 @@ module.exports = {
     cooldown: 5,
 
     async execute(message, args) {
-        if (!message.member.permissions.has('ModerateMembers')) {
+        if (!hasPermission(message.member, 'ModerateMembers')) {
             return message.reply({ embeds: [errorEmbed('No Permission', 'You need Moderate Members permission.')] });
         }
 
