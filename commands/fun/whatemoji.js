@@ -1,0 +1,2 @@
+const { createEmbed, errorEmbed } = require('../../utils/embeds');
+module.exports = { data: { name: 'whatemoji', description: 'What emoji are you?', usage: ',whatemoji' }, aliases: ['we'], cooldown: 5, async execute(message) { const emojis = ['😀','😂','🤣','😍','🥰','😎','🥳','😈','💀','🤡','👻','🤖','👽','🎃','🦄','🐸','🐱','🐶','🦁','🐻']; const emoji = emojis[Math.floor(Math.random() * emojis.length)]; return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'What Emoji Are You?', description: `You are ${emoji}!` })] }); } };

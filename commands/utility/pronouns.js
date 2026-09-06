@@ -1,8 +1,8 @@
 const { createEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
-    data: { name: 'pronouns', description: 'Check user pronouns', usage: ',pronouns [@user]' },
-    aliases: [],
+    data: { name: 'pronouns', description: 'Look up user pronouns', usage: ',pronouns [@user]' },
+    aliases: ['pronoun'],
     cooldown: 5,
     async execute(message) {
         const user = message.mentions.users.first() || message.author;

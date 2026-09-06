@@ -1,0 +1,2 @@
+const { createEmbed } = require('../../utils/embeds');
+module.exports = { data: { name: 'husbando', description: 'Get a random husbando', usage: ',husbando' }, aliases: [], cooldown: 5, async execute(message) { const husbandos = ['Levi','Gojo','Tanjiro','Zoro','Goku','Naruto','Luffy','Deku','Killua','Sasuke']; const husbando = husbandos[Math.floor(Math.random() * husbandos.length)]; return message.reply({ embeds: [createEmbed({ color: 0x3b82f6, title: 'Husbando', description: `Your husbando is **${husbando}**!` })] }); } };

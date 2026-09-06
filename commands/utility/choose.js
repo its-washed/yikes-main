@@ -1,13 +1,2 @@
 const { createEmbed, errorEmbed } = require('../../utils/embeds');
-
-module.exports = {
-    data: { name: 'choose', description: 'Choose between options', usage: ',choose [opt1] | [opt2]' },
-    aliases: ['pick'],
-    cooldown: 3,
-    async execute(message, args) {
-        const parts = args.join(' ').split('|').map(p => p.trim()).filter(Boolean);
-        if (parts.length < 2) return message.reply({ embeds: [errorEmbed('Missing Options', 'Usage: ,choose [opt1] | [opt2] | [opt3]')] });
-        const chosen = parts[Math.floor(Math.random() * parts.length)];
-        return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'I Choose...', description: `**${chosen}**` })] });
-    }
-};
+module.exports = { data: { name: 'choose', description: 'Choose between options', usage: ',choose [opt1] | [opt2]' }, aliases: ['pick'], cooldown: 3, async execute(message, args) { const parts = args.join(' ').split('|').map(p => p.trim()).filter(Boolean); if (parts.length < 2) return message.reply({ embeds: [errorEmbed('Missing Options', 'Usage: ,choose [opt1] | [opt2] | [opt3]')] }); const chosen = parts[Math.floor(Math.random() * parts.length)]; return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'I Choose...', description: `**${chosen}**` })] }); } };

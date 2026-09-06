@@ -1,0 +1,2 @@
+const { createEmbed } = require('../../utils/embeds');
+module.exports = { data: { name: 'drink', description: 'Drink something', usage: ',drink [drink]' }, aliases: ['beverage'], cooldown: 3, async execute(message, args) { const drink = args.join(' ') || 'something'; return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Drink!', description: `${message.author} drinks **${drink}**! 🥤` })] }); } };

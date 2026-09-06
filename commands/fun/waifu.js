@@ -1,0 +1,2 @@
+const { createEmbed } = require('../../utils/embeds');
+module.exports = { data: { name: 'waifu', description: 'Get a random waifu', usage: ',waifu' }, aliases: [], cooldown: 5, async execute(message) { const waifus = ['Hinata','Rem','Megumin','Zero Two','Asuna','Emilia','Albedo','Mikasa','Rias','Android 18']; const waifu = waifus[Math.floor(Math.random() * waifus.length)]; return message.reply({ embeds: [createEmbed({ color: 0xec4899, title: 'Waifu', description: `Your waifu is **${waifu}**!` })] }); } };

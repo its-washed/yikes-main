@@ -1,0 +1,2 @@
+const { createEmbed, errorEmbed } = require('../../utils/embeds');
+module.exports = { data: { name: 'abi', description: 'Whatabi', usage: ',abi' }, aliases: ['whatabi'], cooldown: 5, async execute(message) { const abis = ['Solidity','Rust','C++','Python','JavaScript','Go','Java','Swift','Kotlin','TypeScript']; return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Your ABI', description: `Your ABI is **${abis[Math.floor(Math.random() * abis.length)]}**!` })] }); } };
