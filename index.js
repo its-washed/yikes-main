@@ -83,13 +83,16 @@ function loadEvents() {
     for (const file of eventFiles) {
         const filePath = path.join(eventsPath, file);
         try {
-            const event = require(filePath);
-            if (event.once) {
-                client.once(event.name, (...args) => event.execute(...args));
-            } else {
-                client.on(event.name, (...args) => event.execute(...args));
+            const eventModule = require(filePath);
+            const events = Array.isArray(eventModule) ? eventModule : [eventModule];
+            for (const event of events) {
+                if (event.once) {
+                    client.once(event.name, (...args) => event.execute(...args));
+                } else {
+                    client.on(event.name, (...args) => event.execute(...args));
+                }
+                logger.success(`Loaded event: ${event.name}`);
             }
-            logger.success(`Loaded event: ${event.name}`);
         } catch (error) {
             logger.error(`Error loading event ${file}: ${error.message}`);
         }
