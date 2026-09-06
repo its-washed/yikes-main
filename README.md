@@ -4,7 +4,7 @@ Premium all-in-one Discord bot for moderation, security, and community managemen
 
 ## Features
 
-- **98+ Commands** across moderation, server, utility, music, and fun
+- **198 Commands** across moderation, server, utility, music, and fun
 - **Fake Permissions** — strip dangerous permissions from roles via API
 - **Honeypot System** — trap channels that auto-ban raid bots
 - **Ticket System** — support tickets with buttons
@@ -17,6 +17,10 @@ Premium all-in-one Discord bot for moderation, security, and community managemen
 - **Bump Reminders** — Disboard bump reminders
 - **Leveling System** — XP, levels, and leaderboards
 - **Suggestion System** — approve/deny suggestions with buttons
+- **Booster Roles** — custom booster role system with gradient colors and icons
+- **AFK System** — set AFK status, notify when mentioned
+- **Anime Card Trading** — claim, collect, and trade anime character cards
+- **UWULock** — lock users to only send uwu messages
 
 ## Setup
 
@@ -58,7 +62,7 @@ Enable these in the [Discord Developer Portal](https://discord.com/developers/ap
 
 ## Commands
 
-### Moderation
+### Moderation (37)
 | Command | Description |
 |---------|-------------|
 | `,ban` | Ban a member |
@@ -66,6 +70,7 @@ Enable these in the [Discord Developer Portal](https://discord.com/developers/ap
 | `,kick` | Kick a member |
 | `,mute` | Timeout a member |
 | `,unmute` | Remove timeout |
+| `,untimeout` | Remove timeout from member |
 | `,warn` | Issue a warning |
 | `,warnings` | View warnings |
 | `,clearwarn` | Remove warnings |
@@ -76,20 +81,23 @@ Enable these in the [Discord Developer Portal](https://discord.com/developers/ap
 | `,nuke` | Clone and recreate channel |
 | `,softban` | Ban + unban to purge messages |
 | `,tempban` | Temporary ban |
-| `,massban` | Ban multiple users |
-| `,masskick` | Kick multiple users |
+| `,massban` | Ban multiple users at once |
+| `,masskick` | Kick multiple users at once |
 | `,roleall` | Give role to all members |
 | `,deafen` | Deafen a member |
 | `,undeafen` | Undeafen a member |
+| `,deafenall` | Deafen all in voice |
+| `,undeafenall` | Undeafen all in voice |
 | `,voicekick` | Disconnect from voice |
 | `,move` | Move to another voice channel |
 | `,muteall` | Mute all in voice |
 | `,unmuteall` | Unmute all in voice |
-| `,freeze` | Freeze a channel |
+| `,freeze` | Freeze a channel (admin only) |
 | `,unfreeze` | Unfreeze a channel |
 | `,history` | View mod history |
+| `,uwulock` | Lock user to uwu messages |
 
-### Server
+### Server (33)
 | Command | Description |
 |---------|-------------|
 | `,setup` | Interactive setup wizard |
@@ -106,11 +114,13 @@ Enable these in the [Discord Developer Portal](https://discord.com/developers/ap
 | `,honeypot` | Auto-ban trap channels |
 | `,announce` | Create announcement embeds |
 | `,giveaway` | Start a giveaway |
-| `,hide` / `,unhide` | Hide/unhide channels |
+| `,hide` | Hide a channel |
+| `,unhide` | Unhide a channel |
 | `,clone` | Clone a channel |
 | `,category` | Create a category |
 | `,rolecolor` | Change role color |
-| `,lockdown` / `,unlockdown` | Lock/unlock all channels |
+| `,lockdown` | Lock all channels |
+| `,unlockdown` | Unlock all channels |
 | `,bump` | Bump reminder |
 | `,ticket` | Support ticket system |
 | `,counter` | Counter channels |
@@ -118,19 +128,35 @@ Enable these in the [Discord Developer Portal](https://discord.com/developers/ap
 | `,suggestion` | Suggestion system |
 | `,jointocreate` | Join-to-create voice |
 | `,ghostpingsetup` | Auto ghost ping on join |
+| `,boostersetup` | Configure booster role |
+| `,boostconfig` | Booster role position/settings |
+| `,boostrole` | Customize your booster role |
+| `,boosters` | View all server boosters |
+| `,boostlog` | Set boost log channel |
 
-### Utility
+### Utility (52)
 | Command | Description |
 |---------|-------------|
 | `,botinfo` / `,bi` | Bot information |
 | `,userinfo` / `,ui` | User information |
+| `,whois` | Detailed user info |
 | `,serverinfo` / `,si` | Server information |
+| `,serverstats` | Detailed server stats |
+| `,serverage` | Show server age |
+| `,serveravatar` | Get server icon |
+| `,serverbanner` | Get server banner |
 | `,avatar` | Get user avatar |
 | `,role` | Add/remove roles |
+| `,roleinfo` | Get role info |
+| `,rolecount` | Show all roles |
+| `,channelinfo` | Get channel info |
 | `,nick` | Change nickname |
 | `,embed` | Create custom embeds |
-| `,poll` | Create a poll |
-| `,remind` | Set a reminder |
+| `,say` | Make bot say something |
+| `,poll` | Quick yes/no poll |
+| `,poll2` | Advanced poll with timer |
+| `,pollresults` | Check poll results |
+| `,remindme` | DM reminder |
 | `,snipe` | View deleted messages |
 | `,translate` | Translate text |
 | `,calc` | Calculator |
@@ -153,11 +179,8 @@ Enable these in the [Discord Developer Portal](https://discord.com/developers/ap
 | `,note` | Save notes |
 | `,todo` | To-do list |
 | `,pomodoro` | Focus timer |
-| `,reverse` | Reverse text |
-| `,mock` | MoCk TeXt |
 | `,spoiler` | Send spoiler text |
 | `,charcount` | Count characters |
-| `,remindme` | DM reminder |
 | `,weather` | Weather info |
 | `,define` | Dictionary lookup |
 | `,google` | Google search |
@@ -165,8 +188,30 @@ Enable these in the [Discord Developer Portal](https://discord.com/developers/ap
 | `,github` | GitHub user info |
 | `,webhook` | Manage webhooks |
 | `,shutdown` | Shut down bot |
+| `,firstmessage` | Get first message in channel |
+| `,membercount` | Show member count |
+| `,emojicount` | Show emoji count |
+| `,perms` | Check user permissions |
+| `,badge` | Check user badges |
+| `,pronouns` | Check user pronouns |
+| `,spotify` | Show Spotify presence |
+| `,largeemojis` | Send emojis full size |
+| `,removereaction` | Remove reactions from message |
+| `,discover` | Discover servers |
 
-### Music
+### Social Lookups (8)
+| Command | Description |
+|---------|-------------|
+| `,steam` | Get Steam profile |
+| `,roblox` | Get Roblox user info |
+| `,tiktok` | Get TikTok profile |
+| `,instagram` | Get Instagram profile |
+| `,twitter` | Get Twitter/X profile |
+| `,twitch` | Get Twitch streamer info |
+| `,reddit` | Get Reddit user info |
+| `,crypto` | Get cryptocurrency price |
+
+### Music (11)
 | Command | Description |
 |---------|-------------|
 | `,play` | Play a song |
@@ -181,7 +226,7 @@ Enable these in the [Discord Developer Portal](https://discord.com/developers/ap
 | `,bass` | Toggle bass boost |
 | `,musicinfo` | Music system info |
 
-### Fun
+### Fun (47)
 | Command | Description |
 |---------|-------------|
 | `,8ball` | Magic 8-ball |
@@ -201,6 +246,34 @@ Enable these in the [Discord Developer Portal](https://discord.com/developers/ap
 | `,urban` | Urban Dictionary |
 | `,trivia` | Trivia game |
 | `,lyrics` | Song lyrics |
+| `,fact` | Random fun fact |
+| `,character` | Random anime character |
+| `,advice` | Random advice |
+| `,bored` | Activity suggestion |
+| `,card` | Draw a playing card |
+| `,race` | Race animals |
+| `,typingtest` | Test typing speed |
+| `,binarygame` | Guess binary numbers |
+| `,emojify` | Convert text to flag emojis |
+| `,clap` | CLAP YOUR TEXT |
+| `,owo` | OwO-ify text |
+| `,uwuify` | UwU-ify text |
+| `,zalgo` | Zalgo text |
+| `,vaporwave` | Vaporwave text |
+| `,fliptext` | Flip text upside down |
+| `,typewriter` | Typing effect |
+| `,mock` | MoCk TeXt |
+| `,reverse` | Reverse text |
+| `,claim` | Claim anime card |
+| `,cards` | View your cards |
+| `,cardinfo` | Get card info |
+| `,trade` | Trade a card |
+| `,deletecard` | Delete a card |
+| `,topcards` | Top collectors |
+| `,qr` | Generate QR code |
+| `,shorten` | Shorten a URL |
+| `,age` | Calculate age |
+| `,iplookup` | IP lookup (placeholder) |
 
 ## Tech Stack
 
