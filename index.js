@@ -131,6 +131,7 @@ client.on(Events.MessageCreate, async (message) => {
     if (message.author.bot || !message.guild) return;
     if (isBlacklisted(message.author.id)) return;
     if (isServerBlacklisted(message.guild.id)) return;
+    if (client.maintenanceMode && !isDeveloper(message.author.id)) return;
 
     const cfg = getGuildConfig(message.guild.id);
     const prefix = cfg.prefix || ',';
@@ -141,7 +142,26 @@ client.on(Events.MessageCreate, async (message) => {
     const cmdName = args.shift().toLowerCase();
 
     const cmd = client.commands.get(cmdName) || client.commands.get(client.aliases.get(cmdName));
-    if (!cmd) return;
+    if (!cmd) {
+        const customAliases = cfg.customAliases || [];
+        const alias = customAliases.find(a => a.name === cmdName);
+        if (!alias) return;
+        const resolvedCmd = client.commands.get(alias.command) || client.commands.get(client.aliases.get(alias.command));
+        if (!resolvedCmd) return;
+        let aliasArgs = alias.args;
+        const userArgs = [cmdName, ...args];
+        for (let i = 0; i < userArgs.length; i++) {
+            aliasArgs = aliasArgs.replace(new RegExp(`\\{${i}\\}`, 'g'), userArgs[i] || '');
+        }
+        const finalArgs = aliasArgs.trim().split(/ +/).filter(Boolean);
+        try {
+            await resolvedCmd.execute(message, finalArgs, client, cfg);
+            logger.command(`${message.author.tag} > ${prefix}${alias.name} (alias) in ${message.guild.name}`);
+        } catch (err) {
+            logger.error(`alias ${alias.name} error: ${err.message}`);
+        }
+        return;
+    }
 
     if (isCommandDisabled(cmd.data.name, message.guild.id)) {
         const msg = await message.reply({

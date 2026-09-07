@@ -1,155 +1,157 @@
-const { PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
-const { updateGuildConfig, getGuildConfig } = require('../../utils/config');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits } = require('discord.js');
+const { updateGuildConfig } = require('../../utils/config');
 const { errorEmbed, successEmbed, createEmbed } = require('../../utils/embeds');
-const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
+const { isAdmin } = require('../../utils/permissions');
+const { Paginator } = require('../../utils/pagination');
+const { parseEmbed } = require('../../utils/variables');
 
 module.exports = {
     data: {
         name: 'ticket',
-        description: 'Ticket system — create support tickets',
-        usage: ',ticket [setup|disable|category|log|close]'
+        description: 'Manage the ticket system',
+        usage: ',ticket <setup|send|topics|settings|close|add|remove> [args]'
     },
-    aliases: ['tickets', 'supportticket'],
     cooldown: 10,
 
     async execute(message, args, client, config) {
-        const action = args[0]?.toLowerCase();
-
-        if (!action || action === 'status') {
-            const t = config.tickets || {};
-            return message.reply({
-                embeds: [createEmbed({
-                    color: 0x6c5ce7,
-                    title: 'Ticket System',
-                    fields: [
-                        { name: 'Enabled', value: t.enabled ? 'Yes' : 'No', inline: true },
-                        { name: 'Category', value: t.category ? `<#${t.category}>` : 'Not set', inline: true },
-                        { name: 'Log Channel', value: t.logChannel ? `<#${t.logChannel}>` : 'Not set', inline: true },
-                        { name: 'Support Role', value: t.supportRole ? `<@&${t.supportRole}>` : 'Not set', inline: true },
-                        { name: 'Open Tickets', value: `${t.openCount || 0}`, inline: true }
-                    ]
-                })]
-            });
+        if (!isAdmin(message.member)) {
+            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need Administrator.')] });
         }
 
-        if (action === 'setup') {
-            if (!isAdmin(message.member)) {
-                return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Administrator` permission.')] });
+        const sub = args[0]?.toLowerCase();
+        if (!sub) return message.reply({ embeds: [errorEmbed('Subcommands', 'Valid: `setup`, `send`, `topics`, `settings`,close`, `add`, `remove`')] });
+
+        if (sub === 'setup') return this.handleSetup(message, args.slice(1), config);
+        if (sub === 'send') return this.handleSend(message, args.slice(1), config);
+        if (sub === 'topics') return this.handleTopics(message, args.slice(1), config);
+        if (sub === 'settings') return this.handleSettings(message, args.slice(1), config);
+        if (sub === 'add') return this.handleAddMember(message, args.slice(1));
+        if (sub === 'remove') return this.handleRemoveMember(message, args.slice(1));
+
+        return message.reply({ embeds: [errorEmbed('Invalid', 'Valid subcommands listed above.')] });
+    },
+
+    async handleSetup(message, args, config) {
+        const supportRole = message.mentions.roles.first();
+        const category = message.mentions.channels.first();
+        if (!supportRole) return message.reply({ embeds: [errorEmbed('Usage', ',ticket setup @support-role [#category]')] });
+
+        updateGuildConfig(message.guild.id, {
+            tickets: {
+                enabled: true,
+                supportRole: supportRole.id,
+                categoryId: category?.id || null,
+                topics: config.tickets?.topics || [{ name: 'Support', emoji: '🎫' }],
+                logsChannel: config.tickets?.logsChannel || null,
+                openEmbed: config.tickets?.openEmbed || '{user.mention} has opened a ticket.\n**Topic:** {topic}'
             }
+        });
 
-            try {
-                const category = await message.guild.channels.create({
-                    name: 'Tickets',
-                    type: ChannelType.GuildCategory
-                });
+        return message.reply({ embeds: [successEmbed('Tickets Setup', `Support role: ${supportRole}\nCategory: ${category || 'Default'}`)] });
+    },
 
-                const ticketChannel = await message.guild.channels.create({
-                    name: 'open-tickets',
-                    type: ChannelType.GuildText,
-                    parent: category.id,
-                    topic: 'Click the button below to create a support ticket.'
-                });
+    async handleSend(message, args, config) {
+        const channel = message.mentions.channels.first() || message.channel;
+        const topics = config.tickets?.topics || [];
 
-                const embed = createEmbed({
-                    color: 0x6c5ce7,
-                    title: 'Support Tickets',
-                    description: 'Need help? Click the button below to create a support ticket.\n\nA private channel will be created for you and our staff team.'
-                });
+        const embed = {
+            color: 0x6c5ce7,
+            title: 'Support Tickets',
+            description: 'Click the button below to create a support ticket.'
+        };
 
-                const row = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder()
-                        .setCustomId('ticket_create')
-                        .setLabel('Create Ticket')
-                        .setEmoji('🎫')
-                        .setStyle(ButtonStyle.Primary)
-                );
+        const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('ticket_create').setLabel('Create Ticket').setEmoji('🎫').setStyle(ButtonStyle.Primary)
+        );
 
-                await ticketChannel.send({ embeds: [embed], components: [row] });
+        await channel.send({ embeds: [embed], components: [row] });
+        return message.reply({ embeds: [successEmbed('Sent', `Ticket panel sent to ${channel}`)] });
+    },
 
-                const supportRole = message.guild.roles.cache.find(r => r.name.toLowerCase().includes('support') || r.name.toLowerCase().includes('staff'));
+    async handleTopics(message, args, config) {
+        const action = args[0]?.toLowerCase();
+        const tickets = config.tickets || {};
+        const topics = tickets.topics || [];
 
-                updateGuildConfig(message.guild.id, {
-                    tickets: {
-                        enabled: true,
-                        category: category.id,
-                        ticketChannel: ticketChannel.id,
-                        logChannel: null,
-                        supportRole: supportRole?.id || null,
-                        openCount: 0
-                    }
-                });
+        if (action === 'add') {
+            const name = args[1];
+            const emoji = args[2] || '🎫';
+            if (!name) return message.reply({ embeds: [errorEmbed('Usage', ',ticket topics add <name> [emoji]')] });
+            topics.push({ name, emoji });
+            updateGuildConfig(message.guild.id, { tickets: { ...tickets, topics } });
+            return message.reply({ embeds: [successEmbed('Topic Added', `Topic: ${emoji} **${name}**`)] });
+        }
 
-                return message.reply({
-                    embeds: [successEmbed('Ticket System Setup', `Category: ${category}\nTicket Channel: ${ticketChannel}${supportRole ? `\nSupport Role: ${supportRole}` : ''}\n\nUse \`,ticket role @role\` to set the support role.`)]
-                });
-            } catch (error) {
-                return message.reply({ embeds: [errorEmbed('Error', `Failed: ${error.message}`)] });
-            }
+        if (action === 'remove') {
+            const name = args[1];
+            if (!name) return message.reply({ embeds: [errorEmbed('Usage', ',ticket topics remove <name>')] });
+            const idx = topics.findIndex(t => t.name.toLowerCase() === name.toLowerCase());
+            if (idx === -1) return message.reply({ embeds: [errorEmbed('Not Found', 'No topic with that name.')] });
+            topics.splice(idx, 1);
+            updateGuildConfig(message.guild.id, { tickets: { ...tickets, topics } });
+            return message.reply({ embeds: [successEmbed('Removed', `Topic \`${name}\` deleted.`)] });
+        }
+
+        if (!topics.length) {
+            return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Ticket Topics', description: 'No topics configured.\nUse `,ticket topics add <name>` to create one.' })] });
+        }
+
+        const list = topics.map((t, i) => `**${i + 1}.** ${t.emoji} ${t.name}`).join('\n');
+        return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: `Ticket Topics (${topics.length})`, description: list })] });
+    },
+
+    async handleSettings(message, args, config) {
+        const action = args[0]?.toLowerCase();
+        const tickets = config.tickets || {};
+
+        if (action === 'category') {
+            const channel = message.mentions.channels.first();
+            if (!channel) return message.reply({ embeds: [errorEmbed('No Channel', 'Mention a category.')] });
+            updateGuildConfig(message.guild.id, { tickets: { ...tickets, categoryId: channel.id } });
+            return message.reply({ embeds: [successEmbed('Category Set', `Tickets go to ${channel}`)] });
+        }
+
+        if (action === 'logs') {
+            const channel = message.mentions.channels.first();
+            if (!channel) return message.reply({ embeds: [errorEmbed('No Channel', 'Mention a channel for transcripts.')] });
+            updateGuildConfig(message.guild.id, { tickets: { ...tickets, logsChannel: channel.id } });
+            return message.reply({ embeds: [successEmbed('Logs Set', `Transcripts go to ${channel}`)] });
+        }
+
+        if (action === 'embed') {
+            const code = args.slice(1).join(' ');
+            if (!code) return message.reply({ embeds: [errorEmbed('Usage', ',ticket settings embed <embed code>')] });
+            updateGuildConfig(message.guild.id, { tickets: { ...tickets, openEmbed: code } });
+            return message.reply({ embeds: [successEmbed('Embed Set', 'Ticket open message updated.')] });
         }
 
         if (action === 'role') {
-            if (!isAdmin(message.member)) {
-                return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Administrator` permission.')] });
-            }
-
             const role = message.mentions.roles.first();
-            if (!role) return message.reply({ embeds: [errorEmbed('Missing Role', 'Please mention a support role.')] });
-
-            updateGuildConfig(message.guild.id, {
-                tickets: { ...config.tickets, supportRole: role.id }
-            });
-
-            return message.reply({ embeds: [successEmbed('Support Role', `Set to ${role}.`)] });
+            if (!role) return message.reply({ embeds: [errorEmbed('No Role', 'Mention a support role.')] });
+            updateGuildConfig(message.guild.id, { tickets: { ...tickets, supportRole: role.id } });
+            return message.reply({ embeds: [successEmbed('Role Set', `Support role: ${role}`)] });
         }
 
-        if (action === 'log') {
-            if (!isAdmin(message.member)) {
-                return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Administrator` permission.')] });
-            }
+        return message.reply({ embeds: [errorEmbed('Usage', ',ticket settings <category|logs|embed|role> [args]')] });
+    },
 
-            const channel = message.mentions.channels.first();
-            if (!channel) return message.reply({ embeds: [errorEmbed('Missing Channel', 'Please mention a log channel.')] });
-
-            updateGuildConfig(message.guild.id, {
-                tickets: { ...config.tickets, logChannel: channel.id }
-            });
-
-            return message.reply({ embeds: [successEmbed('Ticket Log', `Logs will be sent to ${channel}.`)] });
+    async handleAddMember(message, args) {
+        if (!message.channel.name?.startsWith('ticket-')) {
+            return message.reply({ embeds: [errorEmbed('Not a Ticket', 'This command can only be used in ticket channels.')] });
         }
+        const member = message.mentions.members.first();
+        if (!member) return message.reply({ embeds: [errorEmbed('No Member', 'Mention a member to add.')] });
+        await message.channel.permissionOverwrites.edit(member.id, { ViewChannel: true, SendMessages: true });
+        return message.reply({ embeds: [successEmbed('Added', `${member} can now see this ticket.`)] });
+    },
 
-        if (action === 'close') {
-            if (!message.channel.name?.startsWith('ticket-')) {
-                return message.reply({ embeds: [errorEmbed('Not a Ticket', 'This is not a ticket channel.')] });
-            }
-
-            const userId = message.channel.name.replace('ticket-', '');
-            const member = message.guild.members.cache.get(userId);
-
-            const logEmbed = createEmbed({
-                color: 0xff4757,
-                title: 'Ticket Closed',
-                description: `Closed by ${message.author}`,
-                fields: [{ name: 'User', value: member ? `${member.user.tag}` : userId, inline: true }]
-            });
-
-            if (config.tickets?.logChannel) {
-                const logChannel = message.guild.channels.cache.get(config.tickets.logChannel);
-                if (logChannel) logChannel.send({ embeds: [logEmbed] }).catch(() => {});
-            }
-
-            await message.reply({ embeds: [successEmbed('Closing Ticket', 'This ticket will be deleted in 5 seconds...')] });
-            setTimeout(() => message.channel.delete().catch(() => {}), 5000);
-            return;
+    async handleRemoveMember(message, args) {
+        if (!message.channel.name?.startsWith('ticket-')) {
+            return message.reply({ embeds: [errorEmbed('Not a Ticket', 'This command can only be used in ticket channels.')] });
         }
-
-        if (action === 'disable') {
-            if (!isAdmin(message.member)) {
-                return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Administrator` permission.')] });
-            }
-            updateGuildConfig(message.guild.id, { tickets: { enabled: false } });
-            return message.reply({ embeds: [successEmbed('Tickets Disabled', 'Ticket system disabled.')] });
-        }
-
-        return message.reply({ embeds: [errorEmbed('Invalid Action', 'Valid: `setup`, `role`, `log`, `close`, `disable`, `status`')] });
+        const member = message.mentions.members.first();
+        if (!member) return message.reply({ embeds: [errorEmbed('No Member', 'Mention a member to remove.')] });
+        await message.channel.permissionOverwrites.delete(member.id);
+        return message.reply({ embeds: [successEmbed('Removed', `${member} can no longer see this ticket.`)] });
     }
 };
