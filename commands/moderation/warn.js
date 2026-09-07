@@ -1,60 +1,34 @@
+const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { hasPermission } = require('../../utils/permissions');
 const { PermissionFlagsBits } = require('discord.js');
-const { parseMember } = require('../../utils/helpers');
-const { addWarning, getWarningCount } = require('../../utils/database');
-const { modLogEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
-const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
-    data: {
-        name: 'warn',
-        description: 'Issue a warning to a member',
-        usage: ',warn @user [reason]'
-    },
-    aliases: ['w'],
-    cooldown: 5,
-
-    async execute(message, args, client, config) {
-        if (!hasPermission(message.member, PermissionFlagsBits.ModerateMembers)) {
-            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Moderate Members` permission.')] });
+    data: { name: 'warn', description: 'Warn a user', usage: ',warn <@user> <reason>' },
+    cooldown: 3,
+    async execute(message, args) {
+        if (!hasPermission(message.member, PermissionFlagsBits.ManageMessages)) {
+            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Manage Messages` permission.')] });
         }
 
-        if (!args[0]) {
-            return message.reply({ embeds: [errorEmbed('Missing Target', 'Please mention a user or provide their ID.')] });
-        }
+        const target = message.mentions.members.first();
+        const reason = args.slice(1).join(' ').replace(/<@\d+>/g, '').trim();
+        if (!target) return message.reply({ embeds: [errorEmbed('Usage', ',warn @user <reason>')] });
 
-        const target = parseMember(message, args[0]);
-        if (!target) {
-            return message.reply({ embeds: [errorEmbed('User Not Found', 'Could not find that user in this server.')] });
-        }
+        if (target.id === message.author.id) return message.reply({ embeds: [errorEmbed('Self', 'You cannot warn yourself.')] });
+        if (target.user.bot) return message.reply({ embeds: [errorEmbed('Bot', 'Cannot warn bots.')] });
 
-        if (target.id === message.author.id) {
-            return message.reply({ embeds: [errorEmbed('Self Warning', 'You cannot warn yourself.')] });
-        }
-
-        const reason = args.slice(1).join(' ') || 'No reason provided';
-        const warning = addWarning(message.guild.id, target.id, message.author.id, reason);
-        const totalWarnings = getWarningCount(message.guild.id, target.id);
-
-        try {
-            await target.send({
-                embeds: [{
-                    color: 0xffa502,
-                    title: `Warning in ${message.guild.name}`,
-                    description: `**Reason:** ${reason}\n**Total Warnings:** ${totalWarnings}`,
-                    timestamp: new Date().toISOString()
-                }]
-            }).catch(() => {});
-        } catch (error) {}
-
-        const logChannel = message.guild.channels.cache.get(config.logChannel);
-        if (logChannel) {
-            logChannel.send({
-                embeds: [modLogEmbed('Warn', message.author, target, `${reason} (Warning #${totalWarnings})`, 0xffa502)]
-            });
-        }
-
-        return message.reply({
-            embeds: [successEmbed('Warning Issued', `**${target.user.tag}** has been warned. They now have **${totalWarnings}** warning(s).`)]
+        const { readJSON, writeJSON } = require('../../utils/database');
+        const warns = readJSON('warns.json') || {};
+        if (!warns[message.guild.id]) warns[message.guild.id] = {};
+        if (!warns[message.guild.id][target.id]) warns[message.guild.id][target.id] = [];
+        warns[message.guild.id][target.id].push({
+            moderator: message.author.id,
+            reason: reason || 'No reason',
+            time: Date.now()
         });
+        writeJSON('warns.json', warns);
+
+        const count = warns[message.guild.id][target.id].length;
+        return message.reply({ embeds: [successEmbed('Warned', `**${target.user.tag}** has been warned (${count} total).\nReason: ${reason || 'No reason'}`)] });
     }
 };

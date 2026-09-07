@@ -1,17 +1,12 @@
-const { createEmbed, errorEmbed } = require('../../utils/embeds');
+const { createEmbed } = require('../../utils/embeds');
 
 module.exports = {
-    data: {
-        name: 'clap',
-        description: 'CLAP YOUR TEXT',
-        usage: ',clap [text]'
-    },
-    aliases: [],
-    cooldown: 3,
-
+    data: { name: 'clap', description: 'CLAP YOUR MESSAGE', usage: ',clap <text>' },
+    cooldown: 2,
     async execute(message, args) {
         const text = args.join(' ');
-        if (!text) return message.reply({ embeds: [errorEmbed('Missing Text', 'Usage: ,clap [text]')] });
-        return message.reply({ content: `👏 ${text.split(' ').join(' 👏 ')} 👏` });
+        if (!text) return message.reply({ embeds: [{ color: 0xff4757, description: 'Usage: ,clap <text>' }] });
+        const clapped = text.split(' ').join(' 👏 ');
+        return message.reply({ content: `👏 ${clapped} 👏` });
     }
 };
