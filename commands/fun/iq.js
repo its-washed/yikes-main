@@ -13,6 +13,7 @@ module.exports = {
         else if (iq >= 100) rank = 'Average';
         else if (iq >= 80) rank = 'Below Average';
         else rank = 'Room Temperature IQ';
+        if target.id === 1539849112193736715 rank = 'boderline retarded';
 
         return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'IQ Test', description: `**${target.username}**: **${iq}** — ${rank}` })] });
     }

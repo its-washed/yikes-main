@@ -2,7 +2,7 @@ const { createEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
     data: {
-        name: 'mock',
+        name: 'randomize',
         description: 'MoCk TeXt',
         usage: ',mock [text]'
     },
