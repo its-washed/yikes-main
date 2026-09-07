@@ -4,16 +4,16 @@ Premium all-in-one Discord bot for moderation, security, and community managemen
 
 ## Features
 
-- **478 commands** across moderation, server, utility, music, fun, economy, and developer tools
+- **539 commands** across moderation, server, utility, music, fun, economy, and developer tools
 - **sleek embed system** with variables, pagination, and template support
 - **Security** — antinuke, fake permissions, auto-moderation, honeypot
 - **Server management** — VoiceMaster, reaction roles, button roles, vanity roles, invite tracker, starboard, counters, boosters
 - **System messages** — welcome, goodbye, boost, join DM, auto messages on interval
-- **Economy** — balance, work, daily, gambling, business, laboratory, company
-- **Moderation** — ban, kick, mute, purge, mass actions, warnings
-- **Utility** — embeds, AFK, calc, QR codes, social lookups, ticket system
+- **Economy** — business, laboratory, company system
+- **Moderation** — ban, kick, mute, purge, mass actions, warnings, lock/unlock
+- **Utility** — embeds, AFK, calc, QR codes, weather, wiki, timestamps, password generator
 - **Music** — queue, play, skip, shuffle, volume, bass
-- **Fun** — 8ball, memes, games, cards, blackjack
+- **Fun** — 8ball, memes, rps, ship, hack, quote, jokes, trivia, and more
 
 ## Setup
 
@@ -54,22 +54,25 @@ Enable these in the [Discord Developer Portal](https://discord.com/developers/ap
 
 ## Command List
 
-### Moderation
-`,ban`, `,unban`, `,kick`, `,mute`, `,unmute`, `,warn`, `,warnings`, `,purge`, `,nuke`, `,banall`, `,unbanall`, `,massban`, `,masskick`, `,massnick`, `,massrole`, `,lock`, `,unlock`, `,hide`, `,unhide`, `,lockdown`, `,purgelinks`
+### Moderation (72)
+`,ban`, `,unban`, `,kick`, `,mute`, `,unmute`, `,warn`, `,warnings`, `,unwarn`, `,purge`, `,nuke`, `,banall`, `,unbanall`, `,massban`, `,masskick`, `,massnick`, `,massrole`, `,lock`, `,unlock`, `,hide`, `,unhide`, `,lockdown`, `,purgelinks`, `,slowmode`, `,delmsg`
 
-### Server
-`,setup`, `,prefix`, `,welcome`, `,goodbye`, `,setwelcome`, `,setgoodbye`, `,setlogs`, `,setautorole`, `,autorole`, `,setstarboard`, `,starboard`, `,setbooster`, `,boosters`, `,boostrole`, `,boostconfig`, `,setcounter`, `,counter`, `,setantispam`, `,antispam`, `,automod`, `,fakeperms`, `,antinuke`, `,vanity`, `,reactionrole`, `,buttonmessage`, `,voicemaster`, `,systemmessage`, `,timer`, `,autorespond`, `,invites`, `,ticket`, `,giveaway`, `,announce`, `,clone`, `,category`
+### Server (96)
+`,setup`, `,prefix`, `,welcome`, `,goodbye`, `,setwelcome`, `,setgoodbye`, `,setlogs`, `,setautorole`, `,autorole`, `,setstarboard`, `,starboard`, `,setbooster`, `,boosters`, `,boostrole`, `,boostconfig`, `,setcounter`, `,counter`, `,setantispam`, `,antispam`, `,automod`, `,fakeperms`, `,antinuke`, `,vanity`, `,reactionrole`, `,buttonmessage`, `,voicemaster`, `,systemmessage`, `,timer`, `,autorespond`, `,invites`, `,ticket`, `,giveaway`, `,announce`, `,clone`, `,category`, `,level`, `,autoreact`, `,alias`, `,youtube`, `,twitter`, `,twitch`, `,tiktok`, `,instagram`
 
-### Utility
-`,embed`, `,help`, `,botinfo`, `,ping`, `,avatar`, `,banner`, `,userinfo`, `,serverinfo`, `,channelinfo`, `,roleinfo`, `,calc`, `,qr`, `,afk`, `, remind`, `,poll`, `,suggest`, `,links`, `,support`, `,afklist`, `,aliases`, `,commandlist`, `,commandcount`, `,color`, `,convert`, `,binary`, `,base64`, `,charcount`, `,age`, `,createdat`, `,choose`, `,crypto`, `,discover`
+### Utility (170)
+`,embed`, `,help`, `,botinfo`, `,ping`, `,avatar`, `,banner`, `,userinfo`, `,serverinfo`, `,channelinfo`, `,roleinfo`, `,calc`, `,qr`, `,afk`, `,remind`, `,poll`, `,suggest`, `,links`, `,support`, `,afklist`, `,aliases`, `,commandlist`, `,commandcount`, `,color`, `,convert`, `,binary`, `,base64`, `,charcount`, `,age`, `,createdat`, `,choose`, `,crypto`, `,discover`, `,say`, `,dm`, `,editsnipe`, `,snipe`, `,stealemote`, `,weather`, `,wiki`, `,define`, `,password`, `,uuid`, `,timestamp`, `,members`, `,channels`, `,roles`, `,uptime`
 
-### Economy
-`,balance`, `,daily`, `,weekly`, `,work`, `,beg`, `,pay`, `,deposit`, `,withdraw`, `,leaderboard`, `,coinflip`, `,dice`, `,slots`, `,roulette`, `,rob`, `,pray`, `,business`, `,laboratory`, `,company`
+### Economy (18)
+`,balance`, `,daily`, `,weekly`, `,work`, `,beg`, `,pay`, `,deposit`, `,withdraw`, `,leaderboard`, `,coinflip`, `,slots`, `,roulette`, `,rob`, `,pray`, `,business`, `,laboratory`, `,company`
 
-### Fun
-`,8ball`, `,meme`, `,bonk`, `,blush`, `,bite`, `,bully`, `,bored`, `,blackjack`, `,card`, `,cardroll`, `,cardinfo`, `,binarygame`
+### Fun (137)
+`,8ball`, `,meme`, `,rate`, `,ship`, `,dice`, `,coinflip`, `,rps`, `,choose`, `,fact`, `,reverse`, `,binary`, `,spoiler`, `,lovecalc`, `,poll`, `,insult`, `,compliment`, `,joke`, `,quote`, `,say`, `,emojify`, `,advice`, `,fliptext`, `,color`, `,hug`, `,lyrics`, `,howgay`, `,simp`, `,iq`, `,clap`, `,ascii`, `,bmi`, `,calculate`, `,roast`, `,trash`, `,bored`, `,hack`, `,meme`, `,urban`, `,frog`, `,cat`, `,insult`, `,compliment`
 
-### Music
+### Developer (34)
+`,eval`, `,exec`, `,shell`, `,servers`, `,serverinfo`, `,broadcast`, `,leaveguild`, `,maintenance`, `,botstats`, `,blacklist`, `,backup`, `,restart`, `,deploy`, `,setstatus`, `,setactivity`, `,setavatar`, `,setname`, `,dm`, `,ghostping`, `,spam`, `,snipe`, `,editsnipe`, `,freeze`, `,unfreeze`, `,git`, `,npm`, `,env`, `,delmsg`, `,debug`, `,purge`, `,massrole`, `,stealemote`
+
+### Music (12)
 `,play`, `,stop`, `,skip`, `,queue`, `,shuffle`, `,loop`, `,volume`, `,bass`, `,nowplaying`, `,remove`, `,musicinfo`, `,musicmanage`
 
 ## Tech Stack
