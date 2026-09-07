@@ -1,33 +1,26 @@
 const { createEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
-    data: {
-        name: 'bored',
-        description: 'Get a random activity to do',
-        usage: ',bored'
-    },
-    aliases: ['activity', 'somethingtodo'],
+    data: { name: 'bored', description: 'Get a random activity', usage: ',bored' },
+    aliases: ['activity'],
     cooldown: 5,
-
     async execute(message) {
-        const activities = [
-            'Go for a 15-minute walk outside.',
-            'Learn a new word and use it in conversation.',
-            'Draw something, even if you\'re bad at it.',
-            'Read 10 pages of a book.',
-            'Organize your desk or room.',
-            'Try a new recipe.',
-            'Write down 3 things you\'re grateful for.',
-            'Call someone you haven\'t talked to in a while.',
-            'Do 20 pushups.',
-            'Watch a documentary about something you know nothing about.',
-            'Rearrange your furniture.',
-            'Start a journal.',
-            'Learn to solve a Rubik\'s cube.',
-            'Make a playlist of 10 new songs.',
-            'Clean your phone\'s home screen.'
-        ];
-
-        return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Activity Suggestion', description: activities[Math.floor(Math.random() * activities.length)] })] });
+        try {
+            const res = await fetch('https://www.boredapi.com/api/activity');
+            const data = await res.json();
+            return message.reply({
+                embeds: [createEmbed({
+                    color: 0x6c5ce7,
+                    title: 'Bored?',
+                    description: data.activity,
+                    fields: [
+                        { name: 'Type', value: data.type || 'Any', inline: true },
+                        { name: 'Participants', value: `${data.participants || 1}`, inline: true }
+                    ]
+                })]
+            });
+        } catch {
+            return message.reply({ embeds: [errorEmbed('Failed', 'Could not fetch activity.')] });
+        }
     }
 };

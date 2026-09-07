@@ -1,57 +1,24 @@
-const { PermissionFlagsBits } = require('discord.js');
-const { parseMember } = require('../../utils/helpers');
-const { getWarnings } = require('../../utils/database');
 const { createEmbed, errorEmbed } = require('../../utils/embeds');
-const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
+const { hasPermission } = require('../../utils/permissions');
+const { PermissionFlagsBits } = require('discord.js');
 
 module.exports = {
-    data: {
-        name: 'warnings',
-        description: 'View warnings for a member',
-        usage: ',warnings @user'
-    },
-    aliases: ['warns', 'infractions'],
-    cooldown: 5,
-
-    async execute(message, args, client, config) {
-        if (!hasPermission(message.member, PermissionFlagsBits.ModerateMembers)) {
-            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Moderate Members` permission.')] });
+    data: { name: 'warnings', description: 'View warnings for a user', usage: ',warnings [@user]' },
+    aliases: ['warns'],
+    cooldown: 3,
+    async execute(message, args) {
+        if (!hasPermission(message.member, PermissionFlagsBits.ManageMessages)) {
+            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Manage Messages` permission.')] });
         }
 
-        if (!args[0]) {
-            return message.reply({ embeds: [errorEmbed('Missing Target', 'Please mention a user or provide their ID.')] });
-        }
+        const target = message.mentions.members.first() || message.member;
+        const { readJSON } = require('../../utils/database');
+        const warns = readJSON('warns.json') || {};
+        const userWarns = warns[message.guild.id]?.[target.id] || [];
 
-        const target = parseMember(message, args[0]);
-        if (!target) {
-            return message.reply({ embeds: [errorEmbed('User Not Found', 'Could not find that user in this server.')] });
-        }
+        if (!userWarns.length) return message.reply({ embeds: [createEmbed({ color: 0x22c55e, description: `**${target.user.tag}** has no warnings.` })] });
 
-        const warnings = getWarnings(message.guild.id, target.id);
-
-        if (warnings.length === 0) {
-            return message.reply({
-                embeds: [createEmbed({
-                    color: 0x74b9ff,
-                    title: `Warnings for ${target.user.tag}`,
-                    description: 'This user has no warnings.'
-                })]
-            });
-        }
-
-        const warningList = warnings.map((w, i) => {
-            const mod = message.guild.members.cache.get(w.moderator);
-            const date = new Date(w.timestamp).toLocaleDateString();
-            return `**${i + 1}.** ${w.reason}\n> Moderator: ${mod ? mod.user.tag : 'Unknown'} | ${date} | ID: \`${w.id}\``;
-        }).join('\n\n');
-
-        return message.reply({
-            embeds: [createEmbed({
-                color: 0xffa502,
-                title: `Warnings for ${target.user.tag}`,
-                description: warningList.length > 4000 ? warningList.slice(0, 4000) + '...' : warningList,
-                fields: [{ name: 'Total', value: `${warnings.length} warning(s)`, inline: true }]
-            })]
-        });
+        const list = userWarns.map((w, i) => `**${i + 1}.** ${w.reason} — <@${w.moderator}> (<t:${Math.floor(w.time / 1000)}:R>)`).join('\n');
+        return message.reply({ embeds: [createEmbed({ color: 0xfbbf24, title: `Warnings — ${target.user.tag} (${userWarns.length})`, description: list.slice(0, 4000) })] });
     }
 };
