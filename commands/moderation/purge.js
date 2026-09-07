@@ -8,7 +8,7 @@ module.exports = {
         description: 'Bulk delete messages',
         usage: ',purge [amount] [--user @user] [--bot] [--links] [--images]'
     },
-    aliases: ['clear', 'prune'],
+    aliases: ['clear', 'prune', 'c'],
     cooldown: 10,
 
     async execute(message, args, client, config) {
