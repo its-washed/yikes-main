@@ -15,41 +15,39 @@ function savePremium(data) {
 }
 
 function isPremium(userId) {
-    const data = loadPremium();
-    return data.premiumUsers.includes(userId);
+    return loadPremium().premiumUsers.includes(userId);
 }
 
 function addPremium(userId) {
-    const data = loadPremium();
-    if (!data.premiumUsers.includes(userId)) {
-        data.premiumUsers.push(userId);
-        savePremium(data);
+    const d = loadPremium();
+    if (!d.premiumUsers.includes(userId)) {
+        d.premiumUsers.push(userId);
+        savePremium(d);
     }
 }
 
 function removePremium(userId) {
-    const data = loadPremium();
-    data.premiumUsers = data.premiumUsers.filter(id => id !== userId);
-    savePremium(data);
+    const d = loadPremium();
+    d.premiumUsers = d.premiumUsers.filter(id => id !== userId);
+    savePremium(d);
 }
 
-function isPremiumCommand(commandName) {
-    const data = loadPremium();
-    return data.premiumCommands.includes(commandName);
+function isPremiumCommand(name) {
+    return loadPremium().premiumCommands.includes(name);
 }
 
-function addPremiumCommand(commandName) {
-    const data = loadPremium();
-    if (!data.premiumCommands.includes(commandName)) {
-        data.premiumCommands.push(commandName);
-        savePremium(data);
+function addPremiumCommand(name) {
+    const d = loadPremium();
+    if (!d.premiumCommands.includes(name)) {
+        d.premiumCommands.push(name);
+        savePremium(d);
     }
 }
 
-function removePremiumCommand(commandName) {
-    const data = loadPremium();
-    data.premiumCommands = data.premiumCommands.filter(c => c !== commandName);
-    savePremium(data);
+function removePremiumCommand(name) {
+    const d = loadPremium();
+    d.premiumCommands = d.premiumCommands.filter(c => c !== name);
+    savePremium(d);
 }
 
 module.exports = { loadPremium, savePremium, isPremium, addPremium, removePremium, isPremiumCommand, addPremiumCommand, removePremiumCommand };

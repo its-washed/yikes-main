@@ -19,7 +19,6 @@ module.exports = {
         const wasBoosting = oldMember.premiumSince;
         const isBoosting = newMember.premiumSince;
 
-        // Detect new booster
         if (!wasBoosting && isBoosting) {
             const data = loadJSON(BOOST_FILE);
             const guildId = newMember.guild.id;
@@ -33,7 +32,6 @@ module.exports = {
                 }
             }
 
-            // Send boost message
             const boostChannel = newMember.guild.systemChannel;
             if (boostChannel) {
                 boostChannel.send({
@@ -48,7 +46,6 @@ module.exports = {
             }
         }
 
-        // Detect boost removed
         if (wasBoosting && !isBoosting) {
             const data = loadJSON(BOOST_FILE);
             const guildId = newMember.guild.id;
@@ -62,7 +59,6 @@ module.exports = {
                 }
             }
 
-            // Remove custom role if they had one
             if (data[guildId] && data[guildId].customRoles && data[guildId].customRoles[newMember.id]) {
                 const customRole = newMember.guild.roles.cache.get(data[guildId].customRoles[newMember.id]);
                 if (customRole) {

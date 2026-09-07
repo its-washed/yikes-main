@@ -9,72 +9,48 @@ const COLORS = {
     neutral: 0x2f3542
 };
 
-function createEmbed(options = {}) {
+function createEmbed(opts = {}) {
     const embed = new EmbedBuilder();
 
-    if (options.color) embed.setColor(options.color);
-    if (options.title) embed.setTitle(options.title);
-    if (options.description) embed.setDescription(options.description);
-    if (options.author) embed.setAuthor(options.author);
-    if (options.footer) embed.setFooter(options.footer);
-    if (options.thumbnail) embed.setThumbnail(options.thumbnail);
-    if (options.image) embed.setImage(options.image);
-    if (options.fields) embed.addFields(options.fields);
-    if (options.timestamp !== false) embed.setTimestamp();
+    if (opts.color) embed.setColor(opts.color);
+    if (opts.title) embed.setTitle(opts.title);
+    if (opts.description) embed.setDescription(opts.description);
+    if (opts.author) embed.setAuthor(opts.author);
+    if (opts.footer) embed.setFooter(opts.footer);
+    if (opts.thumbnail) embed.setThumbnail(opts.thumbnail);
+    if (opts.image) embed.setImage(opts.image);
+    if (opts.fields) embed.addFields(opts.fields);
+    if (opts.timestamp !== false) embed.setTimestamp();
 
     return embed;
 }
 
-function successEmbed(title, description) {
-    return createEmbed({
-        color: COLORS.success,
-        title: title || 'Success',
-        description: description || ''
-    });
+function successEmbed(title, desc) {
+    return createEmbed({ color: COLORS.success, title: title || 'Success', description: desc || '' });
 }
 
-function errorEmbed(title, description) {
-    return createEmbed({
-        color: COLORS.error,
-        title: title || 'Error',
-        description: description || ''
-    });
+function errorEmbed(title, desc) {
+    return createEmbed({ color: COLORS.error, title: title || 'Error', description: desc || '' });
 }
 
-function warningEmbed(title, description) {
-    return createEmbed({
-        color: COLORS.warning,
-        title: title || 'Warning',
-        description: description || ''
-    });
+function warningEmbed(title, desc) {
+    return createEmbed({ color: COLORS.warning, title: title || 'Warning', description: desc || '' });
 }
 
-function infoEmbed(title, description) {
-    return createEmbed({
-        color: COLORS.info,
-        title: title || 'Info',
-        description: description || ''
-    });
+function infoEmbed(title, desc) {
+    return createEmbed({ color: COLORS.info, title: title || 'Info', description: desc || '' });
 }
 
-function modLogEmbed(action, moderator, target, reason, color) {
+function modLogEmbed(action, mod, target, reason, color) {
     return createEmbed({
         color: color || COLORS.warning,
-        title: `Moderation: ${action}`,
+        title: `Mod: ${action}`,
         fields: [
-            { name: 'Moderator', value: `${moderator.tag} (${moderator.id})`, inline: true },
+            { name: 'Moderator', value: `${mod.tag} (${mod.id})`, inline: true },
             { name: 'Target', value: `${target.tag} (${target.id})`, inline: true },
-            { name: 'Reason', value: reason || 'No reason provided', inline: false }
+            { name: 'Reason', value: reason || 'No reason', inline: false }
         ]
     });
 }
 
-module.exports = {
-    COLORS,
-    createEmbed,
-    successEmbed,
-    errorEmbed,
-    warningEmbed,
-    infoEmbed,
-    modLogEmbed
-};
+module.exports = { COLORS, createEmbed, successEmbed, errorEmbed, warningEmbed, infoEmbed, modLogEmbed };
