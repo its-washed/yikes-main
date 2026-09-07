@@ -1,19 +1,37 @@
 const { createEmbed, errorEmbed } = require('../../utils/embeds');
+const { hasPermission, isAdmin } = require('../../utils/permissions');
+const { PermissionFlagsBits } = require('discord.js');
 
 module.exports = {
-    data: {
-        name: 'mock',
-        description: 'MoCk TeXt',
-        usage: ',mock [text]'
-    },
-    aliases: ['spongebob'],
-    cooldown: 3,
-
+    data: { name: 'mock', description: 'Send a message as another user via webhook', usage: ',mock @user <message>' },
+    aliases: ['impersonate', 'webhook'],
+    cooldown: 5,
     async execute(message, args) {
-        const text = args.join(' ');
-        if (!text) return message.reply({ embeds: [errorEmbed('Missing Text', 'Usage: ,mock [text]')] });
+        if (!isAdmin(message.member)) {
+            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Administrator` permission.')] });
+        }
 
-        const mocked = text.split('').map((c, i) => i % 2 === 0 ? c.toLowerCase() : c.toUpperCase()).join('');
-        return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'MoCk TeXt', description: mocked })] });
+        const target = message.mentions.members.first();
+        const text = args.slice(1).join(' ').replace(/<@\d+>/g, '').trim();
+        if (!target || !text) return message.reply({ embeds: [errorEmbed('Usage', ',mock @user <message>')] });
+
+        try {
+            await message.delete().catch(() => {});
+
+            const webhook = await message.channel.createWebhook({
+                name: target.user.username,
+                avatar: target.user.displayAvatarURL({ dynamic: true })
+            });
+
+            await webhook.send({
+                content: text,
+                username: target.user.username,
+                avatarURL: target.user.displayAvatarURL({ dynamic: true })
+            });
+
+            await webhook.delete().catch(() => {});
+        } catch (e) {
+            return message.reply({ embeds: [errorEmbed('Failed', `Could not create webhook: ${e.message}`)] });
+        }
     }
 };
