@@ -20,7 +20,6 @@ module.exports = {
 
         const config = getGuildConfig(message.guild.id);
 
-        // AFK check - remove AFK when user sends message
         const afkData = loadJSON(AFK_FILE);
         const guildAfk = afkData[message.guild.id];
         if (guildAfk && guildAfk[message.author.id]) {
@@ -52,7 +51,6 @@ module.exports = {
             });
         }
 
-        // AFK check - notify if mentioned user is AFK
         if (message.mentions.users.size > 0) {
             for (const [, user] of message.mentions.users) {
                 if (guildAfk && guildAfk[user.id]) {
@@ -69,7 +67,6 @@ module.exports = {
             }
         }
 
-        // Starboard check
         if (config.starboard?.enabled && message.content.includes('⭐')) {
             const starCount = (message.content.match(/⭐/g) || []).length;
             if (starCount >= (config.starboard.threshold || 5)) {
@@ -88,7 +85,6 @@ module.exports = {
             }
         }
 
-        // Command handling
         const prefix = config.prefix || ',';
         if (!message.content.startsWith(prefix)) return;
 

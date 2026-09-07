@@ -5,20 +5,17 @@ const CONFIG_PATH = path.join(__dirname, '..', 'data', 'config.json');
 let guildConfigs = {};
 
 function ensureDataDir() {
-    const dataDir = path.join(__dirname, '..', 'data');
-    if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
-    }
+    const d = path.join(__dirname, '..', 'data');
+    if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
 }
 
 function loadConfigs() {
     ensureDataDir();
     try {
         if (fs.existsSync(CONFIG_PATH)) {
-            const data = fs.readFileSync(CONFIG_PATH, 'utf8');
-            guildConfigs = JSON.parse(data);
+            guildConfigs = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
         }
-    } catch (error) {
+    } catch (e) {
         guildConfigs = {};
     }
 }
@@ -27,8 +24,8 @@ function saveConfigs() {
     ensureDataDir();
     try {
         fs.writeFileSync(CONFIG_PATH, JSON.stringify(guildConfigs, null, 2));
-    } catch (error) {
-        console.error('Failed to save config:', error);
+    } catch (e) {
+        console.error('config save failed:', e);
     }
 }
 
@@ -52,10 +49,10 @@ function getGuildConfig(guildId) {
 }
 
 function updateGuildConfig(guildId, updates) {
-    const config = getGuildConfig(guildId);
-    Object.assign(config, updates);
+    const cfg = getGuildConfig(guildId);
+    Object.assign(cfg, updates);
     saveConfigs();
-    return config;
+    return cfg;
 }
 
 loadConfigs();

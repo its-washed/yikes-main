@@ -120,14 +120,7 @@ function playNext(server, message) {
 
     const song = server.queue[0];
 
-    // For actual playback, you need a stream source
-    // This creates a placeholder - integrate with ytdl-core, distube, or lavalink for real playback
     try {
-        // Example with ytdl-core (install separately):
-        // const ytdl = require('ytdl-core');
-        // const stream = ytdl(song.url, { filter: 'audioonly', highWaterMark: 1 << 25 });
-        // const resource = createAudioResource(stream);
-        // server.player.play(resource);
 
         const textChannel = message.guild.channels.cache.get(server.textChannel);
         if (textChannel) {
