@@ -26,7 +26,7 @@ const client = new Client({
     ],
     presence: {
         activities: [{
-            name: ',help | Protecting servers',
+            name: 'hi uwu',
             type: ActivityType.Watching
         }],
         status: 'online'
