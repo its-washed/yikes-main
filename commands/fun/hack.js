@@ -39,7 +39,7 @@ module.exports = {
             embeds: [createEmbed({
                 color: 0x22c55e,
                 title: `Hacked ${target.tag}`,
-                description: `**${hack}**\n\nJust kidding. Don't actually hack people. 🫡`
+                description: `**${hack}**\n\nJust kidding. Don't actually hack people. `
             })]
         });
     }
