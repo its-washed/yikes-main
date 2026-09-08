@@ -10,7 +10,7 @@ Premium all-in-one Discord bot for moderation, security, and community managemen
 - **Security** — antinuke, fake permissions, auto-moderation, honeypot
 - **Server management** — VoiceMaster, reaction roles, button roles, vanity roles, invite tracker, starboard, counters, boosters
 - **System messages** — welcome, goodbye, boost, join DM, auto messages on interval
-- **Activity tracking** — message and VC leaderboards with auto-updating channels
+- **Activity tracking** — message and VC leaderboards with a constant updating channel i think if i did it right folk
 - **Economy** — business, laboratory, company, shop, fishing, hunting, crime, duels, trivia
 - **Moderation** — ban, kick, mute, purge, mass actions, warnings, lock/unlock
 - **Utility** — embeds, AFK, calc, QR codes, weather, wiki, timestamps, password generator
