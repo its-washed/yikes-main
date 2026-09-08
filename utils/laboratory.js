@@ -4,8 +4,11 @@ const path = require('path');
 const LAB_FILE = path.join(__dirname, '..', '..', 'data', 'laboratory.json');
 
 function loadLab() {
-    if (!fs.existsSync(LAB_FILE)) return { experiments: {} };
-    return JSON.parse(fs.readFileSync(LAB_FILE, 'utf8'));
+    if (!fs.existsSync(LAB_FILE)) return { labs: {}, experiments: {} };
+    const data = JSON.parse(fs.readFileSync(LAB_FILE, 'utf8'));
+    if (!data.labs) data.labs = {};
+    if (!data.experiments) data.experiments = {};
+    return data;
 }
 
 function saveLab(data) {
@@ -14,23 +17,64 @@ function saveLab(data) {
     fs.writeFileSync(LAB_FILE, JSON.stringify(data, null, 2));
 }
 
+function getLab(userId) {
+    const data = loadLab();
+    return data.labs[userId] || null;
+}
+
+function createLab(userId) {
+    const data = loadLab();
+    data.labs[userId] = {
+        level: 1,
+        purchasedAt: Date.now()
+    };
+    saveLab(data);
+    return data.labs[userId];
+}
+
+function upgradeLab(userId) {
+    const data = loadLab();
+    const lab = data.labs[userId];
+    if (!lab) return null;
+    if (lab.level >= 10) return null;
+    lab.level += 1;
+    saveLab(data);
+    return lab;
+}
+
+function getUpgradeCost(level) {
+    const costs = {
+        2: 500000,
+        3: 1000000,
+        4: 2000000,
+        5: 4000000,
+        6: 7000000,
+        7: 10000000,
+        8: 15000000,
+        9: 20000000,
+        10: 25000000
+    };
+    return costs[level] || null;
+}
+
 function getExperiments(userId) {
     const data = loadLab();
     return data.experiments[userId] || [];
 }
 
-function startExperiment(userId, name, cost) {
+function startExperiment(userId, recipe) {
     const data = loadLab();
     if (!data.experiments[userId]) data.experiments[userId] = [];
+    const reward = Math.floor(recipe.rewardMin + Math.random() * (recipe.rewardMax - recipe.rewardMin));
     const exp = {
         id: Date.now().toString(36),
-        name,
-        cost,
+        name: recipe.name,
+        tier: recipe.tier,
+        cost: recipe.cost,
         status: 'running',
-        progress: 0,
-        reward: Math.floor(cost * (1.5 + Math.random())),
+        reward,
         startedAt: Date.now(),
-        completesAt: Date.now() + 3600000
+        completesAt: Date.now() + recipe.duration
     };
     data.experiments[userId].push(exp);
     saveLab(data);
@@ -61,4 +105,4 @@ function cancelExperiment(userId, expId) {
     return true;
 }
 
-module.exports = { loadLab, saveLab, getExperiments, startExperiment, collectExperiment, cancelExperiment };
+module.exports = { loadLab, saveLab, getLab, createLab, upgradeLab, getUpgradeCost, getExperiments, startExperiment, collectExperiment, cancelExperiment };

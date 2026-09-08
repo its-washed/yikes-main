@@ -27,11 +27,12 @@ function getCompanyByMember(userId) {
     return null;
 }
 
-function createCompany(ownerId, name) {
+function createCompany(ownerId, name, type) {
     const data = loadCompany();
     if (data.companies[ownerId]) return null;
     data.companies[ownerId] = {
         name,
+        type,
         level: 1,
         treasury: 0,
         members: [ownerId],
@@ -45,7 +46,7 @@ function createCompany(ownerId, name) {
 
 function addMember(ownerId, userId) {
     const data = loadCompany();
-    const company = data.companies[OwnerId];
+    const company = data.companies[ownerId];
     if (!company) return null;
     if (company.members.length >= company.maxMembers) return null;
     if (company.members.includes(userId)) return null;
@@ -73,18 +74,19 @@ function upgradeCompany(ownerId) {
     return company;
 }
 
-function startProject(ownerId, name, cost) {
+function startProject(ownerId, project) {
     const data = loadCompany();
     const company = data.companies[ownerId];
     if (!company) return null;
     company.projects.push({
         id: Date.now().toString(36),
-        name,
-        cost,
-        reward: Math.floor(cost * (2 + Math.random())),
-        completesAt: Date.now() + 14400000
+        name: project.name,
+        tier: project.tier,
+        cost: project.cost,
+        reward: Math.floor(project.rewardMin + Math.random() * (project.rewardMax - project.rewardMin)),
+        completesAt: Date.now() + project.duration
     });
-    company.treasury -= cost;
+    company.treasury -= project.cost;
     saveCompany(data);
     return company;
 }
@@ -103,6 +105,20 @@ function collectProject(ownerId, projectId) {
     return { ...project, ready: true };
 }
 
+function cancelProject(ownerId, projectId) {
+    const data = loadCompany();
+    const company = data.companies[ownerId];
+    if (!company) return null;
+    const idx = company.projects.findIndex(p => p.id === projectId);
+    if (idx === -1) return null;
+    const project = company.projects[idx];
+    const refund = Math.floor(project.cost * 0.5);
+    company.projects.splice(idx, 1);
+    company.treasury += refund;
+    saveCompany(data);
+    return { ...project, refund };
+}
+
 function deleteCompany(ownerId) {
     const data = loadCompany();
     if (!data.companies[ownerId]) return false;
@@ -111,4 +127,4 @@ function deleteCompany(ownerId) {
     return true;
 }
 
-module.exports = { loadCompany, saveCompany, getCompany, getCompanyByMember, createCompany, addMember, removeMember, upgradeCompany, startProject, collectProject, deleteCompany };
+module.exports = { loadCompany, saveCompany, getCompany, getCompanyByMember, createCompany, addMember, removeMember, upgradeCompany, startProject, collectProject, cancelProject, deleteCompany };
