@@ -54,4 +54,44 @@ function getTotal(userId) {
     return user.wallet + user.bank;
 }
 
-module.exports = { loadEconomy, saveEconomy, getUser, updateWallet, updateBank, getTotal };
+function addItem(userId, itemName, quantity = 1) {
+    const data = loadEconomy();
+    const user = getUser(userId);
+    if (!user.inventory) user.inventory = [];
+    const existing = user.inventory.find(i => i.name.toLowerCase() === itemName.toLowerCase());
+    if (existing) {
+        existing.quantity += quantity;
+    } else {
+        user.inventory.push({ name: itemName, quantity });
+    }
+    saveEconomy(data);
+    return user;
+}
+
+function removeItem(userId, itemName, quantity = 1) {
+    const data = loadEconomy();
+    const user = getUser(userId);
+    if (!user.inventory) user.inventory = [];
+    const existing = user.inventory.find(i => i.name.toLowerCase() === itemName.toLowerCase());
+    if (!existing || existing.quantity < quantity) return false;
+    existing.quantity -= quantity;
+    if (existing.quantity <= 0) {
+        user.inventory = user.inventory.filter(i => i.name.toLowerCase() !== itemName.toLowerCase());
+    }
+    saveEconomy(data);
+    return true;
+}
+
+function hasItem(userId, itemName, quantity = 1) {
+    const user = getUser(userId);
+    if (!user.inventory) return false;
+    const existing = user.inventory.find(i => i.name.toLowerCase() === itemName.toLowerCase());
+    return existing && existing.quantity >= quantity;
+}
+
+function getInventory(userId) {
+    const user = getUser(userId);
+    return user.inventory || [];
+}
+
+module.exports = { loadEconomy, saveEconomy, getUser, updateWallet, updateBank, getTotal, addItem, removeItem, hasItem, getInventory };
