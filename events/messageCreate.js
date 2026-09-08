@@ -1,5 +1,6 @@
 const { Events, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const { getGuildConfig } = require('../utils/config');
+const { trackMessage } = require('../utils/activity');
 const fs = require('fs');
 const path = require('path');
 
@@ -17,6 +18,8 @@ module.exports = {
 
     async execute(message) {
         if (message.author.bot || !message.guild) return;
+
+        trackMessage(message.guild.id, message.author.id);
 
         const config = getGuildConfig(message.guild.id);
 
