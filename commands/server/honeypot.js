@@ -25,7 +25,7 @@ module.exports = {
                 embeds: [createEmbed({
                     color: 0xff4757,
                     title: 'Honeypot System',
-                    description: 'Creates invisible trap channels. Anyone who types in them is automatically banned — perfect for catching raid bots.',
+                    description: 'Creates invisible trap channels. Anyone who types in them is automatically banned.',
                     fields: [
                         { name: 'Enabled', value: hp.enabled ? 'Yes' : 'No', inline: true },
                         { name: 'Channel', value: hp.channel ? `<#${hp.channel}>` : 'Not set', inline: true },
