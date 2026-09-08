@@ -2,7 +2,7 @@ const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
 const { isDeveloper } = require('../../utils/developer');
 
 module.exports = {
-    data: { name: 'freeze', description: 'Freeze a user (Developer only)', usage: ',freeze <@user|userId> [reason]' },
+    data: { name: 'freezuser', description: 'Freeze a user (Developer only)', usage: ',freezuser <@user|userId> [reason]' },
     cooldown: 0,
     async execute(message, args) {
         if (!isDeveloper(message.author.id)) return message.reply({ embeds: [errorEmbed('No Permission', 'You must be a developer.')] });

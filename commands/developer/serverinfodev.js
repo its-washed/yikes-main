@@ -1,10 +1,9 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed } = require('../../utils/embeds');
 const { isDeveloper } = require('../../utils/developer');
-const { Paginator } = require('../../utils/pagination');
 
 module.exports = {
-    data: { name: 'serverinfo', description: 'Get detailed info about a server (Developer only)', usage: ',serverinfo [guildId]' },
-    aliases: ['si'],
+    data: { name: 'serverinfodev', description: 'Get detailed info about a server (Developer only)', usage: ',serverinfodev [guildId]' },
+    aliases: ['sidev'],
     cooldown: 0,
     async execute(message, args, client) {
         if (!isDeveloper(message.author.id)) return message.reply({ embeds: [errorEmbed('No Permission', 'You must be a developer.')] });
