@@ -6,7 +6,7 @@ module.exports = {
         description: 'Snipe the last deleted message',
         usage: ',snipe'
     },
-    aliases: ['deletesnipe'],
+    aliases: ['s'],
     cooldown: 5,
 
     async execute(message) {
