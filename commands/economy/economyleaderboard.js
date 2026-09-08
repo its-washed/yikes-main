@@ -2,8 +2,8 @@ const { createEmbed } = require('../../utils/embeds');
 const { loadEconomy } = require('../../utils/economy');
 
 module.exports = {
-    data: { name: 'leaderboard', description: 'Economy leaderboard', usage: ',leaderboard' },
-    aliases: ['lb', 'baltop'],
+    data: { name: 'lb', description: 'Economy leaderboard', usage: ',lb' },
+    aliases: ['elb', 'baltop', 'moneyboard'],
     cooldown: 10,
     async execute(message) {
         const data = loadEconomy();

@@ -40,7 +40,7 @@ client.editSnipes = new Map();
 client.aliases = new Collection();
 
 function loadCommands() {
-    const categories = ['moderation', 'server', 'utility', 'fun', 'developer', 'economy'];
+    const categories = ['moderation', 'server', 'utility', 'fun', 'developer', 'economy', 'music'];
     let total = 0;
 
     for (const cat of categories) {
@@ -54,6 +54,7 @@ function loadCommands() {
             try {
                 const cmd = require(fp);
                 if ('data' in cmd && 'execute' in cmd) {
+                    cmd.category = cat;
                     client.commands.set(cmd.data.name, cmd);
                     if (cmd.aliases) {
                         for (const alias of cmd.aliases) {
