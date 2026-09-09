@@ -1,11 +1,14 @@
 const { Events, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
-const { getGuildConfig } = require('../utils/config');
+const { getGuildConfig, updateGuildConfig } = require('../utils/config');
 const { trackMessage } = require('../utils/activity');
+const { resolve } = require('../utils/variables');
+const { createEmbed } = require('../utils/embeds');
 const fs = require('fs');
 const path = require('path');
 
 const AFK_FILE = path.join(__dirname, '../data/afk.json');
 const BOOST_FILE = path.join(__dirname, '../data/boosters.json');
+const DISBOARD_ID = '302050872383846401';
 
 function loadJSON(file) {
     if (!fs.existsSync(file)) return {};
@@ -70,20 +73,55 @@ module.exports = {
             }
         }
 
-        if (config.starboard?.enabled && message.content.includes('⭐')) {
-            const starCount = (message.content.match(/⭐/g) || []).length;
-            if (starCount >= (config.starboard.threshold || 5)) {
-                const starChannel = message.guild.channels.cache.get(config.starboard.channel);
-                if (starChannel) {
-                    const embed = new EmbedBuilder()
-                        .setColor(0xffd700)
-                        .setTitle('Starred Message')
-                        .setDescription(message.content)
-                        .setAuthor({ name: message.author.tag, iconURL: message.author.displayAvatarURL() })
-                        .setFooter({ text: `⭐ ${starCount} | #${message.channel.name}` })
-                        .setTimestamp();
+        if (message.author.id === DISBOARD_ID) {
+            const br = config.bumpReminder;
+            if (br?.enabled && br.channel) {
+                const isBumpSuccess = message.embeds.some(e => {
+                    const text = ((e.description || '') + ' ' + (e.title || '')).toLowerCase();
+                    return text.includes('bump') && (text.includes('done') || text.includes('success') || text.includes('performed') || text.includes('thank'));
+                });
+                if (isBumpSuccess) {
+                    updateGuildConfig(message.guild.id, {
+                        bumpReminder: { ...br, lastBump: Date.now() }
+                    });
 
-                    starChannel.send({ embeds: [embed] }).catch(() => {});
+                    const channel = message.guild.channels.cache.get(br.channel);
+                    if (channel) {
+                        const defaultThank = 'Thanks for bumping! Next reminder in **{interval}** hour(s).';
+                        const thankMsg = br.thankMessage || defaultThank;
+                        const interval = br.interval || 2;
+                        const ctx = { guild: message.guild, member: null, user: null, duration: `${interval}h` };
+                        const content = resolve(thankMsg, ctx).replace('{interval}', interval.toString());
+
+                        channel.send({
+                            embeds: [createEmbed({
+                                color: 0x00d26a,
+                                title: 'Bump Detected!',
+                                description: content
+                            })]
+                        }).catch(() => {});
+                    }
+                }
+            }
+        }
+
+        if (config.starboard?.enabled && config.starboard.emoji) {
+            const emoji = config.starboard.emoji;
+            if (message.content.includes(emoji)) {
+                const starCount = (message.content.split(emoji).length - 1);
+                if (starCount >= (config.starboard.threshold || 5)) {
+                    const starChannel = message.guild.channels.cache.get(config.starboard.channel);
+                    if (starChannel) {
+                        const embed = new EmbedBuilder()
+                            .setColor(0xffd700)
+                            .setTitle('Starred Message')
+                            .setDescription(message.content)
+                            .setAuthor({ name: message.author.tag, iconURL: message.author.displayAvatarURL() })
+                            .setFooter({ text: `${emoji} ${starCount} | #${message.channel.name}` })
+                            .setTimestamp();
+
+                        starChannel.send({ embeds: [embed] }).catch(() => {});
+                    }
                 }
             }
         }

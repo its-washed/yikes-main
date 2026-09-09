@@ -1,5 +1,5 @@
-const { Events, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
-const { getGuildConfig, updateGuildConfig } = require('../utils/config');
+const { Events, EmbedBuilder } = require('discord.js');
+const { getGuildConfig } = require('../utils/config');
 
 module.exports = {
     name: Events.MessageReactionAdd,
@@ -23,6 +23,14 @@ module.exports = {
         if (!sb?.enabled || !sb.channel) return;
         if (message.author.bot) return;
 
+        const emoji = sb.emoji || '⭐';
+        const isCustomEmoji = reaction.emoji.id !== null;
+        const matchesEmoji = isCustomEmoji
+            ? reaction.emoji.id === emoji || reaction.emoji.name === emoji
+            : reaction.emoji.name === emoji;
+
+        if (!matchesEmoji) return;
+
         const starCount = reaction.count;
         if (starCount < (sb.threshold || 5)) return;
 
@@ -37,7 +45,7 @@ module.exports = {
 
         if (starMsg) {
             const embed = EmbedBuilder.from(starMsg.embeds[0]);
-            embed.setFooter({ text: `⭐ ${starCount} | ${message.id}` });
+            embed.setFooter({ text: `${emoji} ${starCount} | ${message.id}` });
             await starMsg.edit({ embeds: [embed] }).catch(() => {});
         } else {
             const attachment = message.attachments.first();
@@ -45,13 +53,12 @@ module.exports = {
                 .setColor(0xffd700)
                 .setAuthor({ name: message.author.tag, iconURL: message.author.displayAvatarURL({ dynamic: true }) })
                 .setDescription(message.content || '*No text*')
-                .setFooter({ text: `⭐ ${starCount} | ${message.id}` })
+                .setFooter({ text: `${emoji} ${starCount} | ${message.id}` })
                 .setTimestamp();
 
             if (attachment) embed.setImage({ url: attachment.url });
 
-            const row = { content: `Original: ${message.url}` };
-            await starChannel.send({ content: row.content, embeds: [embed] }).catch(() => {});
+            await starChannel.send({ content: `Original: ${message.url}`, embeds: [embed] }).catch(() => {});
         }
     }
 };
