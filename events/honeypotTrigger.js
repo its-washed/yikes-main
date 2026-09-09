@@ -1,4 +1,4 @@
-const { Events, PermissionFlagsBits } = require('discord.js');
+const { Events, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { getGuildConfig, updateGuildConfig } = require('../utils/config');
 
 module.exports = {
@@ -43,9 +43,33 @@ module.exports = {
 
             await member.ban({ reason: 'Honeypot trigger — typed in trap channel' });
 
+            const newCount = (hp.bans || 0) + 1;
             updateGuildConfig(message.guild.id, {
-                honeypot: { ...hp, bans: (hp.bans || 0) + 1 }
+                honeypot: { ...hp, bans: newCount }
             });
+
+            if (hp.messageId) {
+                try {
+                    const honeypotChannel = message.guild.channels.cache.get(hp.channel);
+                    if (honeypotChannel) {
+                        const honeypotMsg = await honeypotChannel.messages.fetch(hp.messageId);
+                        if (honeypotMsg) {
+                            const embed = EmbedBuilder.from(honeypotMsg.embeds[0]);
+                            embed.setFooter({ text: `caught: ${newCount}` });
+
+                            const row = new ActionRowBuilder().addComponents(
+                                new ButtonBuilder()
+                                    .setCustomId('honeypot_caught')
+                                    .setLabel(`caught: ${newCount}`)
+                                    .setStyle(ButtonStyle.Danger)
+                                    .setDisabled(true)
+                            );
+
+                            await honeypotMsg.edit({ embeds: [embed], components: [row] }).catch(() => {});
+                        }
+                    }
+                } catch {}
+            }
         } catch (error) {}
     }
 };

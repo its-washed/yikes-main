@@ -1,7 +1,7 @@
-const { PermissionFlagsBits, ChannelType, PermissionOverwrites } = require('discord.js');
+const { PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { updateGuildConfig } = require('../../utils/config');
 const { errorEmbed, successEmbed, createEmbed } = require('../../utils/embeds');
-const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
+const { isAdmin } = require('../../utils/permissions');
 
 module.exports = {
     data: {
@@ -38,8 +38,6 @@ module.exports = {
         }
 
         if (action === 'setup') {
-            const hp = config.honeypot || {};
-
             try {
                 const channel = await message.guild.channels.create({
                     name: 'rules',
@@ -62,15 +60,24 @@ module.exports = {
                 });
 
                 const embed = createEmbed({
-                    color: 0x6c5ce7,
-                    title: 'Server Rules',
-                    description: '1. Be respectful\n2. No spam\n3. No NSFW content\n4. Listen to staff\n5. Have fun!\n\n*Type a message to confirm you read the rules.*'
+                    color: 0xff4757,
+                    title: 'Don\'t send messages to this channel.',
+                    description: 'This channel is a honeypot for compromised accounts and selfbots.\nLegit members have no reason to type here. Any message will be treated as evidence of a hijacked account and the sender will be **SOFTBAN** immediately, automatically, and without warning.',
+                    footer: { text: 'caught: 0' }
                 });
 
-                await channel.send({ embeds: [embed] });
+                const row = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('honeypot_caught')
+                        .setLabel('caught: 0')
+                        .setStyle(ButtonStyle.Danger)
+                        .setDisabled(true)
+                );
+
+                const honeypotMsg = await channel.send({ embeds: [embed], components: [row] });
 
                 updateGuildConfig(message.guild.id, {
-                    honeypot: { enabled: true, channel: channel.id, bans: 0, logChannel: null, role: null }
+                    honeypot: { enabled: true, channel: channel.id, bans: 0, logChannel: null, role: null, messageId: honeypotMsg.id }
                 });
 
                 return message.reply({
@@ -85,8 +92,25 @@ module.exports = {
             const channel = message.mentions.channels.first();
             if (!channel) return message.reply({ embeds: [errorEmbed('Missing Channel', 'Please mention a channel.')] });
 
+            const embed = createEmbed({
+                color: 0xff4757,
+                title: 'Don\'t send messages to this channel.',
+                description: 'This channel is a honeypot for compromised accounts and selfbots.\nLegit members have no reason to type here. Any message will be treated as evidence of a hijacked account and the sender will be **SOFTBAN** immediately, automatically, and without warning.',
+                footer: { text: 'caught: 0' }
+            });
+
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('honeypot_caught')
+                    .setLabel('caught: 0')
+                    .setStyle(ButtonStyle.Danger)
+                    .setDisabled(true)
+            );
+
+            const honeypotMsg = await channel.send({ embeds: [embed], components: [row] }).catch(() => null);
+
             updateGuildConfig(message.guild.id, {
-                honeypot: { ...config.honeypot, enabled: true, channel: channel.id }
+                honeypot: { ...config.honeypot, enabled: true, channel: channel.id, messageId: honeypotMsg?.id || null }
             });
 
             return message.reply({ embeds: [successEmbed('Honeypot Channel', `${channel} is now a honeypot.`)] });
