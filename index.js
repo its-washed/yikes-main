@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { Client, Collection, GatewayIntentBits, Partials, Events, ActivityType } = require('discord.js');
-const { loadConfig, getGuildConfig } = require('./utils/config');
+const { getGuildConfig } = require('./utils/config');
 const { initDatabase, closeDatabase } = require('./utils/database');
 const { logger } = require('./utils/logger');
 const { isBlacklisted, isDeveloper, isServerBlacklisted, isCommandDisabled } = require('./utils/developer');
@@ -29,7 +29,7 @@ const client = new Client({
             name: 'hi uwu',
             type: ActivityType.Watching
         }],
-        status: 'online'
+        status: 'idle'
     }
 });
 
@@ -110,14 +110,22 @@ client.on(Events.ClientReady, async () => {
         if (isServerBlacklisted(guild.id)) {
             logger.warn(`Leaving blacklisted: ${guild.name} (${guild.id})`);
             await guild.leave().catch(() => {});
+            continue;
+        }
+        const botMember = guild.members.me;
+        if (!botMember.permissions.has('Administrator')) {
+            logger.warn(`${guild.name} - missing Administrator permission`);
+            try {
+                const owner = await guild.fetchOwner();
+                await owner.send(`Hey! I need **Administrator** permissions in **${guild.name}** to function properly. Please grant me the permission or some commands won't work.`).catch(() => {});
+            } catch {}
         }
     }
 
     try {
-        const rest = client.rest;
-        logger.info('Registering slash commands...');
+        logger.info('Bot ready, slash commands can be deployed via ,deploy');
     } catch (err) {
-        logger.error(`Command registration failed: ${err.message}`);
+        logger.error(`Startup check failed: ${err.message}`);
     }
 });
 
@@ -125,6 +133,15 @@ client.on(Events.GuildCreate, async (guild) => {
     if (isServerBlacklisted(guild.id)) {
         logger.warn(`Kicking blacklisted server: ${guild.name}`);
         await guild.leave().catch(() => {});
+        return;
+    }
+    const botMember = guild.members.me;
+    if (!botMember.permissions.has('Administrator')) {
+        logger.warn(`${guild.name} - missing Administrator permission`);
+        try {
+            const owner = await guild.fetchOwner();
+            await owner.send(`Hey! I need **Administrator** permissions in **${guild.name}** to function properly. Please grant me the permission or some commands won't work.`).catch(() => {});
+        } catch {}
     }
 });
 
@@ -252,7 +269,7 @@ client.on(Events.MessageUpdate, (old, msg) => {
 });
 
 process.on('unhandledRejection', (err) => {
-    logger.error(`Unhandled: ${err.message}`);
+    logger.error(`Unhandled: ${err?.message || err}`);
 });
 
 process.on('SIGINT', () => {
