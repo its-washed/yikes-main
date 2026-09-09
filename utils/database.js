@@ -72,6 +72,29 @@ function getWarningCount(guildId, userId) {
     return getWarnings(guildId, userId).length;
 }
 
+function readJSON(fileName) {
+    const filePath = path.join(DATA_DIR, fileName);
+    ensureDataDir();
+    try {
+        if (fs.existsSync(filePath)) {
+            return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        }
+    } catch (e) {
+        console.error(`Failed reading ${fileName}:`, e);
+    }
+    return null;
+}
+
+function writeJSON(fileName, data) {
+    const filePath = path.join(DATA_DIR, fileName);
+    ensureDataDir();
+    try {
+        fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+    } catch (e) {
+        console.error(`Failed writing ${fileName}:`, e);
+    }
+}
+
 function closeDatabase() {
     saveWarnings();
 }
@@ -82,5 +105,7 @@ module.exports = {
     getWarnings,
     addWarning,
     removeWarning,
-    getWarningCount
+    getWarningCount,
+    readJSON,
+    writeJSON
 };
