@@ -1,7 +1,7 @@
-const { Events, EmbedBuilder } = require('discord.js');
+const { Events } = require('discord.js');
 const { getGuildConfig, updateGuildConfig } = require('../utils/config');
-
-const activeTimers = new Map();
+const { createEmbed } = require('../utils/embeds');
+const { resolve } = require('../utils/variables');
 
 module.exports = {
     name: Events.ClientReady,
@@ -9,8 +9,6 @@ module.exports = {
 
     async execute(client) {
         const checkBumps = async () => {
-            for (const [guildId, config] of Object.entries(require('../utils/config').getGuildConfig.__proto__ ? {} : {})) {}
-
             for (const guild of client.guilds.cache.values()) {
                 const config = getGuildConfig(guild.id);
                 const br = config.bumpReminder;
@@ -23,12 +21,16 @@ module.exports = {
                     const channel = guild.channels.cache.get(br.channel);
                     if (channel) {
                         try {
-                            const { createEmbed } = require('../utils/embeds');
+                            const defaultReminder = 'Time to bump your server on [Disboard](https://disboard.org/)!\n\nUse `/bump` on Disboard to get more members.';
+                            const reminderMsg = br.reminderMessage || defaultReminder;
+                            const ctx = { guild, member: null, user: null };
+                            const content = resolve(reminderMsg, ctx);
+
                             await channel.send({
                                 embeds: [createEmbed({
                                     color: 0x6c5ce7,
                                     title: 'Bump Reminder!',
-                                    description: 'Time to bump your server on [Disboard](https://disboard.org/)!\n\nUse `/bump` on Disboard to get more members.',
+                                    description: content,
                                     fields: [{ name: 'Command', value: '`/bump` on Disboard', inline: true }]
                                 })]
                             });

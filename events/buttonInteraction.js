@@ -37,6 +37,34 @@ module.exports = {
             }
         }
 
+        if (interaction.customId.startsWith('br_')) {
+            const roleId = interaction.customId.replace('br_', '');
+            const brConfig = config.buttonRoles || [];
+            const entry = brConfig.find(b => b.messageId === interaction.message.id);
+            if (!entry) return interaction.reply({ content: 'This button role is no longer configured.', ephemeral: true });
+
+            const btn = entry.buttons.find(b => b.roleId === roleId);
+            if (!btn) return interaction.reply({ content: 'Button not found.', ephemeral: true });
+
+            const role = interaction.guild.roles.cache.get(roleId);
+            if (!role) return interaction.reply({ content: 'Role no longer exists.', ephemeral: true });
+
+            const member = interaction.member;
+            const hasRole = member.roles.cache.has(roleId);
+
+            try {
+                if (hasRole) {
+                    await member.roles.remove(roleId, 'Button role toggle');
+                    return interaction.reply({ content: `Removed **${role.name}**.`, ephemeral: true });
+                } else {
+                    await member.roles.add(roleId, 'Button role toggle');
+                    return interaction.reply({ content: `Added **${role.name}**.`, ephemeral: true });
+                }
+            } catch {
+                return interaction.reply({ content: 'Failed to update role. Check my permissions.', ephemeral: true });
+            }
+        }
+
         if (interaction.customId.startsWith('vm_')) {
             const { PermissionFlagsBits } = require('discord.js');
             const member = interaction.member;

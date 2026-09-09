@@ -41,7 +41,7 @@ function getGuildConfig(guildId) {
             goodbyeMessage: 'Goodbye {user}, we will miss you!',
             antispam: { enabled: false, threshold: 5, interval: 10 },
             automod: { enabled: false, words: [], links: false, maxMentions: 5 },
-            starboard: { enabled: false, channel: null, threshold: 5 },
+            starboard: { enabled: false, channel: null, threshold: 5, emoji: '⭐' },
             levels: { enabled: true, xpPerMessage: 15, levelUpChannel: null }
         };
     }
