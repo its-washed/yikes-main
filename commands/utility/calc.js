@@ -6,7 +6,7 @@ module.exports = {
         description: 'Simple calculator',
         usage: ',calc [expression]'
     },
-    aliases: ['calculate'],
+    aliases: ['calculate', 'math'],
     cooldown: 3,
 
     async execute(message, args) {
