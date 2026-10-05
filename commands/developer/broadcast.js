@@ -3,7 +3,7 @@ const { isDeveloper } = require('../../utils/developer');
 
 module.exports = {
     data: { name: 'broadcast', description: 'Send a message to all servers (Developer only)', usage: ',broadcast [message]' },
-    aliases: ['bc'],
+    aliases: ['globalmessage'],
     cooldown: 0,
     async execute(message, args, client) {
         if (!isDeveloper(message.author.id)) return message.reply({ embeds: [errorEmbed('No Permission', 'You must be a developer.')] });
