@@ -3,7 +3,7 @@ const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
     data: { name: 'purgebots', description: 'Delete messages from bots', usage: ',purgebots [amount]' },
-    aliases: ['pb'],
+    aliases: ['bc'],
     cooldown: 10,
     async execute(message, args) {
         if (!hasPermission(message.member, 'ManageMessages')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Messages.')] });
