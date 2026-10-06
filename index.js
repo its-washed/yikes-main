@@ -270,7 +270,7 @@ client.on(Events.MessageUpdate, (old, msg) => {
 });
 
 process.on('unhandledRejection', (err) => {
-    logger.error(`Unhandled: ${err?.message || err}`);
+    console.error(err);
 });
 
 process.on('SIGINT', () => {
@@ -289,4 +289,7 @@ if (!token) {
     process.exit(1);
 }
 
-client.login(token);
+client.on('error', console.error);
+client.on('shardError', console.error);
+
+client.login(token).catch(console.error);
