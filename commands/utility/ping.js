@@ -12,7 +12,7 @@ module.exports = {
         return sent.edit({
             embeds: [createEmbed({
                 color: 0x22c55e,
-                title: 'Pong!',
+                title: 'my debt',
                 fields: [
                     { name: 'API', value: `**${apiLatency}ms**`, inline: true },
                     { name: 'WebSocket', value: `**${wsLatency}ms**`, inline: true }
