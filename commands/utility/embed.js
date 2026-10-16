@@ -31,7 +31,7 @@ module.exports = {
     async handleSend(message, args, config) {
         const channel = message.mentions.channels.first() || message.channel;
         const code = args.join(' ').replace(/<#\d+>/g, '').trim();
-        if (!code) return message.reply({ embeds: [errorEmbed('No Embed Code', 'Provide embed code. Example: `,embed send #channel {title: Hello}$v{description: Welcome}'`')] });
+        if (!code) return message.reply({ embeds: [errorEmbed('No Embed Code', 'Provide embed code. Example: `,embed send #channel {title: Hello}$v{description: Welcome}`')] });
 
         const ctx = { member: message.member, user: message.author, guild: message.guild, message };
         const parsed = parseEmbed(code, ctx);
@@ -195,7 +195,7 @@ module.exports = {
         const name = args[0]?.toLowerCase();
         if (!name || !templates[name]) {
             const list = Object.keys(templates).map(t => `\`${t}\``).join(', ');
-            return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Templates', description: `Available: ${list}\nUsage: `,embed template <name>\`` })] });
+            return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Templates', description: `Available: ${list}\nUsage: \`,embed template <name>\`` })] });
         }
 
         return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: `Template: ${name}`, description: `\`\`\`${templates[name]}\`\`\`` })] });
