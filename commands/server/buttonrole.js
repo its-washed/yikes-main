@@ -127,7 +127,7 @@ module.exports = {
             await this.rebuildButtons(channel, msgId, brConfig);
         } catch {}
 
-        return message.reply({ embeds: [successEmbed('Removed', `Button for role \`${roleId}\` removed from message \`${msgId}\`.")] });
+        return message.reply({ embeds: [successEmbed('Removed', `Button for role \`${roleId}\` removed from message \`${msgId}\`.`)] });
     },
 
     async handleList(message, config) {
