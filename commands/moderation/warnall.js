@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
@@ -6,10 +6,10 @@ module.exports = {
     aliases: [],
     cooldown: 30,
     async execute(message, args) {
-        if (!hasPermission(message.member, 'ModerateMembers')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Moderate Members.')] });
+        if (!hasPermission(message.member, 'ModerateMembers')) return message.reply({ embeds: [permissionDenied(message, 'moderate_members')] });
         const users = message.mentions.members;
         if (users.size === 0) return message.reply({ embeds: [errorEmbed('Missing Users', 'Usage: ,warnall [@user1] [@user2] [reason]')] });
-        const reason = args.filter(a => !a.startsWith('<@')).join(' ') || 'No reason';
+        const reason = args.filter(a => !a.startsWith('<@')).join(' ') || 'None provided';
         let count = 0;
         for (const [, member] of users) {
             try { count++; } catch {}

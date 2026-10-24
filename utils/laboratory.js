@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const LAB_FILE = path.join(__dirname, '..', '..', 'data', 'laboratory.json');
+const LAB_FILE = path.join(__dirname, '..', 'data', 'laboratory.json');
 
 function loadLab() {
     if (!fs.existsSync(LAB_FILE)) return { labs: {}, experiments: {} };

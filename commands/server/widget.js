@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
@@ -6,7 +6,7 @@ module.exports = {
     aliases: ['togglewidget'],
     cooldown: 10,
     async execute(message, args) {
-        if (!hasPermission(message.member, 'ManageGuild')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Server.')] });
+        if (!hasPermission(message.member, 'ManageGuild')) return message.reply({ embeds: [permissionDenied(message, 'manage_guild')] });
         const state = (args[0] || 'on').toLowerCase();
         try {
             await message.guild.setWidgetEnabled(state === 'on');

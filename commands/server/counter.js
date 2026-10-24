@@ -1,6 +1,6 @@
 const { ChannelType } = require('discord.js');
 const { updateGuildConfig } = require('../../utils/config');
-const { errorEmbed, successEmbed, createEmbed } = require('../../utils/embeds');
+const { errorEmbed, successEmbed, createEmbed, permissionDenied } = require('../../utils/embeds');
 const { isAdmin } = require('../../utils/permissions');
 const { Paginator } = require('../../utils/pagination');
 
@@ -31,7 +31,7 @@ module.exports = {
 
     async execute(message, args, client, config) {
         if (!isAdmin(message.member)) {
-            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need Administrator.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'administrator')] });
         }
 
         const sub = args[0]?.toLowerCase();
@@ -58,8 +58,8 @@ module.exports = {
             return message.reply({ embeds: [errorEmbed('Usage', ',counter add <type> <channeltype> <name>\nExample: ,counter add humans category {target} humans')] });
         }
 
-        if (!COUNTER_TYPES[type]) return message.reply({ embeds: [errorInvalid('Invalid Type', 'Use `,counter types` to see options.')] });
-        if (!CHANNEL_TYPES[channelType]) return message.reply({ embeds: [errorEmbed('Invalid Channel Type', 'Valid: `voice`, `text`, `category`')] });
+        if (!COUNTER_TYPES[type]) return message.reply({ embeds: [errorEmbed('Invalid Type', 'Use `,counter types` to see options.')] });
+        if (CHANNEL_TYPES[channelType] === undefined) return message.reply({ embeds: [errorEmbed('Invalid Channel Type', 'Valid: `voice`, `text`, `category`')] });
 
         try {
             const channel = await message.guild.channels.create({

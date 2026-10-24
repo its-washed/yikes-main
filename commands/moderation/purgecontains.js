@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
@@ -6,7 +6,7 @@ module.exports = {
     aliases: ['pc'],
     cooldown: 10,
     async execute(message, args) {
-        if (!hasPermission(message.member, 'ManageMessages')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Messages.')] });
+        if (!hasPermission(message.member, 'ManageMessages')) return message.reply({ embeds: [permissionDenied(message, 'manage_messages')] });
         const text = args[0];
         if (!text) return message.reply({ embeds: [errorEmbed('Missing Text', 'Usage: ,purgecontains [text] [amount]')] });
         const amount = parseInt(args[1]) || 50;

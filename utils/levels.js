@@ -52,7 +52,7 @@ function addXP(guildId, userId, amount) {
     data.messages++;
     data.lastXp = now;
 
-    const xpNeeded = data.level * data.level * 100;
+    const xpNeeded = (data.level + 1) * (data.level + 1) * 100;
     let leveledUp = false;
 
     while (data.xp >= xpNeeded) {

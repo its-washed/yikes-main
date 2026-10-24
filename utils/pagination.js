@@ -1,4 +1,5 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { PRESERVE, flattenEmbed } = require('./embeds');
 
 class Paginator {
     constructor(pages, opts = {}) {
@@ -10,9 +11,10 @@ class Paginator {
     }
 
     async start(channel, initialMsg) {
+        const firstRow = this.pages.length > 1 ? this.buildRow() : null;
         const msg = initialMsg || await channel.send({
-            embeds: [this.buildEmbed()],
-            components: [this.buildRow()]
+            embeds: this.buildEmbeds(),
+            components: firstRow ? [firstRow] : []
         });
 
         const collector = msg.createMessageComponentCollector({
@@ -27,8 +29,8 @@ class Paginator {
             else if (i.customId === 'last') this.currentPage = this.pages.length - 1;
 
             await i.update({
-                embeds: [this.buildEmbed()],
-                components: [this.buildRow()]
+                embeds: this.buildEmbeds(),
+                components: this.pages.length > 1 ? [this.buildRow()] : []
             });
         });
 
@@ -39,19 +41,35 @@ class Paginator {
         return msg;
     }
 
-    buildEmbed() {
+    buildEmbeds() {
         const page = this.pages[this.currentPage];
+        const total = this.pages.length;
+        const footerText = `Page: ${this.currentPage + 1}/${total}`;
+
         if (typeof page === 'string') {
-            return {
+            return [{
                 color: this.embedColor,
                 description: page,
-                footer: { text: `Page ${this.currentPage + 1} / ${this.pages.length}` }
-            };
+                footer: { text: footerText }
+            }];
         }
-        return {
+
+        const extra = page.footer?.text ? `${page.footer.text}` : '';
+        const text = extra ? `${footerText} | ${extra}` : footerText;
+
+        const keep = Boolean(page[PRESERVE]);
+
+        if (Array.isArray(page.embeds)) {
+            const embeds = page.embeds.map(e => (typeof e.toJSON === 'function' ? { ...e.toJSON() } : { ...e }));
+            embeds[embeds.length - 1].footer = { ...(embeds[embeds.length - 1].footer || {}), text };
+            return keep ? embeds : embeds.map(flattenEmbed);
+        }
+
+        const built = [{
             ...page,
-            footer: { ...(page.footer || {}), text: `${page.footer?.text ? page.footer.text + ' | ' : ''}Page ${this.currentPage + 1} / ${this.pages.length}` }
-        };
+            footer: { ...(page.footer || {}), text }
+        }];
+        return keep ? built : built.map(flattenEmbed);
     }
 
     buildRow() {
@@ -74,4 +92,15 @@ function paginateArray(arr, perPage) {
     return pages;
 }
 
-module.exports = { Paginator, paginateArray };
+async function replyPaginated(message, pages, opts = {}) {
+    const paginator = new Paginator(pages, { userId: message.author.id, ...opts });
+    const embeds = paginator.buildEmbeds();
+    const components = pages.length > 1 ? [paginator.buildRow()] : [];
+    const payload = { embeds, components };
+    if (opts.preserve) payload[PRESERVE] = true;
+    const sent = await message.reply(payload);
+    if (pages.length > 1) await paginator.start(message.channel, sent);
+    return sent;
+}
+
+module.exports = { Paginator, paginateArray, replyPaginated };

@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const BIZ_FILE = path.join(__dirname, '..', '..', 'data', 'business.json');
+const BIZ_FILE = path.join(__dirname, '..', 'data', 'business.json');
 
 function loadBiz() {
     if (!fs.existsSync(BIZ_FILE)) return { businesses: {} };

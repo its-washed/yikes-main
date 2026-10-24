@@ -26,7 +26,7 @@ const questions = [
 
 module.exports = {
     data: { name: 'trivia', description: 'Answer trivia for money', usage: ',trivia' },
-    aliases: [],
+    aliases: ['quiz'],
     cooldown: 30,
     async execute(message) {
         const question = questions[Math.floor(Math.random() * questions.length)];

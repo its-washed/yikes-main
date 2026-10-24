@@ -125,23 +125,5 @@ module.exports = {
                 }
             }
         }
-
-        const prefix = config.prefix || ',';
-        if (!message.content.startsWith(prefix)) return;
-
-        const args = message.content.slice(prefix.length).trim().split(/ +/);
-        const commandName = args.shift().toLowerCase();
-
-        const command = message.client.commands.get(commandName) ||
-            message.client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(commandName));
-
-        if (!command) return;
-
-        try {
-            await command.execute(message, args, message.client);
-        } catch (error) {
-            console.error(`Error executing ${commandName}:`, error);
-            message.reply({ embeds: [new EmbedBuilder().setColor(0xff4757).setDescription('An error occurred while executing that command.')] }).catch(() => {});
-        }
     }
 };

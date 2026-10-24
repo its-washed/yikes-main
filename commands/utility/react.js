@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
@@ -6,7 +6,7 @@ module.exports = {
     aliases: ['addreaction'],
     cooldown: 5,
     async execute(message, args) {
-        if (!hasPermission(message.member, 'ManageMessages')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Messages.')] });
+        if (!hasPermission(message.member, 'ManageMessages')) return message.reply({ embeds: [permissionDenied(message, 'manage_messages')] });
         const emoji = args[0];
         if (!emoji) return message.reply({ embeds: [errorEmbed('Missing Emoji', 'Usage: ,react [emoji]')] });
         const msg = await message.reply({ content: 'React to this message!' });

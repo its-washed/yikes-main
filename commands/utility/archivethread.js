@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
@@ -6,7 +6,7 @@ module.exports = {
     aliases: ['at'],
     cooldown: 10,
     async execute(message, args) {
-        if (!hasPermission(message.member, 'ManageThreads')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Threads.')] });
+        if (!hasPermission(message.member, 'ManageThreads')) return message.reply({ embeds: [permissionDenied(message, 'manage_threads')] });
         const thread = message.mentions.channels.first() || message.channel;
         if (!thread.isThread()) return message.reply({ embeds: [errorEmbed('Not a Thread', 'That is not a thread.')] });
         try {

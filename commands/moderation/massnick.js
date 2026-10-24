@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
@@ -6,7 +6,7 @@ module.exports = {
     aliases: ['massrename'],
     cooldown: 60,
     async execute(message, args) {
-        if (!hasPermission(message.member, 'ManageNicknames')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Nicknames.')] });
+        if (!hasPermission(message.member, 'ManageNicknames')) return message.reply({ embeds: [permissionDenied(message, 'manage_nicknames')] });
         const nick = args.join(' ');
         if (!nick) return message.reply({ embeds: [errorEmbed('Missing Nickname', 'Usage: ,massnick [nickname]')] });
         const members = message.mentions.members.size > 0 ? message.mentions.members : message.guild.members.cache.filter(m => !m.user.bot && m.id !== message.author.id);

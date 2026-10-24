@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
@@ -6,7 +6,7 @@ module.exports = {
     aliases: [],
     cooldown: 120,
     async execute(message) {
-        if (!isAdmin(message.member)) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Administrator.')] });
+        if (!isAdmin(message.member)) return message.reply({ embeds: [permissionDenied(message, 'administrator')] });
         const msg = await message.reply({ embeds: [createEmbed({ color: 0xfbbf24, description: 'Kicking all non-mod members...' })] });
         let count = 0;
         const members = await message.guild.members.fetch();

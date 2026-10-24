@@ -13,7 +13,10 @@ module.exports = {
             if (channel) {
                 const message = (config.goodbyeMessage || 'Goodbye {user}, we will miss you!')
                     .replace(/{user}/g, member.user.tag)
+                    .replace(/{username}/g, member.user.username)
                     .replace(/{server}/g, member.guild.name)
+                    .replace(/{count}/g, member.guild.memberCount)
+                    .replace(/{channel}/g, `<#${channel.id}>`)
                     .replace(/{memberCount}/g, member.guild.memberCount);
 
                 const embed = new EmbedBuilder()

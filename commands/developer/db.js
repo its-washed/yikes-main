@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { isDeveloper } = require('../../utils/developer');
 const fs = require('fs');
 const path = require('path');
@@ -8,7 +8,7 @@ module.exports = {
     aliases: ['database'],
     cooldown: 0,
     async execute(message, args) {
-        if (!isDeveloper(message.author.id)) return message.reply({ embeds: [errorEmbed('No Permission', 'You must be a developer to use this.')] });
+        if (!isDeveloper(message.author.id)) return message.reply({ embeds: [permissionDenied(message, 'bot_developer')] });
 
         const action = args[0];
         const fileName = args[1];

@@ -1,5 +1,5 @@
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnectionStatus } = require('@discordjs/voice');
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 
 const servers = new Map();
 
@@ -24,7 +24,7 @@ module.exports = {
 
         const permissions = voiceChannel.permissionsFor(message.guild.members.me);
         if (!permissions?.has('Connect') || !permissions?.has('Speak')) {
-            return message.reply({ embeds: [errorEmbed('Permissions', 'I need `Connect` and `Speak` permissions.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'connect, speak', { bot: true })] });
         }
 
         const guildId = message.guild.id;

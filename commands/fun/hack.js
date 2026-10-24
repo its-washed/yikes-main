@@ -8,14 +8,10 @@ module.exports = {
 
         const steps = [
             `🔍 **Hacking** ${target.tag}...`,
-            '🕵️ Accessing Discord servers...',
-            '💻 Bypassing 2FA...',
-            '📡 Tracing IP address...',
-            '🔑 Stealing cookies...',
-            '📧 Reading DMs...',
-            '📸 Downloading selfies...',
-            '💰 Checking bank account...',
-            '🐕 Looking at dog pictures...',
+            'grabbing ip',
+            'Bypassing 2FA...',
+            "IP address is 192.168.1.1",
+            'Stealing cookies...',
             '✅ **Hack complete!**'
         ];
 

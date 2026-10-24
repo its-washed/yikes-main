@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, permissionDenied } = require('../../utils/embeds');
 const { isDeveloper } = require('../../utils/developer');
 const { loadEconomy } = require('../../utils/economy');
 
@@ -7,7 +7,7 @@ module.exports = {
     aliases: ['economylist'],
     cooldown: 0,
     async execute(message) {
-        if (!isDeveloper(message.author.id)) return message.reply({ embeds: [errorEmbed('No Permission', 'You must be a developer to use this.')] });
+        if (!isDeveloper(message.author.id)) return message.reply({ embeds: [permissionDenied(message, 'bot_developer')] });
 
         const data = loadEconomy();
         const users = Object.entries(data.users);

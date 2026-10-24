@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { isDeveloper } = require('../../utils/developer');
 const fs = require('fs');
 const path = require('path');
@@ -7,7 +7,7 @@ module.exports = {
     data: { name: 'backup', description: 'Backup/restore bot data (Developer only)', usage: ',backup <create|load|list> [name]' },
     cooldown: 0,
     async execute(message, args) {
-        if (!isDeveloper(message.author.id)) return message.reply({ embeds: [errorEmbed('No Permission', 'You must be a developer.')] });
+        if (!isDeveloper(message.author.id)) return message.reply({ embeds: [permissionDenied(message, 'bot_developer')] });
 
         const sub = args[0]?.toLowerCase();
         if (!sub) return message.reply({ embeds: [errorEmbed('Subcommands', 'Valid: `create`, `load`, `list`, `delete`')] });

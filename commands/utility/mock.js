@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin } = require('../../utils/permissions');
 const { PermissionFlagsBits } = require('discord.js');
 
@@ -8,7 +8,7 @@ module.exports = {
     cooldown: 5,
     async execute(message, args) {
         if (!isAdmin(message.member)) {
-            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Administrator` permission.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'administrator')] });
         }
 
         const target = message.mentions.members.first();

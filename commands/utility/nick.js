@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
@@ -12,7 +12,7 @@ module.exports = {
 
     async execute(message, args) {
         if (!hasPermission(message.member, 'ManageNicknames')) {
-            return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Nicknames permission.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'manage_nicknames')] });
         }
 
         const target = message.mentions.members.first();

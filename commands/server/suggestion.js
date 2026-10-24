@@ -1,6 +1,6 @@
 const { PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { updateGuildConfig, getGuildConfig } = require('../../utils/config');
-const { errorEmbed, successEmbed, createEmbed } = require('../../utils/embeds');
+const { errorEmbed, successEmbed, createEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
@@ -31,7 +31,7 @@ module.exports = {
 
         if (action === 'setup') {
             if (!isAdmin(message.member)) {
-                return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Administrator` permission.')] });
+                return message.reply({ embeds: [permissionDenied(message, 'administrator')] });
             }
 
             const channel = message.mentions.channels.first();
@@ -46,7 +46,7 @@ module.exports = {
 
         if (action === 'approve' || action === 'deny') {
             if (!hasPermission(message.member, PermissionFlagsBits.ModerateMembers)) {
-                return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Moderate Members` permission.')] });
+                return message.reply({ embeds: [permissionDenied(message, 'moderate_members')] });
             }
 
             const msgId = args[1];
@@ -78,7 +78,7 @@ module.exports = {
 
         if (action === 'channel') {
             if (!isAdmin(message.member)) {
-                return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Administrator` permission.')] });
+                return message.reply({ embeds: [permissionDenied(message, 'administrator')] });
             }
             const channel = message.mentions.channels.first();
             if (!channel) return message.reply({ embeds: [errorEmbed('Missing Channel', 'Please mention a channel.')] });

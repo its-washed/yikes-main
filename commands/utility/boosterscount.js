@@ -2,7 +2,7 @@ const { createEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
     data: { name: 'boosterscount', description: 'Count server boosters', usage: ',boosterscount' },
-    aliases: ['bc'],
+    aliases: ['boosts'],
     cooldown: 5,
     async execute(message) {
         const boosters = message.guild.members.cache.filter(m => m.premiumSince);

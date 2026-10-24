@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { updateGuildConfig, getGuildConfig } = require('../../utils/config');
 const { PermissionFlagsBits } = require('discord.js');
 
@@ -8,7 +8,7 @@ module.exports = {
     cooldown: 30,
     async execute(message) {
         if (!message.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
-            return message.reply({ embeds: [errorEmbed('No Permission', 'You need `Manage Channels` permission.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'manage_channels')] });
         }
 
         const config = getGuildConfig(message.guild.id);

@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
@@ -6,7 +6,7 @@ module.exports = {
     aliases: ['mra'],
     cooldown: 300,
     async execute(message, args) {
-        if (!isAdmin(message.member)) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Administrator.')] });
+        if (!isAdmin(message.member)) return message.reply({ embeds: [permissionDenied(message, 'administrator')] });
         const role = message.mentions.roles.first();
         if (!role) return message.reply({ embeds: [errorEmbed('Missing Role', 'Usage: ,massroleadd [@role]')] });
         const msg = await message.reply({ embeds: [createEmbed({ color: 0xfbbf24, description: 'Adding role to all members...' })] });

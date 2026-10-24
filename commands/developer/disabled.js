@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { loadDevData, saveDevData } = require('../../utils/developer');
 
 module.exports = {
@@ -7,7 +7,7 @@ module.exports = {
     cooldown: 0,
     async execute(message, args) {
         if (message.author.id !== message.guild.ownerId) {
-            return message.reply({ embeds: [errorEmbed('No Permission', 'Only the server owner can use this.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'server_owner')] });
         }
 
         const action = args[0];

@@ -22,7 +22,10 @@ module.exports = {
             if (channel) {
                 const message = (config.welcomeMessage || 'Welcome to the server, {user}!')
                     .replace(/{user}/g, `${member}`)
+                    .replace(/{username}/g, member.user.username)
                     .replace(/{server}/g, member.guild.name)
+                    .replace(/{count}/g, member.guild.memberCount)
+                    .replace(/{channel}/g, `<#${channel.id}>`)
                     .replace(/{memberCount}/g, member.guild.memberCount);
 
                 const embed = new EmbedBuilder()

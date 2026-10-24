@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const ACTIVITY_FILE = path.join(__dirname, '..', '..', 'data', 'activity.json');
+const ACTIVITY_FILE = path.join(__dirname, '..', 'data', 'activity.json');
 
 function loadActivity() {
     if (!fs.existsSync(ACTIVITY_FILE)) return { guilds: {} };
@@ -14,8 +14,8 @@ function saveActivity(data) {
     fs.writeFileSync(ACTIVITY_FILE, JSON.stringify(data, null, 2));
 }
 
-function getUserActivity(guildId, userId) {
-    const data = loadActivity();
+function ensureUser(data, guildId, userId) {
+    if (!data.guilds) data.guilds = {};
     if (!data.guilds[guildId]) data.guilds[guildId] = {};
     if (!data.guilds[guildId][userId]) {
         data.guilds[guildId][userId] = {
@@ -27,9 +27,14 @@ function getUserActivity(guildId, userId) {
     return data.guilds[guildId][userId];
 }
 
+function getUserActivity(guildId, userId) {
+    const data = loadActivity();
+    return ensureUser(data, guildId, userId);
+}
+
 function trackMessage(guildId, userId) {
     const data = loadActivity();
-    const user = getUserActivity(guildId, userId);
+    const user = ensureUser(data, guildId, userId);
     user.messages++;
     saveActivity(data);
     return user;
@@ -37,7 +42,7 @@ function trackMessage(guildId, userId) {
 
 function trackVCJoin(guildId, userId) {
     const data = loadActivity();
-    const user = getUserActivity(guildId, userId);
+    const user = ensureUser(data, guildId, userId);
     user.lastVCJoin = Date.now();
     saveActivity(data);
     return user;
@@ -45,7 +50,7 @@ function trackVCJoin(guildId, userId) {
 
 function trackVCLeave(guildId, userId) {
     const data = loadActivity();
-    const user = getUserActivity(guildId, userId);
+    const user = ensureUser(data, guildId, userId);
     if (user.lastVCJoin > 0) {
         const duration = Date.now() - user.lastVCJoin;
         user.vcTime += duration;
@@ -57,7 +62,7 @@ function trackVCLeave(guildId, userId) {
 
 function getGuildActivity(guildId) {
     const data = loadActivity();
-    return data.guilds[guildId] || {};
+    return (data.guilds && data.guilds[guildId]) || {};
 }
 
 module.exports = { loadActivity, saveActivity, getUserActivity, trackMessage, trackVCJoin, trackVCLeave, getGuildActivity };

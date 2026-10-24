@@ -1,6 +1,6 @@
 const { PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { updateGuildConfig } = require('../../utils/config');
-const { errorEmbed, successEmbed, createEmbed } = require('../../utils/embeds');
+const { errorEmbed, successEmbed, createEmbed, permissionDenied } = require('../../utils/embeds');
 const { isAdmin } = require('../../utils/permissions');
 const { resolve } = require('../../utils/variables');
 
@@ -15,7 +15,7 @@ module.exports = {
 
     async execute(message, args, client, config) {
         if (!isAdmin(message.member)) {
-            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need Administrator.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'administrator')] });
         }
 
         const sub = args[0]?.toLowerCase();

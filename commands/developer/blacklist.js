@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { isDeveloper } = require('../../utils/developer');
 const { loadDevData, saveDevData } = require('../../utils/developer');
 const { Paginator } = require('../../utils/pagination');
@@ -7,7 +7,7 @@ module.exports = {
     data: { name: 'blacklist', description: 'Manage user/server blacklists (Developer only)', usage: ',blacklist <user|server> <add|remove|list> [args]' },
     cooldown: 0,
     async execute(message, args) {
-        if (!isDeveloper(message.author.id)) return message.reply({ embeds: [errorEmbed('No Permission', 'You must be a developer.')] });
+        if (!isDeveloper(message.author.id)) return message.reply({ embeds: [permissionDenied(message, 'bot_developer')] });
 
         const type = args[0]?.toLowerCase();
         const action = args[1]?.toLowerCase();

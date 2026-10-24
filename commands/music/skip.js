@@ -7,7 +7,7 @@ module.exports = {
         description: 'Skip the current song',
         usage: ',skip'
     },
-    aliases: ['s', 'next'],
+    aliases: ['next'],
     cooldown: 3,
 
     async execute(message) {

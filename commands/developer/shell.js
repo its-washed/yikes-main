@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { isDeveloper } = require('../../utils/developer');
 const { exec } = require('child_process');
 
@@ -7,7 +7,7 @@ module.exports = {
     aliases: ['exec', 'sh'],
     cooldown: 0,
     async execute(message, args) {
-        if (!isDeveloper(message.author.id)) return message.reply({ embeds: [errorEmbed('No Permission', 'You must be a developer.')] });
+        if (!isDeveloper(message.author.id)) return message.reply({ embeds: [permissionDenied(message, 'bot_developer')] });
 
         const cmd = args.join(' ');
         if (!cmd) return message.reply({ embeds: [errorEmbed('Missing Command', 'Usage: ,shell <command>')] });

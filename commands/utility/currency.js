@@ -2,7 +2,7 @@ const { createEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
     data: { name: 'currency', description: 'Convert currency', usage: ',currency [amount] [from] [to]' },
-    aliases: ['money', 'forex'],
+    aliases: ['forex'],
     cooldown: 10,
     async execute(message, args) {
         if (args.length < 3) return message.reply({ embeds: [errorEmbed('Missing Args', 'Usage: ,currency [amount] [from] [to]\nExample: ,currency 100 USD EUR')] });

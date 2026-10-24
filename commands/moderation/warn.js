@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission } = require('../../utils/permissions');
 const { PermissionFlagsBits } = require('discord.js');
 
@@ -7,7 +7,7 @@ module.exports = {
     cooldown: 3,
     async execute(message, args) {
         if (!hasPermission(message.member, PermissionFlagsBits.ManageMessages)) {
-            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Manage Messages` permission.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'manage_messages')] });
         }
 
         const target = message.mentions.members.first();
@@ -23,12 +23,12 @@ module.exports = {
         if (!warns[message.guild.id][target.id]) warns[message.guild.id][target.id] = [];
         warns[message.guild.id][target.id].push({
             moderator: message.author.id,
-            reason: reason || 'No reason',
+            reason: reason || 'None provided',
             time: Date.now()
         });
         writeJSON('warns.json', warns);
 
         const count = warns[message.guild.id][target.id].length;
-        return message.reply({ embeds: [successEmbed('Warned', `**${target.user.tag}** has been warned (${count} total).\nReason: ${reason || 'No reason'}`)] });
+        return message.reply({ embeds: [successEmbed('Warned', `**${target.user.tag}** has been warned (${count} total).\nReason: ${reason || 'None provided'}`)] });
     }
 };

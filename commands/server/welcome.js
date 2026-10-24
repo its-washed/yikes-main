@@ -1,6 +1,6 @@
 const { PermissionFlagsBits } = require('discord.js');
 const { updateGuildConfig } = require('../../utils/config');
-const { errorEmbed, successEmbed } = require('../../utils/embeds');
+const { errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
@@ -9,12 +9,12 @@ module.exports = {
         description: 'Configure welcome messages',
         usage: ',welcome [#channel] [message]'
     },
-    aliases: [],
+    aliases: ['setwelcome'],
     cooldown: 10,
 
     async execute(message, args, client, config) {
         if (!isAdmin(message.member)) {
-            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Administrator` permission.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'administrator')] });
         }
 
         const channel = message.mentions.channels.first();

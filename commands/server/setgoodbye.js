@@ -1,3 +1,0 @@
-const { createEmbed, errorEmbed } = require('../../utils/embeds');
-const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
-module.exports = { data: { name: 'setgoodbye', description: 'Set goodbye channel', usage: ',setgoodbye [#channel]' }, aliases: ['goodbye'], cooldown: 10, async execute(message, args) { if (!hasPermission(message.member, 'ManageGuild')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Server.')] }); const channel = message.mentions.channels.first(); if (!channel) return message.reply({ embeds: [errorEmbed('Missing Channel', 'Usage: ,setgoodbye [#channel]')] }); return message.reply({ embeds: [createEmbed({ color: 0x22c55e, description: `Goodbye channel set to ${channel}.` })] }); } };

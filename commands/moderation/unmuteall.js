@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
@@ -12,7 +12,7 @@ module.exports = {
 
     async execute(message) {
         if (!hasPermission(message.member, 'MuteMembers')) {
-            return message.reply({ embeds: [errorEmbed('No Permission', 'You need Mute Members permission.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'mute_members')] });
         }
 
         const channel = message.member.voice.channel;

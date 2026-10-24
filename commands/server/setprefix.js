@@ -1,3 +1,0 @@
-const { createEmbed, errorEmbed } = require('../../utils/embeds');
-const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
-module.exports = { data: { name: 'setprefix', description: 'Set command prefix', usage: ',setprefix [prefix]' }, aliases: ['prefix'], cooldown: 10, async execute(message, args) { if (!hasPermission(message.member, 'ManageGuild')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Server.')] }); const prefix = args[0]; if (!prefix) return message.reply({ embeds: [errorEmbed('Missing Prefix', 'Usage: ,setprefix [prefix]')] }); return message.reply({ embeds: [createEmbed({ color: 0x22c55e, description: `Prefix set to **${prefix}**.` })] }); } };

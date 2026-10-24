@@ -1,5 +1,5 @@
 const { updateGuildConfig } = require('../../utils/config');
-const { errorEmbed, successEmbed, createEmbed } = require('../../utils/embeds');
+const { errorEmbed, successEmbed, createEmbed, permissionDenied } = require('../../utils/embeds');
 const { isAdmin } = require('../../utils/permissions');
 const { Paginator } = require('../../utils/pagination');
 const { resolve } = require('../../utils/variables');
@@ -8,14 +8,14 @@ module.exports = {
     data: {
         name: 'level',
         description: 'Configure level system and rewards',
-        usage: ',level <enable|disable|message|channel|multiplier|rewards|ignore|set|leaderboard> [args]'
+        usage: ',level <enable|disable|message|channel|multiplier|xp|rewards|ignore|set|leaderboard> [args]'
     },
-    aliases: ['levels'],
+    aliases: ['levels', 'xp'],
     cooldown: 5,
 
     async execute(message, args, client, config) {
         if (!isAdmin(message.member)) {
-            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need Administrator.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'administrator')] });
         }
 
         const sub = args[0]?.toLowerCase();
@@ -50,6 +50,13 @@ module.exports = {
             if (!mult || mult < 0.1 || mult > 10) return message.reply({ embeds: [errorEmbed('Invalid', 'Multiplier must be 0.1-10.')] });
             updateGuildConfig(message.guild.id, { levels: { ...config.levels, xpMultiplier: mult } });
             return message.reply({ embeds: [successEmbed('Multiplier Set', `XP multiplier: **${mult}x**`)] });
+        }
+
+        if (sub === 'xp') {
+            const xp = parseInt(args[1]);
+            if (!xp || xp < 1 || xp > 100) return message.reply({ embeds: [errorEmbed('Invalid', 'XP per message must be 1-100.')] });
+            updateGuildConfig(message.guild.id, { levels: { ...config.levels, xpPerMessage: xp } });
+            return message.reply({ embeds: [successEmbed('XP Set', `XP per message set to **${xp}**.`)] });
         }
 
         if (sub === 'rewards') {

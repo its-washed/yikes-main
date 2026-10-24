@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { isDeveloper } = require('../../utils/developer');
 const { getUser, updateWallet, updateBank } = require('../../utils/economy');
 
@@ -7,7 +7,7 @@ module.exports = {
     aliases: ['rm'],
     cooldown: 0,
     async execute(message, args) {
-        if (!isDeveloper(message.author.id)) return message.reply({ embeds: [errorEmbed('No Permission', 'You must be a developer to use this.')] });
+        if (!isDeveloper(message.author.id)) return message.reply({ embeds: [permissionDenied(message, 'bot_developer')] });
 
         const target = message.mentions.users.first();
         const amount = parseInt(args[1]);

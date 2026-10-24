@@ -1,3 +1,0 @@
-const { createEmbed, errorEmbed } = require('../../utils/embeds');
-const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
-module.exports = { data: { name: 'setantispam', description: 'Configure anti-spam', usage: ',setantispam [on/off]' }, aliases: ['antispam'], cooldown: 10, async execute(message, args) { if (!hasPermission(message.member, 'ManageGuild')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Server.')] }); const state = (args[0] || 'on').toLowerCase(); return message.reply({ embeds: [createEmbed({ color: 0x22c55e, description: `Anti-spam **${state === 'on' ? 'enabled' : 'disabled'}**.` })] }); } };

@@ -2,7 +2,7 @@ const { createEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
     data: { name: 'members', description: 'Count member types', usage: ',members' },
-    aliases: ['membercount'],
+    aliases: ['membercount', 'mc'],
     cooldown: 5,
     async execute(message) {
         const g = message.guild;

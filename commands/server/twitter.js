@@ -1,5 +1,5 @@
 const { updateGuildConfig } = require('../../utils/config');
-const { errorEmbed, successEmbed, createEmbed } = require('../../utils/embeds');
+const { errorEmbed, successEmbed, createEmbed, permissionDenied } = require('../../utils/embeds');
 const { isAdmin } = require('../../utils/permissions');
 const { Paginator } = require('../../utils/pagination');
 
@@ -7,7 +7,7 @@ module.exports = {
     data: { name: 'twitter', description: 'Track Twitter notifications', usage: ',twitter <add|remove|list> [args]' },
     cooldown: 5,
     async execute(message, args, client, config) {
-        if (!isAdmin(message.member)) return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need Administrator.')] });
+        if (!isAdmin(message.member)) return message.reply({ embeds: [permissionDenied(message, 'administrator')] });
         const sub = args[0]?.toLowerCase();
         if (!sub) return message.reply({ embeds: [errorEmbed('Subcommands', 'Valid: `add`, `remove`, `list`')] });
 

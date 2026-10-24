@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const PREMIUM_FILE = path.join(__dirname, '../../data/premium.json');
+const PREMIUM_FILE = path.join(__dirname, '..', 'data', 'premium.json');
 
 function loadPremium() {
     if (!fs.existsSync(PREMIUM_FILE)) return { premiumUsers: [], premiumCommands: [] };

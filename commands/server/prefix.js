@@ -1,6 +1,6 @@
 const { PermissionFlagsBits } = require('discord.js');
 const { updateGuildConfig, getGuildConfig } = require('../../utils/config');
-const { errorEmbed, successEmbed, createEmbed } = require('../../utils/embeds');
+const { errorEmbed, successEmbed, createEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
@@ -9,12 +9,12 @@ module.exports = {
         description: 'Change the bot command prefix',
         usage: ',prefix [newPrefix]'
     },
-    aliases: [],
+    aliases: ['setprefix'],
     cooldown: 10,
 
     async execute(message, args, client, config) {
         if (!isAdmin(message.member)) {
-            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Administrator` permission.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'administrator')] });
         }
 
         if (!args[0]) {

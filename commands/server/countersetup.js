@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
@@ -6,7 +6,7 @@ module.exports = {
     aliases: ['countsetup'],
     cooldown: 30,
     async execute(message, args) {
-        if (!hasPermission(message.member, 'ManageGuild')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Server.')] });
+        if (!hasPermission(message.member, 'ManageGuild')) return message.reply({ embeds: [permissionDenied(message, 'manage_guild')] });
         const type = args[1] || 'members';
         return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Counter Setup', description: `Counter channel configured for **${type}**.\n\nSupported: members, online, bots, channels, roles, boosters` })] });
     }

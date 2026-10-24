@@ -1,12 +1,12 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
     data: { name: 'setruleschannel', description: 'Set rules channel', usage: ',setruleschannel [#channel]' },
-    aliases: ['ruleschannel'],
+    aliases: ['ruleschannel', 'setrules'],
     cooldown: 10,
     async execute(message, args) {
-        if (!hasPermission(message.member, 'ManageGuild')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Server.')] });
+        if (!hasPermission(message.member, 'ManageGuild')) return message.reply({ embeds: [permissionDenied(message, 'manage_guild')] });
         const channel = message.mentions.channels.first();
         if (!channel) return message.reply({ embeds: [errorEmbed('Missing Channel', 'Usage: ,setruleschannel [#channel]')] });
         try {

@@ -1,5 +1,5 @@
 const { PermissionFlagsBits, ChannelType } = require('discord.js');
-const { errorEmbed, successEmbed } = require('../../utils/embeds');
+const { errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
@@ -13,11 +13,11 @@ module.exports = {
 
     async execute(message, args, client, config) {
         if (!hasPermission(message.member, PermissionFlagsBits.ManageMessages)) {
-            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Manage Messages` permission.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'manage_messages')] });
         }
 
         if (!message.guild.members.me.permissions.has(PermissionFlagsBits.ManageMessages)) {
-            return message.reply({ embeds: [errorEmbed('Bot Permission', 'I need `Manage Messages` permission.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'manage_messages', { bot: true })] });
         }
 
         let amount = parseInt(args[0]) || 10;

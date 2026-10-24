@@ -301,8 +301,10 @@ module.exports = {
                 if (user.wallet < amount) return message.reply({ embeds: [errorEmbed('Not Enough', 'Not enough in wallet.')] });
                 updateWallet(message.author.id, -amount);
                 company.treasury += amount;
-                const { saveCompany } = require('../../utils/company');
-                saveCompany({ companies: { [message.author.id]: company } });
+                const { loadCompany, saveCompany } = require('../../utils/company');
+                const companyData = loadCompany();
+                companyData.companies[message.author.id] = company;
+                saveCompany(companyData);
                 return message.reply({ embeds: [successEmbed('Deposited', `Added **$${amount.toLocaleString()}** to treasury.\nNew balance: **$${company.treasury.toLocaleString()}**`)] });
             }
 
@@ -310,8 +312,10 @@ module.exports = {
                 if (company.treasury < amount) return message.reply({ embeds: [errorEmbed('Not Enough', 'Not enough in treasury.')] });
                 company.treasury -= amount;
                 updateWallet(message.author.id, amount);
-                const { saveCompany } = require('../../utils/company');
-                saveCompany({ companies: { [message.author.id]: company } });
+                const { loadCompany, saveCompany } = require('../../utils/company');
+                const companyData = loadCompany();
+                companyData.companies[message.author.id] = company;
+                saveCompany(companyData);
                 return message.reply({ embeds: [successEmbed('Withdrawn', `Removed **$${amount.toLocaleString()}** from treasury.\nNew balance: **$${company.treasury.toLocaleString()}**`)] });
             }
 

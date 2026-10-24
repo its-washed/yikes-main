@@ -1,7 +1,7 @@
 const { PermissionFlagsBits } = require('discord.js');
 const { updateGuildConfig } = require('../../utils/config');
 const { parseRole } = require('../../utils/helpers');
-const { errorEmbed, successEmbed, createEmbed } = require('../../utils/embeds');
+const { errorEmbed, successEmbed, createEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
@@ -10,16 +10,16 @@ module.exports = {
         description: 'Configure auto role for new members',
         usage: ',autorole [@role|disable]'
     },
-    aliases: ['ar'],
+    aliases: ['ar', 'setautorole'],
     cooldown: 10,
 
     async execute(message, args, client, config) {
         if (!isAdmin(message.member)) {
-            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Administrator` permission.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'administrator')] });
         }
 
         if (!message.guild.members.me.permissions.has(PermissionFlagsBits.ManageRoles)) {
-            return message.reply({ embeds: [errorEmbed('Bot Permission', 'I need `Manage Roles` permission.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'manage_roles', { bot: true })] });
         }
 
         if (!args[0] || args[0].toLowerCase() === 'disable') {

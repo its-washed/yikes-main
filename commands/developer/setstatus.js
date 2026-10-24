@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { isDeveloper } = require('../../utils/developer');
 const { ActivityType } = require('discord.js');
 
@@ -7,7 +7,7 @@ module.exports = {
     aliases: ['status'],
     cooldown: 0,
     async execute(message, args, client) {
-        if (!isDeveloper(message.author.id)) return message.reply({ embeds: [errorEmbed('No Permission', 'You must be a developer.')] });
+        if (!isDeveloper(message.author.id)) return message.reply({ embeds: [permissionDenied(message, 'bot_developer')] });
 
         const status = args[0]?.toLowerCase();
         if (!status || !['online', 'idle', 'dnd', 'invisible'].includes(status)) {

@@ -1,14 +1,14 @@
-const { createEmbed, errorEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission } = require('../../utils/permissions');
 const { PermissionFlagsBits } = require('discord.js');
 
 module.exports = {
     data: { name: 'editsnipe', description: 'Snipe the last edited message', usage: ',editsnipe [#channel]' },
-    aliases: ['esnipe'],
+    aliases: ['es'],
     cooldown: 5,
     async execute(message, args, client) {
         if (!hasPermission(message.member, PermissionFlagsBits.ManageMessages)) {
-            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Manage Messages` permission.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'manage_messages')] });
         }
 
         const channel = message.mentions.channels.first() || message.channel;

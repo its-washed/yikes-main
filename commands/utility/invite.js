@@ -9,7 +9,7 @@ module.exports = {
     aliases: ['botinvite'],
     cooldown: 5,
 
-    async execute(message, client) {
+    async execute(message, args, client) {
         const invite = `https://discord.com/oauth2/authorize?client_id=${client.user.id}&permissions=8&scope=bot%20applications.commands`;
 
         return message.reply({

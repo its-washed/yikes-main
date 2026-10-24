@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const COMPANY_FILE = path.join(__dirname, '..', '..', 'data', 'company.json');
+const COMPANY_FILE = path.join(__dirname, '..', 'data', 'company.json');
 
 function loadCompany() {
     if (!fs.existsSync(COMPANY_FILE)) return { companies: {} };

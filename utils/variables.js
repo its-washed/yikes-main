@@ -8,6 +8,7 @@ function resolve(str, ctx = {}) {
         'user.name': user?.username || member?.user?.username || '',
         'user.nick': member?.nickname || '',
         'user.display': member?.displayName || user?.username || '',
+        'user.display_name': member?.displayName || member?.user?.username || user?.username || '',
         'user.mention': member ? `${member}` : user ? `<@${user.id}>` : '',
         'user.discriminator': user?.discriminator || '0',
         'user.avatar': user?.displayAvatarURL({ dynamic: true }) || '',

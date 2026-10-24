@@ -1,6 +1,6 @@
 const { PermissionFlagsBits } = require('discord.js');
 const { parseMember, parseDuration, formatDuration, checkHierarchy } = require('../../utils/helpers');
-const { modLogEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { modLogEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
@@ -14,11 +14,11 @@ module.exports = {
 
     async execute(message, args, client, config) {
         if (!hasPermission(message.member, PermissionFlagsBits.ModerateMembers)) {
-            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Moderate Members` permission.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'moderate_members')] });
         }
 
         if (!message.guild.members.me.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-            return message.reply({ embeds: [errorEmbed('Bot Permission', 'I need `Moderate Members` permission.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'moderate_members', { bot: true })] });
         }
 
         if (!args[0]) {

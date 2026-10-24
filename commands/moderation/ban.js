@@ -1,6 +1,6 @@
 const { PermissionFlagsBits } = require('discord.js');
 const { parseMember, checkHierarchy } = require('../../utils/helpers');
-const { modLogEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { modLogEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
@@ -14,11 +14,11 @@ module.exports = {
 
     async execute(message, args, client, config) {
         if (!hasPermission(message.member, PermissionFlagsBits.BanMembers)) {
-            return message.reply({ embeds: [errorEmbed('Permission Denied', 'You need `Ban Members` permission.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'ban_members')] });
         }
 
         if (!message.guild.members.me.permissions.has(PermissionFlagsBits.BanMembers)) {
-            return message.reply({ embeds: [errorEmbed('Bot Permission', 'I need `Ban Members` permission.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'ban_members', { bot: true })] });
         }
 
         if (!args[0]) {

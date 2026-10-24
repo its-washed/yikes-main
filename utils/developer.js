@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const DEV_FILE = path.join(__dirname, '../../data/developer.json');
+const DEV_FILE = path.join(__dirname, '..', 'data', 'developer.json');
 
 function loadDevData() {
     if (!fs.existsSync(DEV_FILE)) return { developers: [], blacklist: [], blacklistedServers: [], globalDisabled: [], serverDisabled: {} };

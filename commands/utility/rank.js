@@ -7,14 +7,14 @@ module.exports = {
         description: 'Check your rank and level',
         usage: ',rank [@user]'
     },
-    aliases: ['level', 'xp', 'rankcard'],
+    aliases: ['rankcard'],
     cooldown: 5,
 
     async execute(message, args, client, config) {
         const member = message.mentions.members.first() || message.member;
         const data = getLevelData(message.guild.id, member.id);
 
-        const xpNeeded = data.level * data.level * 100;
+        const xpNeeded = (data.level + 1) * (data.level + 1) * 100;
         const progress = data.xp / xpNeeded;
         const barLength = 20;
         const filled = Math.round(progress * barLength);

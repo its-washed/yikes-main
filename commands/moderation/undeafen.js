@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
@@ -12,7 +12,7 @@ module.exports = {
 
     async execute(message, args) {
         if (!hasPermission(message.member, 'DeafenMembers')) {
-            return message.reply({ embeds: [errorEmbed('No Permission', 'You need Deafen Members permission.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'deafen_members')] });
         }
 
         const target = message.mentions.members.first();

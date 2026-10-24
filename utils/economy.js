@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const ECONOMY_FILE = path.join(__dirname, '../../data/economy.json');
+const ECONOMY_FILE = path.join(__dirname, '..', 'data', 'economy.json');
 
 function loadEconomy() {
     if (!fs.existsSync(ECONOMY_FILE)) return { users: {} };
@@ -14,8 +14,8 @@ function saveEconomy(data) {
     fs.writeFileSync(ECONOMY_FILE, JSON.stringify(data, null, 2));
 }
 
-function getUser(userId) {
-    const data = loadEconomy();
+function ensureUser(data, userId) {
+    if (!data.users) data.users = {};
     if (!data.users[userId]) {
         data.users[userId] = {
             wallet: 0,
@@ -26,14 +26,21 @@ function getUser(userId) {
             lastMonthly: 0,
             inventory: []
         };
-        saveEconomy(data);
     }
     return data.users[userId];
 }
 
+function getUser(userId) {
+    const data = loadEconomy();
+    const created = !data.users || !data.users[userId];
+    const user = ensureUser(data, userId);
+    if (created) saveEconomy(data);
+    return user;
+}
+
 function updateWallet(userId, amount) {
     const data = loadEconomy();
-    const user = getUser(userId);
+    const user = ensureUser(data, userId);
     user.wallet += amount;
     if (user.wallet < 0) user.wallet = 0;
     saveEconomy(data);
@@ -42,7 +49,7 @@ function updateWallet(userId, amount) {
 
 function updateBank(userId, amount) {
     const data = loadEconomy();
-    const user = getUser(userId);
+    const user = ensureUser(data, userId);
     user.bank += amount;
     if (user.bank < 0) user.bank = 0;
     saveEconomy(data);
@@ -56,7 +63,7 @@ function getTotal(userId) {
 
 function addItem(userId, itemName, quantity = 1) {
     const data = loadEconomy();
-    const user = getUser(userId);
+    const user = ensureUser(data, userId);
     if (!user.inventory) user.inventory = [];
     const existing = user.inventory.find(i => i.name.toLowerCase() === itemName.toLowerCase());
     if (existing) {
@@ -70,7 +77,7 @@ function addItem(userId, itemName, quantity = 1) {
 
 function removeItem(userId, itemName, quantity = 1) {
     const data = loadEconomy();
-    const user = getUser(userId);
+    const user = ensureUser(data, userId);
     if (!user.inventory) user.inventory = [];
     const existing = user.inventory.find(i => i.name.toLowerCase() === itemName.toLowerCase());
     if (!existing || existing.quantity < quantity) return false;

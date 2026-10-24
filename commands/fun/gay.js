@@ -2,7 +2,7 @@ const { createEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
     data: { name: 'gay', description: 'Gay rate', usage: ',gay [@user]' },
-    aliases: ['gayrate'],
+    aliases: ['gayrate', 'howgay'],
     cooldown: 3,
     async execute(message) {
         const user = message.mentions.users.first() || message.author;

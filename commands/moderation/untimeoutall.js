@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
@@ -6,7 +6,7 @@ module.exports = {
     aliases: ['utmall'],
     cooldown: 30,
     async execute(message) {
-        if (!hasPermission(message.member, 'ModerateMembers')) return message.reply({ embeds: [errorEmbed('No Permission', 'You need Moderate Members.')] });
+        if (!hasPermission(message.member, 'ModerateMembers')) return message.reply({ embeds: [permissionDenied(message, 'moderate_members')] });
         const users = message.mentions.members;
         if (users.size === 0) return message.reply({ embeds: [errorEmbed('Missing Users', 'Usage: ,untimeoutall [@user1] [@user2]')] });
         let count = 0;

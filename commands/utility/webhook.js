@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
@@ -12,7 +12,7 @@ module.exports = {
 
     async execute(message, args) {
         if (!hasPermission(message.member, 'ManageWebhooks')) {
-            return message.reply({ embeds: [errorEmbed('No Permission', 'You need Manage Webhooks permission.')] });
+            return message.reply({ embeds: [permissionDenied(message, 'manage_webhooks')] });
         }
 
         const name = args.join(' ') || 'Yikes Webhook';

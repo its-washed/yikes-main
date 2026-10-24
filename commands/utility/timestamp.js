@@ -2,7 +2,7 @@ const { createEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
     data: { name: 'ts', description: 'Convert/create timestamps', usage: ',ts <date|now>\nFormats: YYYY-MM-DD HH:MM:SS' },
-    aliases: ['timestamp'],
+    aliases: ['timestamp', 'timestamps'],
     cooldown: 3,
     async execute(message, args) {
         const input = args.join(' ');

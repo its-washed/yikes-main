@@ -15,6 +15,13 @@ function saveData(data) {
     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
+function saveBoosterRole(guildId, roleId) {
+    const data = loadData();
+    if (!data[guildId]) data[guildId] = {};
+    data[guildId].boostRole = roleId;
+    saveData(data);
+}
+
 module.exports = {
     data: {
         name: 'boosters',
@@ -45,3 +52,5 @@ module.exports = {
         });
     }
 };
+
+module.exports.saveBoosterRole = saveBoosterRole;

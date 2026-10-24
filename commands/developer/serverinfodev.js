@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, permissionDenied } = require('../../utils/embeds');
 const { isDeveloper } = require('../../utils/developer');
 
 module.exports = {
@@ -6,7 +6,7 @@ module.exports = {
     aliases: ['sidev'],
     cooldown: 0,
     async execute(message, args, client) {
-        if (!isDeveloper(message.author.id)) return message.reply({ embeds: [errorEmbed('No Permission', 'You must be a developer.')] });
+        if (!isDeveloper(message.author.id)) return message.reply({ embeds: [permissionDenied(message, 'bot_developer')] });
 
         const guildId = args[0] || message.guild.id;
         const guild = client.guilds.cache.get(guildId);

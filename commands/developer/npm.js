@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
 const { isDeveloper } = require('../../utils/developer');
 const { execSync } = require('child_process');
 
@@ -6,7 +6,7 @@ module.exports = {
     data: { name: 'npm', description: 'NPM operations (Developer only)', usage: ',npm <install|update|list> [package]' },
     cooldown: 0,
     async execute(message, args) {
-        if (!isDeveloper(message.author.id)) return message.reply({ embeds: [errorEmbed('No Permission', 'You must be a developer.')] });
+        if (!isDeveloper(message.author.id)) return message.reply({ embeds: [permissionDenied(message, 'bot_developer')] });
 
         const action = args[0]?.toLowerCase();
         if (!action) return message.reply({ embeds: [errorEmbed('Usage', ',npm <install|update|list> [package]')] });
