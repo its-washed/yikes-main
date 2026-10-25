@@ -15,7 +15,7 @@ module.exports = {
 
         try {
             const result = Function('"use strict"; return (' + expr.replace(/[^-()\d/*+.]/g, '') + ')')();
-            return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Calculator', description: `\`${expr}\` = **${result}**` })] });
+            return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'tuff math', description: `\`${expr}\` = **${result}**` })] });
         } catch {
             return message.reply({ embeds: [errorEmbed('Invalid Expression', 'Could not calculate that.')] });
         }

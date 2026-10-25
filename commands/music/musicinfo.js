@@ -25,7 +25,7 @@ module.exports = {
                     { name: 'Total Songs Queued', value: `${totalSongs}`, inline: true },
                     { name: 'This Server', value: server ? `${server.queue.length} song(s) in queue` : 'Not playing', inline: true },
                     { name: 'Commands', value: '`play` `queue` `skip` `stop` `shuffle` `volume` `loop` `remove` `bass` `nowplaying`', inline: false },
-                    { name: 'Note', value: 'To enable real audio playback, install `ytdl-core` and uncomment the stream code in `play.js`.\nAlternatively, use Lavalink or DisTube for full music support.', inline: false }
+                    { name: 'Source', value: 'YouTube search & links', inline: false }
                 ]
             })]
         });

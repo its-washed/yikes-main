@@ -1,15 +1,17 @@
 const { ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
 const { errorEmbed, PRESERVE, ACCENT } = require('../../utils/embeds');
 const { sendCard } = require('../../utils/helpCard');
+const { isDeveloper } = require('../../utils/developer');
 
 const SITE_URL = 'https://itswashed.lol';
 const MENU_ID = 'sh_help_module';
 const HOME = '__home';
 
-function groupCommands(client) {
+function groupCommands(client, showDev) {
     const groups = {};
     client.commands.forEach(cmd => {
         const cat = cmd.category || 'other';
+        if (cat === 'developer' && !showDev) return;
         if (!groups[cat]) groups[cat] = [];
         groups[cat].push(cmd);
     });
@@ -35,14 +37,18 @@ function overviewEmbed(client, groups) {
             `**[TOS](${SITE_URL}) · [Privacy](${SITE_URL})**`
         ].join('\n'),
         thumbnail: client.user ? { url: client.user.displayAvatarURL({ size: 256 }) } : undefined,
-        footer: { text: `${client.commands.size} commands • ${categories.length} modules` }
+        footer: { text: `${countCommands(groups)} commands • ${categories.length} modules` }
     };
 }
 
+function countCommands(groups) {
+    return Object.values(groups).reduce((n, list) => n + list.length, 0);
+}
+
 function categoryDescription(cmds) {
-    const detailed = cmds.map(c => `**${c.data.name}** — ${c.data.description || 'No description provided.'}`).join('\n');
-    if (detailed.length <= 4000) return detailed;
-    return cmds.map(c => `\`${c.data.name}\``).join(', ');
+    const list = cmds.map(c => `\`${c.data.name}\``).join(', ');
+    if (list.length <= 4000) return list;
+    return cmds.map(c => c.data.name).join(', ');
 }
 
 function categoryEmbed(client, groups, cat) {
@@ -53,7 +59,7 @@ function categoryEmbed(client, groups, cat) {
         author: { name: client.user ? client.user.username : 'scarlet hub', icon_url: client.user ? client.user.displayAvatarURL() : undefined },
         title: `${cat.charAt(0).toUpperCase() + cat.slice(1)} — ${cmds.length} command${cmds.length === 1 ? '' : 's'}`,
         description: categoryDescription(cmds),
-        footer: { text: `Use ,help <command> for details • ${client.commands.size} commands • ${Object.keys(groups).length} modules` }
+        footer: { text: `Use ,help <command> for details • ${countCommands(groups)} commands • ${Object.keys(groups).length} modules` }
     };
 }
 
@@ -79,13 +85,15 @@ module.exports = {
     aliases: ['commands'],
     cooldown: 3,
     async execute(message, args, client) {
+        const showDev = isDeveloper(message.author.id);
+
         if (args[0]) {
             const cmd = client.commands.get(args[0]) || client.commands.find(c => c.aliases && c.aliases.includes(args[0]));
-            if (!cmd) return message.reply({ embeds: [errorEmbed('Not Found', 'Command not found.')] });
+            if (!cmd || (cmd.category === 'developer' && !showDev)) return message.reply({ embeds: [errorEmbed('Not Found', 'Command not found.')] });
             return sendCard(message, cmd);
         }
 
-        const groups = groupCommands(client);
+        const groups = groupCommands(client, showDev);
         const row = buildMenu(groups);
 
         const sent = await message.reply({

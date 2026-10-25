@@ -1,7 +1,8 @@
-const { createEmbed, errorEmbed } = require('../../utils/embeds');
+const { errorEmbed } = require('../../utils/embeds');
+const { sendQuoteCard } = require('../../utils/quoteCard');
 
 module.exports = {
-    data: { name: 'quote', description: 'Quote a message', usage: ',quote <messageLink|messageId> [#channel]' },
+    data: { name: 'quote', description: 'Quote a message (or reply to one)', usage: ',quote [messageLink|messageId] [#channel] — or reply to the message' },
     cooldown: 3,
     async execute(message, args) {
         const channel = message.mentions.channels.first() || message.channel;
@@ -16,20 +17,18 @@ module.exports = {
             targetMsg = await channel.messages.fetch(args[0]).catch(() => null);
         }
 
-        if (!targetMsg) return message.reply({ embeds: [errorEmbed('Not Found', 'Provide a message ID or link.')] });
+        if (!targetMsg && message.reference?.messageId) {
+            targetMsg = await message.channel.messages.fetch(message.reference.messageId).catch(() => null);
+        }
 
-        const attachments = targetMsg.attachments.size ? targetMsg.attachments.map(a => a.url).join('\n') : '';
+        if (!targetMsg) return message.reply({ embeds: [errorEmbed('Not Found', 'Reply to a message or provide a message ID or link.')] });
+
         const embedContent = targetMsg.embeds.length ? targetMsg.embeds.map(e => e.description || '(embed)').join('\n') : '';
+        const text = (targetMsg.content || embedContent || '(no content)').slice(0, 800);
+        const displayName = targetMsg.member?.displayName || targetMsg.author.displayName || targetMsg.author.username;
+        const username = targetMsg.author.username;
+        const avatarUrl = targetMsg.author.displayAvatarURL({ size: 512 });
 
-        return message.reply({
-            embeds: [createEmbed({
-                color: 0x6c5ce7,
-                author: { name: targetMsg.author.tag, icon_url: targetMsg.author.displayAvatarURL() },
-                description: `**${targetMsg.author.username}** said:\n${targetMsg.content || embedContent || '(no content)'}`,
-                image: targetMsg.attachments.first() ? { url: targetMsg.attachments.first().url } : undefined,
-                footer: { text: `#${targetMsg.channel.name}` },
-                timestamp: targetMsg.createdAt.toISOString()
-            })]
-        });
+        return sendQuoteCard(message, { text, displayName, username, avatarUrl });
     }
 };

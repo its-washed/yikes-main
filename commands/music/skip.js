@@ -17,6 +17,7 @@ module.exports = {
         }
 
         const skipped = server.queue[0];
+        server.skipRequested = true;
         server.player.stop();
 
         return message.reply({ embeds: [successEmbed('Skipped', `Skipped **${skipped.title}**.`)] });

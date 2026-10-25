@@ -21,7 +21,7 @@ module.exports = {
         description: 'Set your AFK status',
         usage: ',afk [reason]'
     },
-    aliases: [],
+    aliases: ['setafk'],
     cooldown: 10,
 
     async execute(message, args) {

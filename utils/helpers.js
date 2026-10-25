@@ -41,6 +41,29 @@ function parseRole(message, roleId) {
     return message.guild.roles.cache.get(roleId.replace(/[<@&>]/g, ''));
 }
 
+function resolveRoleInput(message, args = []) {
+    const mentioned = message.mentions.roles.first();
+    if (mentioned) return { role: mentioned, error: null, query: mentioned.name };
+
+    const typed = args
+        .filter(a => !/^<@!?\d+>$/.test(a) && !/^<@&\d+>$/.test(a))
+        .join(' ')
+        .trim();
+    if (!typed) return { role: null, error: null, query: '' };
+
+    const guild = message.guild;
+    const name = typed.toLowerCase();
+    const exact = guild.roles.cache.filter(r => r.id !== guild.id && r.name.toLowerCase() === name);
+    if (exact.size === 1) return { role: exact.first(), error: null, query: typed };
+    if (exact.size > 1) return { role: null, error: 'ambiguous', query: typed };
+
+    const partial = guild.roles.cache.filter(r => r.id !== guild.id && r.name.toLowerCase().includes(name));
+    if (partial.size === 1) return { role: partial.first(), error: null, query: typed };
+    if (partial.size > 1) return { role: null, error: 'ambiguous', query: typed };
+
+    return { role: null, error: 'notfound', query: typed };
+}
+
 function hasPermission(member, permissions) {
     if (!Array.isArray(permissions)) permissions = [permissions];
     return permissions.every(p => member.permissions.has(p));
@@ -67,6 +90,7 @@ module.exports = {
     parseMember,
     parseChannel,
     parseRole,
+    resolveRoleInput,
     hasPermission,
     checkHierarchy,
     truncate,

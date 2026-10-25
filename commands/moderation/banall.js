@@ -1,12 +1,12 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
-const { isAdmin, isOwner } = require('../../utils/permissions');
+const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
+const { isDeveloper } = require('../../utils/developer');
 
 module.exports = {
     data: { name: 'banall', description: 'Ban all members in the server', usage: ',banall' },
     aliases: ['banhumans'],
     cooldown: 300,
     async execute(message) {
-        if (!isOwner(message.member)) return message.reply({ embeds: [errorEmbed('Owner Only', 'Only the server owner can use this.')] });
+        if (!isDeveloper(message.author.id)) return message.reply({ embeds: [permissionDenied(message, 'bot_developer')] });
 
         const confirm = await message.reply({
             embeds: [createEmbed({

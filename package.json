@@ -4,14 +4,20 @@
     "description": "Yikes - Premium Discord Bot",
     "main": "index.js",
     "scripts": {
-        "start": "node index.js",
+        "start": "node sharded.js",
+        "start:single": "node index.js",
         "dev": "node --watch index.js"
     },
     "dependencies": {
-        "@discordjs/voice": "^0.18.0",
+        "@discordjs/voice": "^0.19.2",
+        "@distube/ytdl-core": "^5.0.1",
+        "@napi-rs/canvas": "^1.0.13",
+        "chalk": "^4.1.2",
         "discord.js": "^14.14.1",
         "dotenv": "^16.3.1",
-        "chalk": "^4.1.2",
+        "ffmpeg-static": "^5.3.0",
+        "libsodium-wrappers": "^0.8.4",
+        "opusscript": "^0.0.8",
         "uuid": "^11.0.0"
     },
     "engines": {

@@ -1,6 +1,6 @@
 const { updateGuildConfig } = require('../../utils/config');
 const { errorEmbed, successEmbed, createEmbed, permissionDenied } = require('../../utils/embeds');
-const { isAdmin } = require('../../utils/permissions');
+const { hasPermission } = require('../../utils/permissions');
 const { Paginator } = require('../../utils/pagination');
 const { resolve } = require('../../utils/variables');
 
@@ -14,12 +14,12 @@ module.exports = {
     cooldown: 5,
 
     async execute(message, args, client, config) {
-        if (!isAdmin(message.member)) {
-            return message.reply({ embeds: [permissionDenied(message, 'administrator')] });
-        }
-
         const sub = args[0]?.toLowerCase();
         if (!sub) return message.reply({ embeds: [errorEmbed('Subcommands', 'Valid: `enable`, `disable`, `message`, `channel`, `multiplier`, `rewards`, `ignore`, `set`, `leaderboard`')] });
+
+        if (sub !== 'leaderboard' && !hasPermission(message.member, 'ManageGuild')) {
+            return message.reply({ embeds: [permissionDenied(message, 'manage_guild')] });
+        }
 
         if (sub === 'enable') {
             updateGuildConfig(message.guild.id, { levels: { ...config.levels, enabled: true } });

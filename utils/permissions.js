@@ -15,4 +15,12 @@ function isOwner(member) {
     return member.id === member.guild.ownerId;
 }
 
-module.exports = { hasPermission, isAdmin, isOwner };
+function canAssignRole(member, role) {
+    if (!member || !role) return false;
+    if (member.guild && member.guild.ownerId === member.id) return true;
+    const highest = member.roles && member.roles.highest;
+    if (!highest) return false;
+    return role.position < highest.position;
+}
+
+module.exports = { hasPermission, isAdmin, isOwner, canAssignRole };

@@ -17,8 +17,8 @@ function createEmbed(opts = {}) {
     if (opts.description) embed.setDescription(opts.description);
     if (opts.author) embed.setAuthor(opts.author);
     if (opts.footer) embed.setFooter(opts.footer);
-    if (opts.thumbnail) embed.setThumbnail(opts.thumbnail);
-    if (opts.image) embed.setImage(opts.image);
+    if (opts.thumbnail) embed.setThumbnail(typeof opts.thumbnail === 'string' ? opts.thumbnail : opts.thumbnail.url);
+    if (opts.image) embed.setImage(typeof opts.image === 'string' ? opts.image : opts.image.url);
     if (opts.fields) embed.addFields(opts.fields);
     if (opts.timestamp !== false) embed.setTimestamp();
 
@@ -33,6 +33,12 @@ function errorEmbed(title, desc) {
     const embed = createEmbed({ color: COLORS.error, title: title || 'Error', description: desc || '' });
     embed.data[ALERT] = true;
     return embed;
+}
+
+function roleInputError(error, query, usage) {
+    if (error === 'ambiguous') return errorEmbed('Multiple Roles', `More than one role matches **${query}** \u2014 please ping it instead.`);
+    if (error === 'notfound') return errorEmbed('Role Not Found', `No role named **${query}**. Ping the role or type its exact name.`);
+    return errorEmbed('Missing Role', `Usage: ${usage}`);
 }
 
 function warningEmbed(title, desc) {
@@ -85,6 +91,7 @@ function monoValue(value) {
     const text = String(value ?? '');
     if (!text || text.length > 120 || text.includes('\n')) return text;
     if (/<@|<#|<@&|https?:|```|\*\*/.test(text)) return text;
+    if (/<t:\d+/.test(text)) return text;
     const prose = /\s/.test(text) || !/[_,./#:@\-]/.test(text);
     return prose ? text : `\`${text}\``;
 }
@@ -180,6 +187,7 @@ module.exports = {
     createEmbed,
     successEmbed,
     errorEmbed,
+    roleInputError,
     warningEmbed,
     infoEmbed,
     modLogEmbed,

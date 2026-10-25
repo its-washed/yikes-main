@@ -1,3 +1,126 @@
 {
-    "users": {}
+  "users": {
+    "743168413958012939": {
+      "wallet": 2000,
+      "bank": 15367,
+      "lastDaily": 0,
+      "lastWork": 1792921604204,
+      "lastWeekly": 1792921727722,
+      "lastMonthly": 1792921730562,
+      "inventory": [
+        {
+          "name": "Rabbit",
+          "quantity": 1
+        }
+      ]
+    },
+    "1356641639212384357": {
+      "wallet": 57,
+      "bank": 60009,
+      "lastDaily": 1792921705364,
+      "lastWork": 1792932034172,
+      "lastWeekly": 1792921723408,
+      "lastMonthly": 1792921738562,
+      "inventory": [
+        {
+          "name": "Octopus",
+          "quantity": 1
+        },
+        {
+          "name": "Lucky Charm",
+          "quantity": 1
+        },
+        {
+          "name": "Fake ID",
+          "quantity": 1
+        }
+      ]
+    },
+    "1557425778293997690": {
+      "wallet": 713,
+      "bank": 2,
+      "lastDaily": 1792921695895,
+      "lastWork": 0,
+      "lastWeekly": 1792921719426,
+      "lastMonthly": 1792921724354,
+      "inventory": [
+        {
+          "name": "Tin Can",
+          "quantity": 1
+        }
+      ]
+    },
+    "1333507781495357587": {
+      "wallet": 14512,
+      "bank": 0,
+      "lastDaily": 1792921699763,
+      "lastWork": 1792921608762,
+      "lastWeekly": 1792921738665,
+      "lastMonthly": 1792921729906,
+      "inventory": []
+    },
+    "1328175490577469502": {
+      "wallet": 0,
+      "bank": 0,
+      "lastDaily": 0,
+      "lastWork": 0,
+      "lastWeekly": 0,
+      "lastMonthly": 0,
+      "inventory": []
+    },
+    "1529178342278828257": {
+      "wallet": 831,
+      "bank": 16996,
+      "lastDaily": 1792921708705,
+      "lastWork": 1792921815425,
+      "lastWeekly": 1792921712021,
+      "lastMonthly": 1792921716066,
+      "inventory": []
+    },
+    "1232207235493400600": {
+      "wallet": 10,
+      "bank": 32423423423422,
+      "lastDaily": 0,
+      "lastWork": 0,
+      "lastWeekly": 0,
+      "lastMonthly": 0,
+      "inventory": []
+    },
+    "1497395481591156808": {
+      "wallet": 226,
+      "bank": 0,
+      "lastDaily": 0,
+      "lastWork": 1792923547113,
+      "lastWeekly": 0,
+      "lastMonthly": 0,
+      "inventory": [
+        {
+          "name": "Rabbit",
+          "quantity": 1
+        },
+        {
+          "name": "Seaweed",
+          "quantity": 1
+        }
+      ]
+    },
+    "716959849509945355": {
+      "wallet": 505,
+      "bank": 0,
+      "lastDaily": 0,
+      "lastWork": 1792923553558,
+      "lastWeekly": 0,
+      "lastMonthly": 0,
+      "inventory": []
+    },
+    "1526598749009219717": {
+      "wallet": 104,
+      "bank": 0,
+      "lastDaily": 0,
+      "lastWork": 0,
+      "lastWeekly": 0,
+      "lastMonthly": 0,
+      "inventory": []
+    }
+  }
 }

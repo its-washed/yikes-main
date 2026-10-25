@@ -28,7 +28,8 @@ module.exports = {
 
         const afkData = loadJSON(AFK_FILE);
         const guildAfk = afkData[message.guild.id];
-        if (guildAfk && guildAfk[message.author.id]) {
+        const isCommand = message.content.startsWith(config.prefix || ',');
+        if (!isCommand && guildAfk && guildAfk[message.author.id]) {
             const afkEntry = guildAfk[message.author.id];
             const duration = Math.floor((Date.now() - afkEntry.timestamp) / 60000);
             delete guildAfk[message.author.id];

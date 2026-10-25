@@ -21,7 +21,8 @@ module.exports = {
             return message.reply({ embeds: [errorEmbed('Invalid Volume', 'Volume must be between 1 and 100.')] });
         }
 
-        server.player.state.volume = vol / 100;
+        server.volume = vol / 100;
+        if (server.currentResource?.volume) server.currentResource.volume.setVolumeLogarithmic(server.volume);
 
         return message.reply({ embeds: [successEmbed('Volume', `Volume set to **${vol}%**.`)] });
     }

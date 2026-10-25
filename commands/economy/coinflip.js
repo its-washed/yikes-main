@@ -6,13 +6,12 @@ module.exports = {
     aliases: ['cf', 'flip'],
     cooldown: 5,
     async execute(message, args) {
-        const call = args[0];
-        const bet = parseInt(args[1]);
+        const sides = ['heads', 'tails', 'h', 't'];
+        const sideIdx = args.findIndex(a => sides.includes(String(a).toLowerCase()));
+        const call = sideIdx === -1 ? 'heads' : String(args[sideIdx]).toLowerCase();
+        const bet = parseInt(args.find((a, i) => i !== sideIdx && /^\d+$/.test(a)));
         const user = getUser(message.author.id);
 
-        if (!call || !['heads', 'tails', 'h', 't'].includes(call.toLowerCase())) {
-            return message.reply({ embeds: [errorEmbed('Invalid Call', 'Usage: ,coinflip [heads/tails] [bet]')] });
-        }
         if (isNaN(bet) || bet <= 0) return message.reply({ embeds: [errorEmbed('Invalid Bet', 'Usage: ,coinflip [heads/tails] [bet]')] });
         if (bet > user.wallet) return message.reply({ embeds: [errorEmbed('Not Enough', `You only have **$${user.wallet.toLocaleString()}** in your wallet.`)] });
 
