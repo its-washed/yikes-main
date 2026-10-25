@@ -1,7 +1,7 @@
 # Yikes
 
 Premium all-in-one Discord bot for moderation, security, and community management.
-
+"yes it says i used ai but i needed to fix the commit history so i had to use it to figure out the issue"
 ## Features
 
 - **530 commands** across moderation, server, utility, music, fun, economy, and developer tools
