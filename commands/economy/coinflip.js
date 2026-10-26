@@ -1,18 +1,19 @@
 const { createEmbed, errorEmbed } = require('../../utils/embeds');
-const { getUser, updateWallet } = require('../../utils/economy');
+const { getUser, updateWallet, parseBet } = require('../../utils/economy');
 
 module.exports = {
-    data: { name: 'coinflip', description: 'Flip a coin and gamble', usage: ',coinflip [heads/tails] [bet]' },
+    data: { name: 'coinflip', description: 'Flip a coin and gamble', usage: ',coinflip [heads/tails] [bet/all/half/%]' },
     aliases: ['cf', 'flip'],
     cooldown: 5,
     async execute(message, args) {
         const sides = ['heads', 'tails', 'h', 't'];
         const sideIdx = args.findIndex(a => sides.includes(String(a).toLowerCase()));
         const call = sideIdx === -1 ? 'heads' : String(args[sideIdx]).toLowerCase();
-        const bet = parseInt(args.find((a, i) => i !== sideIdx && /^\d+$/.test(a)));
         const user = getUser(message.author.id);
+        const token = args.find((a, i) => i !== sideIdx && /^(all|half|\d+(?:\.\d+)?%|\d+)$/i.test(String(a)));
+        const bet = parseBet(token, user.wallet);
 
-        if (isNaN(bet) || bet <= 0) return message.reply({ embeds: [errorEmbed('Invalid Bet', 'Usage: ,coinflip [heads/tails] [bet]')] });
+        if (isNaN(bet) || bet <= 0) return message.reply({ embeds: [errorEmbed('Invalid Bet', 'Usage: ,coinflip [heads/tails] [bet/all/half/%]')] });
         if (bet > user.wallet) return message.reply({ embeds: [errorEmbed('Not Enough', `You only have **$${user.wallet.toLocaleString()}** in your wallet.`)] });
 
         const result = Math.random() < 0.5 ? 'heads' : 'tails';

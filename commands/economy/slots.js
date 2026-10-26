@@ -1,15 +1,15 @@
 const { createEmbed, errorEmbed } = require('../../utils/embeds');
-const { getUser, updateWallet } = require('../../utils/economy');
+const { getUser, updateWallet, parseBet } = require('../../utils/economy');
 
 module.exports = {
-    data: { name: 'slots', description: 'Play the slot machine', usage: ',slots [bet]' },
+    data: { name: 'slots', description: 'Play the slot machine', usage: ',slots [bet/all/half/%]' },
     aliases: ['slot', 'spin'],
     cooldown: 5,
     async execute(message, args) {
         const user = getUser(message.author.id);
-        const bet = parseInt(args[0]);
+        const bet = parseBet(args[0], user.wallet);
 
-        if (isNaN(bet) || bet <= 0) return message.reply({ embeds: [errorEmbed('Invalid Bet', 'Usage: ,slots [bet]')] });
+        if (isNaN(bet) || bet <= 0) return message.reply({ embeds: [errorEmbed('Invalid Bet', 'Usage: ,slots [bet/all/half/%]')] });
         if (bet > user.wallet) return message.reply({ embeds: [errorEmbed('Not Enough', `You only have **$${user.wallet.toLocaleString()}** in your wallet.`)] });
 
         const symbols = ['🍒', '🍋', '🍊', '🍇', '🍉', '💎', '7️⃣'];

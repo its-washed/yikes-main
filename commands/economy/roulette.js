@@ -1,5 +1,5 @@
 const { createEmbed, errorEmbed } = require('../../utils/embeds');
-const { getUser, updateWallet } = require('../../utils/economy');
+const { getUser, updateWallet, parseBet } = require('../../utils/economy');
 
 const ROULETTE_NUMBERS = {
     red: [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36],
@@ -8,18 +8,18 @@ const ROULETTE_NUMBERS = {
 };
 
 module.exports = {
-    data: { name: 'roulette', description: 'Play roulette', usage: ',roulette [bet type] [amount]' },
+    data: { name: 'roulette', description: 'Play roulette', usage: ',roulette [bet type] [amount/all/half/%]' },
     aliases: ['roul'],
     cooldown: 5,
     async execute(message, args) {
         const betType = (args[0] || '').toLowerCase();
-        const bet = parseInt(args[1]);
         const user = getUser(message.author.id);
+        const bet = parseBet(args[1], user.wallet);
 
         if (!['red', 'black', 'green', 'even', 'odd'].includes(betType)) {
-            return message.reply({ embeds: [errorEmbed('Invalid Bet Type', 'Usage: ,roulette [red/black/green/even/odd] [amount]')] });
+            return message.reply({ embeds: [errorEmbed('Invalid Bet Type', 'Usage: ,roulette [red/black/green/even/odd] [amount/all/half/%]')] });
         }
-        if (isNaN(bet) || bet <= 0) return message.reply({ embeds: [errorEmbed('Invalid Bet', 'Usage: ,roulette [type] [amount]')] });
+        if (isNaN(bet) || bet <= 0) return message.reply({ embeds: [errorEmbed('Invalid Bet', 'Usage: ,roulette [type] [amount/all/half/%]')] });
         if (bet > user.wallet) return message.reply({ embeds: [errorEmbed('Not Enough', `You only have **$${user.wallet.toLocaleString()}** in your wallet.`)] });
 
         const rolled = Math.floor(Math.random() * 37);

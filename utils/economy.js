@@ -61,6 +61,16 @@ function getTotal(userId) {
     return user.wallet + user.bank;
 }
 
+function parseBet(token, wallet) {
+    if (token === undefined || token === null) return NaN;
+    const raw = String(token).toLowerCase();
+    if (raw === 'all') return Math.floor(wallet);
+    if (raw === 'half') return Math.floor(wallet / 2);
+    const pct = /^(\d+(?:\.\d+)?)%$/.exec(raw);
+    if (pct) return Math.floor((wallet * parseFloat(pct[1])) / 100);
+    return parseInt(raw, 10);
+}
+
 function addItem(userId, itemName, quantity = 1) {
     const data = loadEconomy();
     const user = ensureUser(data, userId);
@@ -101,4 +111,4 @@ function getInventory(userId) {
     return user.inventory || [];
 }
 
-module.exports = { loadEconomy, saveEconomy, getUser, updateWallet, updateBank, getTotal, addItem, removeItem, hasItem, getInventory };
+module.exports = { loadEconomy, saveEconomy, getUser, updateWallet, updateBank, getTotal, addItem, removeItem, hasItem, getInventory, parseBet };

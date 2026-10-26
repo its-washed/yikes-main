@@ -46,9 +46,9 @@ function countCommands(groups) {
 }
 
 function categoryDescription(cmds) {
-    const list = cmds.map(c => `\`${c.data.name}\``).join(', ');
-    if (list.length <= 4000) return list;
-    return cmds.map(c => c.data.name).join(', ');
+    const list = cmds.map(c => (c.subcommands && c.subcommands.length > 0 ? `${c.data.name}*` : c.data.name)).join(', ');
+    if (list.length <= 4000) return `\`\`\`\n${list}\n\`\`\``;
+    return list;
 }
 
 function categoryEmbed(client, groups, cat) {
@@ -59,7 +59,7 @@ function categoryEmbed(client, groups, cat) {
         author: { name: client.user ? client.user.username : 'scarlet hub', icon_url: client.user ? client.user.displayAvatarURL() : undefined },
         title: `${cat.charAt(0).toUpperCase() + cat.slice(1)} — ${cmds.length} command${cmds.length === 1 ? '' : 's'}`,
         description: categoryDescription(cmds),
-        footer: { text: `Use ,help <command> for details • ${countCommands(groups)} commands • ${Object.keys(groups).length} modules` }
+        footer: { text: `Use ,help <command> for details • * has subcommands • ${countCommands(groups)} commands • ${Object.keys(groups).length} modules` }
     };
 }
 

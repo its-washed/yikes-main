@@ -1,21 +1,20 @@
 const { createEmbed, errorEmbed } = require('../../utils/embeds');
-const { getUser, updateWallet } = require('../../utils/economy');
+const { getUser, updateWallet, parseBet } = require('../../utils/economy');
 
 module.exports = {
-    data: { name: 'duel', description: 'Duel another user for money', usage: ',duel [@user] [bet]' },
+    data: { name: 'duel', description: 'Duel another user for money', usage: ',duel [@user] [bet/all/half/%]' },
     aliases: ['fight'],
     cooldown: 30,
     async execute(message, args) {
         const target = message.mentions.users.first();
-        if (!target) return message.reply({ embeds: [errorEmbed('Missing User', 'Usage: ,duel [@user] [bet]')] });
+        if (!target) return message.reply({ embeds: [errorEmbed('Missing User', 'Usage: ,duel [@user] [bet/all/half/%]')] });
         if (target.id === message.author.id) return message.reply({ embeds: [errorEmbed('Invalid', 'You cannot duel yourself.')] });
         if (target.bot) return message.reply({ embeds: [errorEmbed('Invalid', 'You cannot duel bots.')] });
 
-        const bet = parseInt(args[1]);
-        if (isNaN(bet) || bet <= 0) return message.reply({ embeds: [errorEmbed('Invalid Bet', 'Usage: ,duel [@user] [bet]')] });
-
         const challenger = getUser(message.author.id);
         const opponent = getUser(target.id);
+        const bet = parseBet(args[1], challenger.wallet);
+        if (isNaN(bet) || bet <= 0) return message.reply({ embeds: [errorEmbed('Invalid Bet', 'Usage: ,duel [@user] [bet/all/half/%]')] });
 
         if (challenger.wallet < bet) return message.reply({ embeds: [errorEmbed('Not Enough', `You need **$${bet.toLocaleString()}** in your wallet.`)] });
         if (opponent.wallet < bet) return message.reply({ embeds: [errorEmbed('Opponent Broke', `${target.tag} doesn't have **$${bet.toLocaleString()}** in their wallet.`)] });
