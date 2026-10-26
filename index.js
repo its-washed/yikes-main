@@ -188,7 +188,7 @@ client.on(Events.MessageCreate, async (message) => {
         return;
     }
 
-    if (isCommandDisabled(cmd.data.name, message.guild.id)) {
+    if (isCommandDisabled(cmd.data.name, message.guild.id, cmd.category)) {
         const msg = await message.reply(normalizePayload({
             embeds: [{
                 [ALERT]: true,

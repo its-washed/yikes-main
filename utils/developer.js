@@ -30,9 +30,9 @@ function isServerBlacklisted(guildId) {
     return loadDevData().blacklistedServers.includes(guildId);
 }
 
-function isCommandDisabled(commandName, guildId) {
+function isCommandDisabled(commandName, guildId, category) {
     const d = loadDevData();
-    if (d.globalDisabled.includes(commandName)) return true;
+    if (d.globalDisabled.includes(commandName) || (category && d.globalDisabled.includes(category))) return true;
     if (guildId && d.serverDisabled[guildId]?.includes(commandName)) return true;
     return false;
 }

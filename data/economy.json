@@ -73,7 +73,7 @@
       "inventory": []
     },
     "1529178342278828257": {
-      "wallet": 500000000,
+      "wallet": 499998283,
       "bank": 0,
       "lastDaily": 1792921708705,
       "lastWork": 1792935010539,
@@ -96,7 +96,7 @@
     },
     "1232207235493400600": {
       "wallet": 32,
-      "bank": 499999968,
+      "bank": 34232432923423390,
       "lastDaily": 0,
       "lastWork": 0,
       "lastWeekly": 0,
@@ -186,6 +186,15 @@
     },
     "880481267399950376": {
       "wallet": 500000000,
+      "bank": 0,
+      "lastDaily": 0,
+      "lastWork": 0,
+      "lastWeekly": 0,
+      "lastMonthly": 0,
+      "inventory": []
+    },
+    "921273331456573462": {
+      "wallet": 0,
       "bank": 0,
       "lastDaily": 0,
       "lastWork": 0,

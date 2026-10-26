@@ -4,11 +4,12 @@
       "name": "papaspizzeria",
       "type": "restaurant",
       "level": 50,
-      "employees": 24,
+      "employees": 29,
       "income": 1000,
       "upkeep": 250,
-      "totalEarned": 50000000,
-      "createdAt": 1792935877100
+      "totalEarned": 50000750,
+      "createdAt": 1792935877100,
+      "lastCollect": 1792989903382
     },
     "1497395481591156808": {
       "name": "CottonFarm",

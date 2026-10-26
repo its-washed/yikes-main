@@ -6,8 +6,6 @@
   ],
   "blacklist": [],
   "blacklistedServers": [],
-  "globalDisabled": [
-    "economy"
-  ],
+  "globalDisabled": [],
   "serverDisabled": {}
 }

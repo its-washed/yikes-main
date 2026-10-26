@@ -1,18 +1,18 @@
 const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
-const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
+const { isDeveloper } = require('../../utils/developer');
 
 module.exports = {
     data: {
         name: 'shutdown',
-        description: 'Shut down the bot',
+        description: 'Shut down the bot (Developer only)',
         usage: ',shutdown'
     },
     aliases: ['restart', 'die'],
     cooldown: 30,
 
     async execute(message) {
-        if (!isAdmin(message.member)) {
-            return message.reply({ embeds: [permissionDenied(message, 'administrator')] });
+        if (!isDeveloper(message.author.id)) {
+            return message.reply({ embeds: [permissionDenied(message, 'bot_developer')] });
         }
 
         await message.reply({ embeds: [createEmbed({ color: 0xff4757, title: 'Shutting Down', description: 'Goodbye!' })] });
