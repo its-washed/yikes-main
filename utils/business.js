@@ -4,8 +4,8 @@ const path = require('path');
 const BIZ_FILE = path.join(__dirname, '..', 'data', 'business.json');
 
 const MAX_LEVEL = 50;
-const MAX_INCOME = 1000;
-const MAX_UPKEEP = 250;
+const MAX_INCOME = 10000;
+const MAX_UPKEEP = 2500;
 const COLLECT_INTERVAL = 10 * 60 * 1000;
 
 function loadBiz() {
@@ -54,9 +54,12 @@ function upgradeBusiness(userId) {
     const biz = data.businesses[userId];
     if (!biz) return null;
     if (biz.level >= MAX_LEVEL) return null;
+    if (biz.income >= MAX_INCOME) return null;
+    const beforeIncome = biz.income;
     biz.level++;
-    biz.income = Math.min(Math.floor(biz.income * 1.5), MAX_INCOME);
-    biz.upkeep = Math.min(Math.floor(biz.upkeep * 1.3), MAX_UPKEEP);
+    biz.income = Math.min(Math.floor(beforeIncome * 1.5), MAX_INCOME);
+    const gain = biz.income - beforeIncome;
+    biz.upkeep = Math.min(Math.floor(biz.upkeep * 1.3), MAX_UPKEEP, biz.upkeep + gain);
     saveBiz(data);
     return biz;
 }
@@ -65,9 +68,13 @@ function hireEmployee(userId) {
     const data = loadBiz();
     const biz = data.businesses[userId];
     if (!biz) return null;
+    if (biz.income >= MAX_INCOME) return null;
+    const beforeIncome = biz.income;
+    biz.income = Math.min(beforeIncome + Math.max(Math.floor(beforeIncome * 0.1), 100), MAX_INCOME);
+    const gain = biz.income - beforeIncome;
+    if (gain <= 0) return null;
     biz.employees++;
-    biz.income = Math.min(Math.floor(biz.income * 1.1), MAX_INCOME);
-    biz.upkeep = Math.min(biz.upkeep + 50, MAX_UPKEEP);
+    biz.upkeep = Math.min(biz.upkeep + Math.min(50, gain), MAX_UPKEEP);
     saveBiz(data);
     return biz;
 }

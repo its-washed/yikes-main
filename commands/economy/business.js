@@ -1,5 +1,5 @@
 const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
-const { getBusiness, createBusiness, upgradeBusiness, hireEmployee, collectIncome, deleteBusiness, MAX_LEVEL } = require('../../utils/business');
+const { getBusiness, createBusiness, upgradeBusiness, hireEmployee, collectIncome, deleteBusiness, MAX_LEVEL, MAX_INCOME } = require('../../utils/business');
 const { getUser, updateWallet } = require('../../utils/economy');
 const { Paginator } = require('../../utils/pagination');
 
@@ -62,23 +62,27 @@ module.exports = {
             const biz = getBusiness(message.author.id);
             if (!biz) return message.reply({ embeds: [errorEmbed('No Business', 'Create a business first.')] });
             if (biz.level >= MAX_LEVEL) return message.reply({ embeds: [errorEmbed('Max Level', `Your business is already at the maximum level (${MAX_LEVEL}).`)] });
+            if (biz.income >= MAX_INCOME) return message.reply({ embeds: [errorEmbed('Income Maxed', `Your business income is already at the **$${MAX_INCOME.toLocaleString()}** cap, so upgrades can't improve it.`)] });
             const cost = biz.level * 2000;
             const user = getUser(message.author.id);
             if (user.wallet < cost) return message.reply({ embeds: [errorEmbed('Not Enough', `Upgrade costs **$${cost.toLocaleString()}**.`)] });
+            const upgraded = upgradeBusiness(message.author.id);
+            if (!upgraded) return message.reply({ embeds: [errorEmbed('Cannot Upgrade', 'Your business cannot be upgraded right now.')] });
             updateWallet(message.author.id, -cost);
-            upgradeBusiness(message.author.id);
-            return message.reply({ embeds: [successEmbed('Upgraded', `**${biz.name}** is now level **${biz.level + 1}**!`)] });
+            return message.reply({ embeds: [successEmbed('Upgraded', `**${biz.name}** is now level **${upgraded.level}**!\nIncome \`${biz.income.toLocaleString()}\` → \`${upgraded.income.toLocaleString()}\` • Upkeep \`${biz.upkeep.toLocaleString()}\` → \`${upgraded.upkeep.toLocaleString()}\` • Profit \`${(upgraded.income - upgraded.upkeep).toLocaleString()}\``)] });
         }
 
         if (sub === 'hire') {
             const biz = getBusiness(message.author.id);
             if (!biz) return message.reply({ embeds: [errorEmbed('No Business', 'Create a business first.')] });
+            if (biz.income >= MAX_INCOME) return message.reply({ embeds: [errorEmbed('Income Maxed', `Your business income is already at the **$${MAX_INCOME.toLocaleString()}** cap — new employees would only add upkeep.`)] });
             const cost = 500;
             const user = getUser(message.author.id);
             if (user.wallet < cost) return message.reply({ embeds: [errorEmbed('Not Enough', `Hiring costs **$${cost.toLocaleString()}**.`)] });
+            const hired = hireEmployee(message.author.id);
+            if (!hired) return message.reply({ embeds: [errorEmbed('Cannot Hire', 'Your business cannot take on employees right now.')] });
             updateWallet(message.author.id, -cost);
-            hireEmployee(message.author.id);
-            return message.reply({ embeds: [successEmbed('Hired', `**${biz.name}** now has **${biz.employees + 1}** employees!`)] });
+            return message.reply({ embeds: [successEmbed('Hired', `**${biz.name}** now has **${hired.employees}** employees!\nIncome \`${biz.income.toLocaleString()}\` → \`${hired.income.toLocaleString()}\` • Upkeep \`${biz.upkeep.toLocaleString()}\` → \`${hired.upkeep.toLocaleString()}\` • Profit \`${(hired.income - hired.upkeep).toLocaleString()}\``)] });
         }
 
         if (sub === 'collect') {

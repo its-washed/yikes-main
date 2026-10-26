@@ -1,8 +1,10 @@
 (function ensureDependenciesInstalled() {
     const fs = require('fs');
     const path = require('path');
+    const Module = require('module');
     const { spawnSync } = require('child_process');
     const root = __dirname;
+    const builtins = new Set(Module.builtinModules);
 
     let pkg;
     try {
@@ -11,28 +13,82 @@
         return;
     }
 
-    const deps = Object.keys(pkg.dependencies || {});
-    if (!deps.length) return;
+    const declared = Object.keys(pkg.dependencies || {});
+    const pkgName = spec => (spec.startsWith('@') ? spec.split('/').slice(0, 2).join('/') : spec.split('/')[0]);
+    const isExternal = spec => Boolean(spec) && !spec.startsWith('.') && !spec.startsWith('node:') &&
+        !path.isAbsolute(spec) && !spec.endsWith('.json') && !builtins.has(spec.split('/')[0]);
 
-    const isInstalled = dep => fs.existsSync(path.join(root, 'node_modules', ...dep.split('/'), 'package.json'));
-    const missing = deps.filter(dep => !isInstalled(dep));
-    if (!missing.length) return;
+    const walk = dir => {
+        const found = [];
+        let entries;
+        try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return found; }
+        for (const entry of entries) {
+            const fp = path.join(dir, entry.name);
+            if (entry.isDirectory()) found.push(...walk(fp));
+            else if (entry.isFile() && entry.name.endsWith('.js')) found.push(fp);
+        }
+        return found;
+    };
 
-    console.log(`[setup] Installing missing dependencies: ${missing.join(', ')}`);
-    const result = spawnSync('npm', ['install', '--no-audit', '--no-fund'], {
+    const sources = ['index.js', 'sharded.js', 'commands', 'events', 'utils']
+        .map(name => path.join(root, name))
+        .filter(fp => fs.existsSync(fp));
+
+    const needed = new Set(declared);
+    const REQUIRE_RE = /require\(\s*["']([^"']+)["']\s*\)/g;
+    for (const source of sources) {
+        const files = fs.statSync(source).isDirectory() ? walk(source) : [source];
+        for (const file of files) {
+            let text;
+            try { text = fs.readFileSync(file, 'utf8'); } catch { continue; }
+            let match;
+            while ((match = REQUIRE_RE.exec(text)) !== null) {
+                if (isExternal(match[1])) needed.add(pkgName(match[1]));
+            }
+        }
+    }
+    if (!needed.size) return;
+
+    const isLocal = name => fs.existsSync(path.join(root, 'node_modules', ...name.split('/'), 'package.json'));
+    const probe = names => {
+        const broken = [];
+        for (const name of names) {
+            if (!isLocal(name)) {
+                broken.push({ name, missing: null, absent: true });
+                continue;
+            }
+            try { require(name); } catch (err) {
+                const missing = /Cannot find module '([^']+)'/.exec(err.message);
+                broken.push({ name, missing: missing ? missing[1] : null });
+            }
+        }
+        return broken;
+    };
+    const describe = b => {
+        if (b.absent) return `${b.name} (not installed here)`;
+        return b.missing && pkgName(b.missing) !== b.name ? `${b.name} (missing ${b.missing})` : b.name;
+    };
+
+    let broken = probe([...needed]);
+    if (!broken.length) return;
+
+    console.log(`[setup] Missing or broken dependencies: ${broken.map(describe).join(', ')}`);
+
+    const extras = [...new Set(broken.map(b => b.name))].filter(name => !declared.includes(name));
+    const result = spawnSync('npm', ['install', '--no-audit', '--no-fund', ...extras], {
         cwd: root,
         stdio: 'inherit',
         shell: process.platform === 'win32'
     });
 
     if (result.status !== 0) {
-        console.error('[setup] npm install failed. Run `npm install` manually, then start the bot again.');
+        console.error('[setup] npm install failed. Delete node_modules and run `npm install` manually, then start the bot again.');
         process.exit(1);
     }
 
-    const unresolved = deps.filter(dep => !isInstalled(dep));
-    if (unresolved.length) {
-        console.error(`[setup] Dependencies still missing after install: ${unresolved.join(', ')}`);
+    broken = probe([...needed]);
+    if (broken.length) {
+        console.error(`[setup] Still missing or broken after install: ${broken.map(describe).join(', ')}. Delete node_modules and run \`npm install\` manually.`);
         process.exit(1);
     }
 })();

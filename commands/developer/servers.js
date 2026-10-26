@@ -14,7 +14,7 @@ module.exports = {
 
         const pages = [];
         for (let i = 0; i < guilds.size; i += 10) {
-            const chunk = guilds.array().slice(i, i + 10);
+            const chunk = [...guilds.values()].slice(i, i + 10);
             pages.push({
                 color: 0x6c5ce7,
                 title: `Servers (${guilds.size})`,

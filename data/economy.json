@@ -1,8 +1,8 @@
 {
   "users": {
     "1529178342278828257": {
-      "wallet": 18,
-      "bank": 1748,
+      "wallet": 0,
+      "bank": 2233,
       "lastDaily": 1793000269953,
       "lastWork": 1793002163774,
       "lastWeekly": 1792999863406,
@@ -26,7 +26,7 @@
         },
         {
           "name": "Fox",
-          "quantity": 1
+          "quantity": 2
         },
         {
           "name": "Swordfish",
@@ -50,7 +50,7 @@
         },
         {
           "name": "Old Boot",
-          "quantity": 3
+          "quantity": 4
         },
         {
           "name": "Golden Eagle",
@@ -75,7 +75,7 @@
       ]
     },
     "1497395481591156808": {
-      "wallet": 225,
+      "wallet": 265,
       "bank": 0,
       "lastDaily": 0,
       "lastWork": 0,
@@ -85,19 +85,19 @@
     },
     "1557425778293997690": {
       "wallet": 0,
-      "bank": 23635,
+      "bank": 46692,
       "lastDaily": 1793000266080,
-      "lastWork": 1793006451950,
+      "lastWork": 1793011184647,
       "lastWeekly": 1793000270077,
       "lastMonthly": 1793000272177,
       "inventory": [
         {
           "name": "Old Boot",
-          "quantity": 9
+          "quantity": 16
         },
         {
           "name": "Rabbit",
-          "quantity": 16
+          "quantity": 18
         },
         {
           "name": "Octopus",
@@ -109,35 +109,35 @@
         },
         {
           "name": "Fox",
-          "quantity": 1
-        },
-        {
-          "name": "Duck",
           "quantity": 4
         },
         {
+          "name": "Duck",
+          "quantity": 12
+        },
+        {
           "name": "Small Fish",
-          "quantity": 9
+          "quantity": 15
         },
         {
           "name": "Squirrel",
-          "quantity": 7
+          "quantity": 17
         },
         {
           "name": "Wild Boar",
-          "quantity": 3
+          "quantity": 4
         },
         {
           "name": "Nothing",
-          "quantity": 2
+          "quantity": 3
         },
         {
           "name": "Seaweed",
-          "quantity": 8
+          "quantity": 17
         },
         {
           "name": "Tin Can",
-          "quantity": 7
+          "quantity": 16
         },
         {
           "name": "Golden Eagle",
@@ -145,7 +145,7 @@
         },
         {
           "name": "Wolf Pelt",
-          "quantity": 2
+          "quantity": 5
         },
         {
           "name": "Golden Fish",
@@ -153,11 +153,11 @@
         },
         {
           "name": "Deer",
-          "quantity": 4
+          "quantity": 7
         },
         {
           "name": "Crab",
-          "quantity": 1
+          "quantity": 2
         },
         {
           "name": "Swordfish",
@@ -174,11 +174,19 @@
         {
           "name": "Lockpick Set",
           "quantity": 1
+        },
+        {
+          "name": "Treasure Chest",
+          "quantity": 1
+        },
+        {
+          "name": "Fake ID",
+          "quantity": 1
         }
       ]
     },
     "1556950063094308897": {
-      "wallet": 764,
+      "wallet": 581,
       "bank": 0,
       "lastDaily": 0,
       "lastWork": 1793000774732,
@@ -213,17 +221,22 @@
       "inventory": []
     },
     "1191211183643037756": {
-      "wallet": 163,
-      "bank": 0,
+      "wallet": 4,
+      "bank": 696,
       "lastDaily": 0,
-      "lastWork": 0,
+      "lastWork": 1793011185831,
       "lastWeekly": 0,
       "lastMonthly": 0,
-      "inventory": []
+      "inventory": [
+        {
+          "name": "Old Boot",
+          "quantity": 1
+        }
+      ]
     },
     "743168413958012939": {
       "wallet": 0,
-      "bank": 9904,
+      "bank": 10508,
       "lastDaily": 1793006448944,
       "lastWork": 1793006471364,
       "lastWeekly": 1793006513997,
@@ -239,7 +252,7 @@
         },
         {
           "name": "Seaweed",
-          "quantity": 3
+          "quantity": 4
         },
         {
           "name": "Duck",
@@ -259,7 +272,7 @@
         },
         {
           "name": "Small Fish",
-          "quantity": 2
+          "quantity": 3
         },
         {
           "name": "Wild Boar",
@@ -275,6 +288,10 @@
         },
         {
           "name": "Bear",
+          "quantity": 2
+        },
+        {
+          "name": "Deer",
           "quantity": 1
         }
       ]
@@ -289,18 +306,51 @@
       "inventory": []
     },
     "880481267399950376": {
-      "wallet": 0,
-      "bank": 100001772,
+      "wallet": 668,
+      "bank": 3111,
       "lastDaily": 1793007348600,
       "lastWork": 1793007402020,
       "lastWeekly": 1793007342985,
       "lastMonthly": 1793007329010,
-      "inventory": []
+      "inventory": [
+        {
+          "name": "Rabbit",
+          "quantity": 2
+        },
+        {
+          "name": "Squirrel",
+          "quantity": 2
+        },
+        {
+          "name": "Duck",
+          "quantity": 3
+        },
+        {
+          "name": "Wild Boar",
+          "quantity": 1
+        },
+        {
+          "name": "Bear",
+          "quantity": 3
+        },
+        {
+          "name": "Deer",
+          "quantity": 1
+        },
+        {
+          "name": "Golden Eagle",
+          "quantity": 1
+        },
+        {
+          "name": "Nothing",
+          "quantity": 1
+        }
+      ]
     },
     "1328175490577469502": {
       "wallet": 0,
-      "bank": 0,
-      "lastDaily": 0,
+      "bank": 1196,
+      "lastDaily": 1793008167936,
       "lastWork": 1793007431870,
       "lastWeekly": 0,
       "lastMonthly": 0,
@@ -315,6 +365,73 @@
         },
         {
           "name": "Small Fish",
+          "quantity": 1
+        },
+        {
+          "name": "Seaweed",
+          "quantity": 1
+        },
+        {
+          "name": "Old Boot",
+          "quantity": 1
+        }
+      ]
+    },
+    "1269842084387356752": {
+      "wallet": 775,
+      "bank": 0,
+      "lastDaily": 0,
+      "lastWork": 1793013575251,
+      "lastWeekly": 0,
+      "lastMonthly": 0,
+      "inventory": [
+        {
+          "name": "Duck",
+          "quantity": 1
+        }
+      ]
+    },
+    "1549433132368003103": {
+      "wallet": 30,
+      "bank": 0,
+      "lastDaily": 0,
+      "lastWork": 0,
+      "lastWeekly": 0,
+      "lastMonthly": 0,
+      "inventory": []
+    },
+    "1356641639212384357": {
+      "wallet": 0,
+      "bank": 174,
+      "lastDaily": 0,
+      "lastWork": 0,
+      "lastWeekly": 0,
+      "lastMonthly": 0,
+      "inventory": []
+    },
+    "1450228522600628349": {
+      "wallet": 0,
+      "bank": 0,
+      "lastDaily": 0,
+      "lastWork": 0,
+      "lastWeekly": 0,
+      "lastMonthly": 0,
+      "inventory": []
+    },
+    "716959849509945355": {
+      "wallet": 2360,
+      "bank": 1198,
+      "lastDaily": 1793027160672,
+      "lastWork": 1793026793917,
+      "lastWeekly": 1793027240698,
+      "lastMonthly": 0,
+      "inventory": [
+        {
+          "name": "Old Boot",
+          "quantity": 1
+        },
+        {
+          "name": "Bear",
           "quantity": 1
         }
       ]
