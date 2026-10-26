@@ -6,8 +6,8 @@ const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 module.exports = {
     data: {
         name: 'ban',
-        description: 'Ban a member from the server',
-        usage: ',ban @user [reason] [--days 7]'
+        description: 'Ban a user from the server, even if they are not in it',
+        usage: ',ban <@user|id> [reason] [--days 7]'
     },
     aliases: ['b'],
     cooldown: 5,
@@ -25,17 +25,32 @@ module.exports = {
             return message.reply({ embeds: [errorEmbed('Missing Target', 'Please mention a user or provide their ID.')] });
         }
 
-        const target = parseMember(message, args[0]);
-        if (!target) {
-            return message.reply({ embeds: [errorEmbed('User Not Found', 'Could not find that user in this server.')] });
+        const member = parseMember(message, args[0]);
+        let user = null;
+        if (member) {
+            user = member.user;
+        } else {
+            const rawId = args[0].replace(/[<@!>]/g, '');
+            if (/^\d{17,20}$/.test(rawId)) {
+                try {
+                    user = await client.users.fetch(rawId);
+                } catch {
+                    user = null;
+                }
+            }
+        }
+        if (!user) {
+            return message.reply({ embeds: [errorEmbed('User Not Found', 'Could not find that user. Mention them or provide their user ID.')] });
         }
 
-        if (!checkHierarchy(message.member, target, message.guild)) {
-            return message.reply({ embeds: [errorEmbed('Hierarchy', 'You cannot ban someone with an equal or higher role.')] });
-        }
+        if (member) {
+            if (!checkHierarchy(message.member, member, message.guild)) {
+                return message.reply({ embeds: [errorEmbed('Hierarchy', 'You cannot ban someone with an equal or higher role.')] });
+            }
 
-        if (!checkHierarchy(message.guild.members.me, target, message.guild)) {
-            return message.reply({ embeds: [errorEmbed('Hierarchy', 'I cannot ban someone with an equal or higher role than me.')] });
+            if (!checkHierarchy(message.guild.members.me, member, message.guild)) {
+                return message.reply({ embeds: [errorEmbed('Hierarchy', 'I cannot ban someone with an equal or higher role than me.')] });
+            }
         }
 
         let days = 0;
@@ -49,7 +64,7 @@ module.exports = {
         const reason = reasonArgs.join(' ') || 'No reason provided';
 
         try {
-            await target.send({
+            await user.send({
                 embeds: [{
                     color: 0xff4757,
                     title: `You have been banned from ${message.guild.name}`,
@@ -58,17 +73,20 @@ module.exports = {
                 }]
             }).catch(() => {});
 
-            await target.ban({ deleteMessageDays: days, reason: `${reason} | Banned by ${message.author.tag}` });
+            await message.guild.members.ban(user.id, {
+                deleteMessageSeconds: days > 0 ? days * 86400 : undefined,
+                reason: `${reason} | Banned by ${message.author.tag}`
+            });
 
             const logChannel = message.guild.channels.cache.get(config.logChannel);
             if (logChannel) {
                 logChannel.send({
-                    embeds: [modLogEmbed('Ban', message.author, target, reason, 0xff4757)]
+                    embeds: [modLogEmbed('Ban', message.author, user, reason, 0xff4757)]
                 });
             }
 
             return message.reply({
-                embeds: [successEmbed('Member Banned', `**${target.user.tag}** has been banned.${days > 0 ? ` Messages from the last ${days} day(s) deleted.` : ''}`)]
+                embeds: [successEmbed('Member Banned', `**${user.tag}** has been banned${member ? '' : ' (they were not in the server)'}.${days > 0 ? ` Messages from the last ${days} day(s) deleted.` : ''}`)]
             });
         } catch (error) {
             return message.reply({ embeds: [errorEmbed('Error', `Failed to ban: ${error.message}`)] });

@@ -25,14 +25,12 @@ module.exports = {
         }
 
         const userId = args[0].replace(/[<@!>]/g, '');
+        if (!/^\d{17,20}$/.test(userId)) {
+            return message.reply({ embeds: [errorEmbed('Invalid ID', 'Provide the ID of the user you want to unban.')] });
+        }
 
         try {
-            const banList = await message.guild.bans.fetch();
-            const banned = banList.get(userId);
-
-            if (!banned) {
-                return message.reply({ embeds: [errorEmbed('Not Banned', 'That user is not banned from this server.')] });
-            }
+            const banned = await message.guild.bans.fetch(userId);
 
             await message.guild.members.unban(userId, `Unbanned by ${message.author.tag}`);
 
@@ -47,6 +45,9 @@ module.exports = {
                 embeds: [successEmbed('Member Unbanned', `**${banned.user.tag}** has been unbanned.`)]
             });
         } catch (error) {
+            if (error.code === 10027 || error.status === 404) {
+                return message.reply({ embeds: [errorEmbed('Not Banned', 'That user is not banned from this server.')] });
+            }
             return message.reply({ embeds: [errorEmbed('Error', `Failed to unban: ${error.message}`)] });
         }
     }
