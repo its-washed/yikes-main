@@ -1,3 +1,42 @@
+(function ensureDependenciesInstalled() {
+    const fs = require('fs');
+    const path = require('path');
+    const { spawnSync } = require('child_process');
+    const root = __dirname;
+
+    let pkg;
+    try {
+        pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+    } catch {
+        return;
+    }
+
+    const deps = Object.keys(pkg.dependencies || {});
+    if (!deps.length) return;
+
+    const isInstalled = dep => fs.existsSync(path.join(root, 'node_modules', ...dep.split('/'), 'package.json'));
+    const missing = deps.filter(dep => !isInstalled(dep));
+    if (!missing.length) return;
+
+    console.log(`[setup] Installing missing dependencies: ${missing.join(', ')}`);
+    const result = spawnSync('npm', ['install', '--no-audit', '--no-fund'], {
+        cwd: root,
+        stdio: 'inherit',
+        shell: process.platform === 'win32'
+    });
+
+    if (result.status !== 0) {
+        console.error('[setup] npm install failed. Run `npm install` manually, then start the bot again.');
+        process.exit(1);
+    }
+
+    const unresolved = deps.filter(dep => !isInstalled(dep));
+    if (unresolved.length) {
+        console.error(`[setup] Dependencies still missing after install: ${unresolved.join(', ')}`);
+        process.exit(1);
+    }
+})();
+
 require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const fs = require('fs');
 const path = require('path');
