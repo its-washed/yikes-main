@@ -16,17 +16,17 @@
     },
     "1516749898379296778": {
       "1232207235493400600": {
-        "messages": 204,
+        "messages": 259,
         "vcTime": 40190,
         "lastVCJoin": 0
       },
       "743168413958012939": {
-        "messages": 353,
+        "messages": 440,
         "vcTime": 0,
         "lastVCJoin": 0
       },
       "1557425778293997690": {
-        "messages": 407,
+        "messages": 1155,
         "vcTime": 0,
         "lastVCJoin": 0
       },
@@ -36,13 +36,13 @@
         "lastVCJoin": 0
       },
       "880481267399950376": {
-        "messages": 107,
+        "messages": 173,
         "vcTime": 0,
         "lastVCJoin": 0
       },
       "1497395481591156808": {
-        "messages": 44,
-        "vcTime": 0,
+        "messages": 302,
+        "vcTime": 281364,
         "lastVCJoin": 0
       },
       "1191211183643037756": {
@@ -56,18 +56,18 @@
         "lastVCJoin": 0
       },
       "1333507781495357587": {
-        "messages": 117,
+        "messages": 574,
         "vcTime": 0,
         "lastVCJoin": 0
       },
       "1356641639212384357": {
-        "messages": 257,
+        "messages": 547,
         "vcTime": 0,
         "lastVCJoin": 0
       },
       "1529178342278828257": {
-        "messages": 95,
-        "vcTime": 0,
+        "messages": 994,
+        "vcTime": 176321,
         "lastVCJoin": 0
       },
       "1281512197188489277": {
@@ -76,22 +76,22 @@
         "lastVCJoin": 0
       },
       "1291465136246095974": {
-        "messages": 6,
+        "messages": 18,
         "vcTime": 0,
         "lastVCJoin": 0
       },
       "1476313872154755176": {
-        "messages": 14,
-        "vcTime": 0,
+        "messages": 126,
+        "vcTime": 8355,
         "lastVCJoin": 0
       },
       "716959849509945355": {
-        "messages": 6,
-        "vcTime": 0,
+        "messages": 93,
+        "vcTime": 11094,
         "lastVCJoin": 0
       },
       "1526598749009219717": {
-        "messages": 15,
+        "messages": 43,
         "vcTime": 0,
         "lastVCJoin": 0
       },
@@ -101,27 +101,27 @@
         "lastVCJoin": 0
       },
       "1533107920277864628": {
-        "messages": 1,
+        "messages": 5,
         "vcTime": 0,
         "lastVCJoin": 0
       },
       "1528781726241919088": {
-        "messages": 1,
+        "messages": 38,
         "vcTime": 0,
         "lastVCJoin": 0
       },
       "1475819949409964105": {
         "messages": 0,
-        "vcTime": 2294487,
+        "vcTime": 38962489,
         "lastVCJoin": 0
       },
       "1339276821308375131": {
-        "messages": 44,
+        "messages": 52,
         "vcTime": 0,
         "lastVCJoin": 0
       },
       "1078689199349313546": {
-        "messages": 11,
+        "messages": 13,
         "vcTime": 0,
         "lastVCJoin": 0
       },
@@ -131,7 +131,7 @@
         "lastVCJoin": 0
       },
       "1054563290384187482": {
-        "messages": 22,
+        "messages": 1528,
         "vcTime": 0,
         "lastVCJoin": 0
       },
@@ -141,12 +141,187 @@
         "lastVCJoin": 0
       },
       "1546903050646454464": {
-        "messages": 19,
+        "messages": 38,
         "vcTime": 0,
         "lastVCJoin": 0
       },
       "1009346309171453952": {
         "messages": 6,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1332371977385803837": {
+        "messages": 3,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1556950063094308897": {
+        "messages": 85,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1561161075548889293": {
+        "messages": 3,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "802515941019222016": {
+        "messages": 21,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1547232707916865579": {
+        "messages": 4,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1328175490577469502": {
+        "messages": 10,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1272555009665532096": {
+        "messages": 22,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1449101272501325967": {
+        "messages": 2,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1555894301924401185": {
+        "messages": 104,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1058836204948299847": {
+        "messages": 3,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1490886733930434661": {
+        "messages": 3,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "996512892583162006": {
+        "messages": 3,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1425716323845148684": {
+        "messages": 1,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1364681098692399285": {
+        "messages": 2,
+        "vcTime": 2478,
+        "lastVCJoin": 0
+      },
+      "1388535363689123923": {
+        "messages": 1,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1450228522600628349": {
+        "messages": 131,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1383382075565932617": {
+        "messages": 1,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1557407109417664592": {
+        "messages": 12,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1378397669965303809": {
+        "messages": 0,
+        "vcTime": 27488,
+        "lastVCJoin": 0
+      },
+      "1516992438923694260": {
+        "messages": 0,
+        "vcTime": 2844,
+        "lastVCJoin": 0
+      },
+      "1386665741276811365": {
+        "messages": 0,
+        "vcTime": 9265,
+        "lastVCJoin": 0
+      },
+      "1267582987747459192": {
+        "messages": 13,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1558513608999305237": {
+        "messages": 235,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1283004193694683239": {
+        "messages": 4,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1467231611996078183": {
+        "messages": 7,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "972661366118830150": {
+        "messages": 3,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1223275613931045014": {
+        "messages": 1,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1145108598142275645": {
+        "messages": 7,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1160576381441290281": {
+        "messages": 84,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1510389590194917580": {
+        "messages": 54,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1258009411331428425": {
+        "messages": 0,
+        "vcTime": 47637,
+        "lastVCJoin": 0
+      },
+      "1319373477647614033": {
+        "messages": 3,
+        "vcTime": 0,
+        "lastVCJoin": 0
+      },
+      "1454323912539246734": {
+        "messages": 0,
+        "vcTime": 15658,
+        "lastVCJoin": 0
+      },
+      "1524109014911291483": {
+        "messages": 6,
+        "vcTime": 7044,
+        "lastVCJoin": 0
+      },
+      "1514971069021290548": {
+        "messages": 2,
         "vcTime": 0,
         "lastVCJoin": 0
       }

@@ -1,4 +1,4 @@
-const { createEmbed, errorEmbed, permissionDenied } = require('../../utils/embeds');
+const { errorEmbed, permissionDenied } = require('../../utils/embeds');
 const { hasPermission } = require('../../utils/permissions');
 const { PermissionFlagsBits } = require('discord.js');
 
@@ -36,17 +36,9 @@ module.exports = {
         const hadEdit = clearStore(message.client.editSnipes, channel.id);
 
         if (!hadSnipe && !hadEdit) {
-            return message.reply({ embeds: [errorEmbed('Nothing to Clear', `No snipes are stored for ${channel}.`)] });
+            return message.reply({ embeds: [errorEmbed('Nothing to Clear', `nothing has been deleted in ${channel}.`)] });
         }
 
-        const cleared = [hadSnipe ? 'Deleted-message snipe' : null, hadEdit ? 'edit snipe' : null].filter(Boolean).join(' and ');
-
-        return message.reply({
-            embeds: [createEmbed({
-                color: 0x00d26a,
-                title: 'Snipe Cleared',
-                description: `${cleared} for ${channel} can no longer be sniped.\nCleared by ${message.author}`
-            })]
-        });
+        await message.react('\u2705').catch(() => {});
     }
 };

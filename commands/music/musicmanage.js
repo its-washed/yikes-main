@@ -5,6 +5,6 @@ module.exports = {
     aliases: ['mmhelp'],
     cooldown: 3,
     async execute(message) {
-        return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Music Help', description: '`,play [song | URL | playlist]`\n`,24/7 [#channel | off]\n,queue`\n`,skip`\n`,stop`\n`,nowplaying`\n`,shuffle`\n`,volume [1-100]`\n`,loop`\n`,remove [position]`\n`,bass`' })] });
+        return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Music Help', description: '`,play [song | URL | playlist]`\n`,24/7 [#channel | song | off]\n,queue`\n`,skip`\n`,stop`\n`,nowplaying`\n`,shuffle`\n`,volume [1-100]`\n`,loop`\n`,remove [position]`\n`,bass`' })] });
     }
 };

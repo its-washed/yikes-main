@@ -3,6 +3,11 @@ const path = require('path');
 
 const BIZ_FILE = path.join(__dirname, '..', 'data', 'business.json');
 
+const MAX_LEVEL = 50;
+const MAX_INCOME = 1000;
+const MAX_UPKEEP = 250;
+const COLLECT_INTERVAL = 10 * 60 * 1000;
+
 function loadBiz() {
     if (!fs.existsSync(BIZ_FILE)) return { businesses: {} };
     return JSON.parse(fs.readFileSync(BIZ_FILE, 'utf8'));
@@ -48,9 +53,10 @@ function upgradeBusiness(userId) {
     const data = loadBiz();
     const biz = data.businesses[userId];
     if (!biz) return null;
+    if (biz.level >= MAX_LEVEL) return null;
     biz.level++;
-    biz.income = Math.floor(biz.income * 1.5);
-    biz.upkeep = Math.floor(biz.upkeep * 1.3);
+    biz.income = Math.min(Math.floor(biz.income * 1.5), MAX_INCOME);
+    biz.upkeep = Math.min(Math.floor(biz.upkeep * 1.3), MAX_UPKEEP);
     saveBiz(data);
     return biz;
 }
@@ -60,8 +66,8 @@ function hireEmployee(userId) {
     const biz = data.businesses[userId];
     if (!biz) return null;
     biz.employees++;
-    biz.income = Math.floor(biz.income * 1.1);
-    biz.upkeep += 50;
+    biz.income = Math.min(Math.floor(biz.income * 1.1), MAX_INCOME);
+    biz.upkeep = Math.min(biz.upkeep + 50, MAX_UPKEEP);
     saveBiz(data);
     return biz;
 }
@@ -70,10 +76,16 @@ function collectIncome(userId) {
     const data = loadBiz();
     const biz = data.businesses[userId];
     if (!biz) return null;
+    const now = Date.now();
+    const last = biz.lastCollect || 0;
+    if (now - last < COLLECT_INTERVAL) {
+        return { biz, ready: false, wait: COLLECT_INTERVAL - (now - last) };
+    }
     const profit = biz.income - biz.upkeep;
     biz.totalEarned += profit;
+    biz.lastCollect = now;
     saveBiz(data);
-    return { biz, profit };
+    return { biz, profit, ready: true };
 }
 
 function deleteBusiness(userId) {
@@ -84,4 +96,4 @@ function deleteBusiness(userId) {
     return true;
 }
 
-module.exports = { loadBiz, saveBiz, getBusiness, createBusiness, upgradeBusiness, hireEmployee, collectIncome, deleteBusiness };
+module.exports = { loadBiz, saveBiz, getBusiness, createBusiness, upgradeBusiness, hireEmployee, collectIncome, deleteBusiness, MAX_LEVEL, MAX_INCOME, MAX_UPKEEP, COLLECT_INTERVAL };

@@ -5,36 +5,36 @@ const { getUser, updateWallet } = require('../../utils/economy');
 const LAB_COST = 10000000;
 
 const RECIPES = [
-    { name: 'Mystic Brew', cost: 1000, rewardMin: 1500, rewardMax: 3000, duration: 1800000, tier: 1, levelReq: 1 },
-    { name: 'Potion of Speed', cost: 2500, rewardMin: 3500, rewardMax: 6000, duration: 3600000, tier: 1, levelReq: 1 },
-    { name: 'Herbal Tonic', cost: 1500, rewardMin: 2000, rewardMax: 4000, duration: 2400000, tier: 1, levelReq: 1 },
-    { name: 'Elixir of Wealth', cost: 8000, rewardMin: 10000, rewardMax: 18000, duration: 7200000, tier: 2, levelReq: 2 },
-    { name: 'Shadow Serum', cost: 6000, rewardMin: 8000, rewardMax: 14000, duration: 5400000, tier: 2, levelReq: 2 },
-    { name: 'Fire Water', cost: 10000, rewardMin: 13000, rewardMax: 22000, duration: 9000000, tier: 2, levelReq: 2 },
-    { name: 'Philosopher Stone', cost: 25000, rewardMin: 35000, rewardMax: 60000, duration: 14400000, tier: 3, levelReq: 3 },
-    { name: 'Frozen Essence', cost: 20000, rewardMin: 28000, rewardMax: 48000, duration: 10800000, tier: 3, levelReq: 3 },
-    { name: 'Toxic Extract', cost: 30000, rewardMin: 42000, rewardMax: 70000, duration: 18000000, tier: 3, levelReq: 3 },
-    { name: 'Dragon Elixir', cost: 75000, rewardMin: 100000, rewardMax: 180000, duration: 28800000, tier: 4, levelReq: 4 },
-    { name: 'Phoenix Ash', cost: 60000, rewardMin: 82000, rewardMax: 140000, duration: 21600000, tier: 4, levelReq: 4 },
-    { name: 'Void Liquid', cost: 90000, rewardMin: 125000, rewardMax: 210000, duration: 36000000, tier: 4, levelReq: 4 },
-    { name: 'Celestial Dew', cost: 200000, rewardMin: 280000, rewardMax: 480000, duration: 43200000, tier: 5, levelReq: 5 },
-    { name: 'Demon Blood', cost: 180000, rewardMin: 250000, rewardMax: 420000, duration: 36000000, tier: 5, levelReq: 5 },
-    { name: 'Ambrosia', cost: 250000, rewardMin: 350000, rewardMax: 600000, duration: 54000000, tier: 5, levelReq: 5 },
-    { name: 'Leviathan Ichor', cost: 500000, rewardMin: 700000, rewardMax: 1200000, duration: 64800000, tier: 6, levelReq: 6 },
-    { name: 'Starlight Serum', cost: 450000, rewardMin: 620000, rewardMax: 1050000, duration: 54000000, tier: 6, levelReq: 6 },
-    { name: 'Frozen Star', cost: 600000, rewardMin: 850000, rewardMax: 1400000, duration: 72000000, tier: 6, levelReq: 6 },
-    { name: 'World Ender', cost: 1200000, rewardMin: 1700000, rewardMax: 2800000, duration: 86400000, tier: 7, levelReq: 7 },
-    { name: 'God Serum', cost: 1000000, rewardMin: 1400000, rewardMax: 2400000, duration: 72000000, tier: 7, levelReq: 7 },
-    { name: 'Astral Essence', cost: 1500000, rewardMin: 2100000, rewardMax: 3500000, duration: 100800000, tier: 7, levelReq: 7 },
-    { name: 'Omega Potion', cost: 3000000, rewardMin: 4200000, rewardMax: 7000000, duration: 115200000, tier: 8, levelReq: 8 },
-    { name: 'Cosmic Brew', cost: 2500000, rewardMin: 3500000, rewardMax: 5800000, duration: 86400000, tier: 8, levelReq: 8 },
-    { name: 'Singularity Core', cost: 4000000, rewardMin: 5500000, rewardMax: 9000000, duration: 129600000, tier: 8, levelReq: 8 },
-    { name: 'Unobtainium', cost: 8000000, rewardMin: 11000000, rewardMax: 18000000, duration: 172800000, tier: 9, levelReq: 9 },
-    { name: 'Eternity Elixir', cost: 7000000, rewardMin: 9500000, rewardMax: 16000000, duration: 144000000, tier: 9, levelReq: 9 },
-    { name: 'Dark Matter', cost: 10000000, rewardMin: 14000000, rewardMax: 23000000, duration: 201600000, tier: 9, levelReq: 9 },
-    { name: 'Philosopher Universe', cost: 25000000, rewardMin: 35000000, rewardMax: 60000000, duration: 259200000, tier: 10, levelReq: 10 },
-    { name: 'Immortality Serum', cost: 20000000, rewardMin: 28000000, rewardMax: 48000000, duration: 216000000, tier: 10, levelReq: 10 },
-    { name: 'Genesis Stone', cost: 30000000, rewardMin: 42000000, rewardMax: 72000000, duration: 302400000, tier: 10, levelReq: 10 },
+    { name: 'Mystic Brew', cost: 1000, rewardMin: 1125, rewardMax: 2250, duration: 3600000, tier: 1, levelReq: 1 },
+    { name: 'Potion of Speed', cost: 2500, rewardMin: 2625, rewardMax: 4500, duration: 7200000, tier: 1, levelReq: 1 },
+    { name: 'Herbal Tonic', cost: 1500, rewardMin: 1500, rewardMax: 3000, duration: 4800000, tier: 1, levelReq: 1 },
+    { name: 'Elixir of Wealth', cost: 8000, rewardMin: 7500, rewardMax: 13500, duration: 14400000, tier: 2, levelReq: 2 },
+    { name: 'Shadow Serum', cost: 6000, rewardMin: 6000, rewardMax: 10500, duration: 10800000, tier: 2, levelReq: 2 },
+    { name: 'Fire Water', cost: 10000, rewardMin: 9750, rewardMax: 16500, duration: 18000000, tier: 2, levelReq: 2 },
+    { name: 'Philosopher Stone', cost: 25000, rewardMin: 26250, rewardMax: 45000, duration: 28800000, tier: 3, levelReq: 3 },
+    { name: 'Frozen Essence', cost: 20000, rewardMin: 21000, rewardMax: 36000, duration: 21600000, tier: 3, levelReq: 3 },
+    { name: 'Toxic Extract', cost: 30000, rewardMin: 31500, rewardMax: 52500, duration: 36000000, tier: 3, levelReq: 3 },
+    { name: 'Dragon Elixir', cost: 75000, rewardMin: 75000, rewardMax: 135000, duration: 57600000, tier: 4, levelReq: 4 },
+    { name: 'Phoenix Ash', cost: 60000, rewardMin: 61500, rewardMax: 105000, duration: 43200000, tier: 4, levelReq: 4 },
+    { name: 'Void Liquid', cost: 90000, rewardMin: 93750, rewardMax: 157500, duration: 72000000, tier: 4, levelReq: 4 },
+    { name: 'Celestial Dew', cost: 200000, rewardMin: 210000, rewardMax: 360000, duration: 86400000, tier: 5, levelReq: 5 },
+    { name: 'Demon Blood', cost: 180000, rewardMin: 187500, rewardMax: 315000, duration: 72000000, tier: 5, levelReq: 5 },
+    { name: 'Ambrosia', cost: 250000, rewardMin: 262500, rewardMax: 450000, duration: 108000000, tier: 5, levelReq: 5 },
+    { name: 'Leviathan Ichor', cost: 500000, rewardMin: 525000, rewardMax: 900000, duration: 129600000, tier: 6, levelReq: 6 },
+    { name: 'Starlight Serum', cost: 450000, rewardMin: 465000, rewardMax: 787500, duration: 108000000, tier: 6, levelReq: 6 },
+    { name: 'Frozen Star', cost: 600000, rewardMin: 637500, rewardMax: 1050000, duration: 144000000, tier: 6, levelReq: 6 },
+    { name: 'World Ender', cost: 1200000, rewardMin: 1275000, rewardMax: 2100000, duration: 172800000, tier: 7, levelReq: 7 },
+    { name: 'God Serum', cost: 1000000, rewardMin: 1050000, rewardMax: 1800000, duration: 144000000, tier: 7, levelReq: 7 },
+    { name: 'Astral Essence', cost: 1500000, rewardMin: 1575000, rewardMax: 2625000, duration: 201600000, tier: 7, levelReq: 7 },
+    { name: 'Omega Potion', cost: 3000000, rewardMin: 3150000, rewardMax: 5250000, duration: 230400000, tier: 8, levelReq: 8 },
+    { name: 'Cosmic Brew', cost: 2500000, rewardMin: 2625000, rewardMax: 4350000, duration: 172800000, tier: 8, levelReq: 8 },
+    { name: 'Singularity Core', cost: 4000000, rewardMin: 4125000, rewardMax: 6750000, duration: 259200000, tier: 8, levelReq: 8 },
+    { name: 'Unobtainium', cost: 8000000, rewardMin: 8250000, rewardMax: 13500000, duration: 345600000, tier: 9, levelReq: 9 },
+    { name: 'Eternity Elixir', cost: 7000000, rewardMin: 7125000, rewardMax: 12000000, duration: 288000000, tier: 9, levelReq: 9 },
+    { name: 'Dark Matter', cost: 10000000, rewardMin: 10500000, rewardMax: 17250000, duration: 403200000, tier: 9, levelReq: 9 },
+    { name: 'Philosopher Universe', cost: 25000000, rewardMin: 26250000, rewardMax: 45000000, duration: 518400000, tier: 10, levelReq: 10 },
+    { name: 'Immortality Serum', cost: 20000000, rewardMin: 21000000, rewardMax: 36000000, duration: 432000000, tier: 10, levelReq: 10 },
+    { name: 'Genesis Stone', cost: 30000000, rewardMin: 31500000, rewardMax: 54000000, duration: 604800000, tier: 10, levelReq: 10 },
 ];
 
 const TIER_NAMES = {
@@ -209,6 +209,11 @@ module.exports = {
 
             if (recipe.levelReq > lab.level) {
                 return message.reply({ embeds: [errorEmbed('Locked', `You need **Lab Level ${recipe.levelReq}** to run **${recipe.name}**.\nYour lab is Level ${lab.level}.`)] });
+            }
+
+            const running = getExperiments(message.author.id);
+            if (running.length >= 3) {
+                return message.reply({ embeds: [errorEmbed('Experiment Limit', 'Your lab can run at most **3** experiments at a time. Collect or cancel one first.')] });
             }
 
             const user = getUser(message.author.id);

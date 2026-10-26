@@ -1,2 +1,9 @@
 node_modules/
 .env
+data/activity.json
+data/business.json
+data/company.json
+data/economy.json
+data/developer.json
+data/laboratory.json
+data/levels.json

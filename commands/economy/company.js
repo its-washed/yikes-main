@@ -5,38 +5,38 @@ const { Paginator } = require('../../utils/pagination');
 
 const COMPANY_TYPES = [
     { id: 'food_stand', name: 'Food Stand', cost: 250000, maxMembers: 5, projectBonus: 1, icon: '🍔', color: 0xf39c12 },
-    { id: 'coffee_shop', name: 'Coffee Shop', cost: 500000, maxMembers: 7, projectBonus: 1.2, icon: '☕', color: 0x6f4e37 },
-    { id: 'boutique', name: 'Boutique', cost: 1000000, maxMembers: 8, projectBonus: 1.4, icon: '👗', color: 0xe91e63 },
-    { id: 'tech_startup', name: 'Tech Startup', cost: 2500000, maxMembers: 10, projectBonus: 1.6, icon: '💻', color: 0x2196f3 },
-    { id: 'marketing_agency', name: 'Marketing Agency', cost: 5000000, maxMembers: 12, projectBonus: 1.8, icon: '📢', color: 0x9c27b0 },
-    { id: 'real_estate', name: 'Real Estate Firm', cost: 10000000, maxMembers: 15, projectBonus: 2.0, icon: '🏠', color: 0x4caf50 },
-    { id: 'investment_bank', name: 'Investment Bank', cost: 25000000, maxMembers: 18, projectBonus: 2.5, icon: '🏦', color: 0x00bcd4 },
-    { id: 'aerospace', name: 'Aerospace Corp', cost: 50000000, maxMembers: 20, projectBonus: 3.0, icon: '🚀', color: 0x607d8b },
-    { id: 'pharma', name: 'Pharmaceutical Giant', cost: 100000000, maxMembers: 25, projectBonus: 4.0, icon: '💊', color: 0x009688 },
-    { id: 'conglomerate', name: 'Global Conglomerate', cost: 250000000, maxMembers: 30, projectBonus: 5.0, icon: '🌍', color: 0xff5722 },
+    { id: 'coffee_shop', name: 'Coffee Shop', cost: 500000, maxMembers: 7, projectBonus: 1.05, icon: '☕', color: 0x6f4e37 },
+    { id: 'boutique', name: 'Boutique', cost: 1000000, maxMembers: 8, projectBonus: 1.1, icon: '👗', color: 0xe91e63 },
+    { id: 'tech_startup', name: 'Tech Startup', cost: 2500000, maxMembers: 10, projectBonus: 1.15, icon: '💻', color: 0x2196f3 },
+    { id: 'marketing_agency', name: 'Marketing Agency', cost: 5000000, maxMembers: 12, projectBonus: 1.2, icon: '📢', color: 0x9c27b0 },
+    { id: 'real_estate', name: 'Real Estate Firm', cost: 10000000, maxMembers: 15, projectBonus: 1.25, icon: '🏠', color: 0x4caf50 },
+    { id: 'investment_bank', name: 'Investment Bank', cost: 25000000, maxMembers: 18, projectBonus: 1.3, icon: '🏦', color: 0x00bcd4 },
+    { id: 'aerospace', name: 'Aerospace Corp', cost: 50000000, maxMembers: 20, projectBonus: 1.35, icon: '🚀', color: 0x607d8b },
+    { id: 'pharma', name: 'Pharmaceutical Giant', cost: 100000000, maxMembers: 25, projectBonus: 1.4, icon: '💊', color: 0x009688 },
+    { id: 'conglomerate', name: 'Global Conglomerate', cost: 250000000, maxMembers: 30, projectBonus: 1.45, icon: '🌍', color: 0xff5722 },
 ];
 
 const PROJECTS = [
-    { name: 'Flyer Distribution', cost: 5000, rewardMin: 8000, rewardMax: 15000, duration: 3600000, tier: 1, levelReq: 1 },
-    { name: 'Social Media Ad', cost: 10000, rewardMin: 16000, rewardMax: 28000, duration: 5400000, tier: 1, levelReq: 1 },
-    { name: 'Local Sponsorship', cost: 15000, rewardMin: 24000, rewardMax: 42000, duration: 7200000, tier: 1, levelReq: 1 },
-    { name: 'Pop-up Store', cost: 20000, rewardMin: 32000, rewardMax: 55000, duration: 9000000, tier: 1, levelReq: 1 },
-    { name: 'Marketing Campaign', cost: 50000, rewardMin: 80000, rewardMax: 140000, duration: 14400000, tier: 2, levelReq: 3 },
-    { name: 'Product Launch', cost: 75000, rewardMin: 120000, rewardMax: 210000, duration: 18000000, tier: 2, levelReq: 3 },
-    { name: 'Brand Partnership', cost: 100000, rewardMin: 160000, rewardMax: 280000, duration: 21600000, tier: 2, levelReq: 3 },
-    { name: 'Hiring Spree', cost: 60000, rewardMin: 95000, rewardMax: 170000, duration: 16200000, tier: 2, levelReq: 3 },
-    { name: 'Research Initiative', cost: 200000, rewardMin: 320000, rewardMax: 550000, duration: 28800000, tier: 3, levelReq: 5 },
-    { name: 'Expansion Plan', cost: 300000, rewardMin: 480000, rewardMax: 820000, duration: 36000000, tier: 3, levelReq: 5 },
-    { name: 'IPO Preparation', cost: 400000, rewardMin: 640000, rewardMax: 1100000, duration: 43200000, tier: 3, levelReq: 5 },
-    { name: 'Merger Deal', cost: 350000, rewardMin: 560000, rewardMax: 950000, duration: 39600000, tier: 3, levelReq: 5 },
-    { name: 'Global Expansion', cost: 1000000, rewardMin: 1600000, rewardMax: 2800000, duration: 64800000, tier: 4, levelReq: 7 },
-    { name: 'Acquisition Deal', cost: 1500000, rewardMin: 2400000, rewardMax: 4200000, duration: 79200000, tier: 4, levelReq: 7 },
-    { name: 'Patent Portfolio', cost: 1200000, rewardMin: 1900000, rewardMax: 3300000, duration: 72000000, tier: 4, levelReq: 7 },
-    { name: 'Stock Buyback', cost: 2000000, rewardMin: 3200000, rewardMax: 5500000, duration: 86400000, tier: 4, levelReq: 7 },
-    { name: 'Fortune 500 Campaign', cost: 5000000, rewardMin: 8000000, rewardMax: 14000000, duration: 129600000, tier: 5, levelReq: 9 },
-    { name: 'Space Program', cost: 8000000, rewardMin: 12800000, rewardMax: 22000000, duration: 172800000, tier: 5, levelReq: 9 },
-    { name: 'World Domination', cost: 10000000, rewardMin: 16000000, rewardMax: 28000000, duration: 216000000, tier: 5, levelReq: 9 },
-    { name: 'Mega Merger', cost: 12000000, rewardMin: 19200000, rewardMax: 33000000, duration: 259200000, tier: 5, levelReq: 9 },
+    { name: 'Flyer Distribution', cost: 5000, rewardMin: 6000, rewardMax: 11250, duration: 7200000, tier: 1, levelReq: 1 },
+    { name: 'Social Media Ad', cost: 10000, rewardMin: 12000, rewardMax: 21000, duration: 10800000, tier: 1, levelReq: 1 },
+    { name: 'Local Sponsorship', cost: 15000, rewardMin: 18000, rewardMax: 31500, duration: 14400000, tier: 1, levelReq: 1 },
+    { name: 'Pop-up Store', cost: 20000, rewardMin: 24000, rewardMax: 41250, duration: 18000000, tier: 1, levelReq: 1 },
+    { name: 'Marketing Campaign', cost: 50000, rewardMin: 60000, rewardMax: 105000, duration: 28800000, tier: 2, levelReq: 3 },
+    { name: 'Product Launch', cost: 75000, rewardMin: 90000, rewardMax: 157500, duration: 36000000, tier: 2, levelReq: 3 },
+    { name: 'Brand Partnership', cost: 100000, rewardMin: 120000, rewardMax: 210000, duration: 43200000, tier: 2, levelReq: 3 },
+    { name: 'Hiring Spree', cost: 60000, rewardMin: 71250, rewardMax: 127500, duration: 32400000, tier: 2, levelReq: 3 },
+    { name: 'Research Initiative', cost: 200000, rewardMin: 240000, rewardMax: 412500, duration: 57600000, tier: 3, levelReq: 5 },
+    { name: 'Expansion Plan', cost: 300000, rewardMin: 360000, rewardMax: 615000, duration: 72000000, tier: 3, levelReq: 5 },
+    { name: 'IPO Preparation', cost: 400000, rewardMin: 480000, rewardMax: 825000, duration: 86400000, tier: 3, levelReq: 5 },
+    { name: 'Merger Deal', cost: 350000, rewardMin: 420000, rewardMax: 712500, duration: 79200000, tier: 3, levelReq: 5 },
+    { name: 'Global Expansion', cost: 1000000, rewardMin: 1200000, rewardMax: 2100000, duration: 129600000, tier: 4, levelReq: 7 },
+    { name: 'Acquisition Deal', cost: 1500000, rewardMin: 1800000, rewardMax: 3150000, duration: 158400000, tier: 4, levelReq: 7 },
+    { name: 'Patent Portfolio', cost: 1200000, rewardMin: 1425000, rewardMax: 2475000, duration: 144000000, tier: 4, levelReq: 7 },
+    { name: 'Stock Buyback', cost: 2000000, rewardMin: 2400000, rewardMax: 4125000, duration: 172800000, tier: 4, levelReq: 7 },
+    { name: 'Fortune 500 Campaign', cost: 5000000, rewardMin: 6000000, rewardMax: 10500000, duration: 259200000, tier: 5, levelReq: 9 },
+    { name: 'Space Program', cost: 8000000, rewardMin: 9600000, rewardMax: 16500000, duration: 345600000, tier: 5, levelReq: 9 },
+    { name: 'World Domination', cost: 10000000, rewardMin: 12000000, rewardMax: 21000000, duration: 432000000, tier: 5, levelReq: 9 },
+    { name: 'Mega Merger', cost: 12000000, rewardMin: 14400000, rewardMax: 24750000, duration: 518400000, tier: 5, levelReq: 9 },
 ];
 
 const TIER_NAMES = { 1: 'Starter', 2: 'Growing', 3: 'Established', 4: 'Corporate', 5: 'Empire' };
@@ -71,8 +71,8 @@ module.exports = {
 
         if (sub === 'types') {
             const list = COMPANY_TYPES.map((t, i) => {
-                return `**${i + 1}. ${t.icon} ${t.name}**\nCost: $${t.cost.toLocaleString()} | Members: ${t.maxMembers} | Bonus: ${t.projectBonus}x`;
-            }).join('\n\n');
+                return `**${i + 1}. ${t.icon} ${t.name}** — $${t.cost.toLocaleString()} • ${t.maxMembers} members • ${t.projectBonus}x reward bonus`;
+            }).join('\n');
 
             return message.reply({
                 embeds: [createEmbed({
@@ -109,7 +109,7 @@ module.exports = {
                 embeds: [createEmbed({
                     color: type.color,
                     title: 'Company Created!',
-                    description: `**${type.icon} ${name}** (${type.name})\n\nCost: **$${type.cost.toLocaleString()}**\nMembers: **${type.maxMembers}**\nProject Bonus: **${type.projectBonus}x**`
+                    description: `**${type.icon} ${name}** (${type.name})\n\nCost: **$${type.cost.toLocaleString()}**\nMembers: **${type.maxMembers}**\nReward Bonus: **${type.projectBonus}x**`
                 })]
             });
         }
@@ -136,7 +136,7 @@ module.exports = {
                         { name: 'Running', value: `${running}`, inline: true },
                         { name: 'Ready', value: `${ready}`, inline: true },
                         { name: 'Upgrade Cost', value: upgradeCost ? `$${upgradeCost.toLocaleString()}` : 'MAX', inline: true },
-                        { name: 'Project Bonus', value: `${type.projectBonus}x`, inline: true }
+                        { name: 'Reward Bonus', value: `${type.projectBonus}x`, inline: true }
                     ]
                 })]
             });
@@ -197,8 +197,8 @@ module.exports = {
             if (action === 'list') {
                 const available = PROJECTS.filter(p => p.levelReq <= company.level);
                 const list = available.map((p, i) => {
-                    const adjustedCost = Math.floor(p.cost / type.projectBonus);
-                    return `**${i + 1}. ${p.name}** (Tier ${p.tier})\nCost: $${adjustedCost.toLocaleString()} | Reward: $${p.rewardMin.toLocaleString()}-$${p.rewardMax.toLocaleString()} | Time: ${p.duration / 60000}m`;
+                    const adjustedCost = p.cost;
+                    return `**${i + 1}. ${p.name}** (Tier ${p.tier})\nCost: $${adjustedCost.toLocaleString()} | Reward: $${Math.floor(p.rewardMin * type.projectBonus).toLocaleString()}-$${Math.floor(p.rewardMax * type.projectBonus).toLocaleString()} | Time: ${p.duration / 60000}m`;
                 }).join('\n\n');
 
                 return message.reply({
@@ -206,7 +206,7 @@ module.exports = {
                         color: type.color,
                         title: `${type.icon} Available Projects`,
                         description: list || 'No projects available at your level.',
-                        footer: { text: `Company Bonus: ${type.projectBonus}x | Use ,project start <#> to begin` }
+                        footer: { text: `Reward Bonus: ${type.projectBonus}x | Use ,project start <#> to begin` }
                     })]
                 });
             }
@@ -219,18 +219,24 @@ module.exports = {
                 }
 
                 const project = available[idx];
-                const adjustedCost = Math.floor(project.cost / type.projectBonus);
+                if (company.projects.length >= 3) {
+                    return message.reply({ embeds: [errorEmbed('Project Limit', 'Your company can run at most **3** projects at a time. Collect or cancel one first.')] });
+                }
+
+                const adjustedCost = project.cost;
 
                 if (company.treasury < adjustedCost) {
                     return message.reply({ embeds: [errorEmbed('Not Enough Treasury', `Need **$${adjustedCost.toLocaleString()}** in treasury.\nCurrent: **$${company.treasury.toLocaleString()}**`)] });
                 }
 
-                startProject(message.author.id, { ...project, cost: adjustedCost });
+                const rewardMin = Math.floor(project.rewardMin * type.projectBonus);
+                const rewardMax = Math.floor(project.rewardMax * type.projectBonus);
+                startProject(message.author.id, { ...project, cost: adjustedCost, rewardMin, rewardMax });
                 return message.reply({
                     embeds: [createEmbed({
                         color: type.color,
                         title: 'Project Started',
-                        description: `**${project.name}** (Tier ${project.tier})\n\nCost: **$${adjustedCost.toLocaleString()}**\nReward: **$${project.rewardMin.toLocaleString()}-$${project.rewardMax.toLocaleString()}**\nTime: **${project.duration / 60000} minutes**`
+                        description: `**${project.name}** (Tier ${project.tier})\n\nCost: **$${adjustedCost.toLocaleString()}**\nReward: **$${rewardMin.toLocaleString()}-$${rewardMax.toLocaleString()}**\nTime: **${project.duration / 60000} minutes**`
                     })]
                 });
             }
@@ -243,7 +249,6 @@ module.exports = {
                     if (result?.ready) { count++; totalReward += result.reward; }
                 }
                 if (count === 0) return message.reply({ embeds: [errorEmbed('Nothing Ready', 'No completed projects yet.')] });
-                updateWallet(message.author.id, totalReward);
                 return message.reply({
                     embeds: [createEmbed({
                         color: 0x22c55e,

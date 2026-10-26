@@ -1,10 +1,10 @@
 {
   "users": {
     "743168413958012939": {
-      "wallet": 2000,
-      "bank": 15367,
+      "wallet": 2061,
+      "bank": 106067,
       "lastDaily": 0,
-      "lastWork": 1792921604204,
+      "lastWork": 1792939085097,
       "lastWeekly": 1792921727722,
       "lastMonthly": 1792921730562,
       "inventory": [
@@ -15,8 +15,8 @@
       ]
     },
     "1356641639212384357": {
-      "wallet": 17,
-      "bank": 60009,
+      "wallet": 22467000,
+      "bank": 477533000,
       "lastDaily": 1792921705364,
       "lastWork": 1792932034172,
       "lastWeekly": 1792921723408,
@@ -33,12 +33,16 @@
         {
           "name": "Fake ID",
           "quantity": 1
+        },
+        {
+          "name": "Sports Car",
+          "quantity": 1
         }
       ]
     },
     "1557425778293997690": {
-      "wallet": 720,
-      "bank": 2,
+      "wallet": 0,
+      "bank": 500000000,
       "lastDaily": 1792921695895,
       "lastWork": 0,
       "lastWeekly": 1792921719426,
@@ -51,10 +55,10 @@
       ]
     },
     "1333507781495357587": {
-      "wallet": 14520,
-      "bank": 0,
+      "wallet": 0,
+      "bank": 500000000,
       "lastDaily": 1792921699763,
-      "lastWork": 1792921608762,
+      "lastWork": 1792946033817,
       "lastWeekly": 1792921738665,
       "lastMonthly": 1792921729906,
       "inventory": []
@@ -69,17 +73,30 @@
       "inventory": []
     },
     "1529178342278828257": {
-      "wallet": 831,
-      "bank": 16996,
+      "wallet": 500000000,
+      "bank": 0,
       "lastDaily": 1792921708705,
-      "lastWork": 1792921815425,
+      "lastWork": 1792935010539,
       "lastWeekly": 1792921712021,
       "lastMonthly": 1792921716066,
-      "inventory": []
+      "inventory": [
+        {
+          "name": "Fake ID",
+          "quantity": 7
+        },
+        {
+          "name": "Small Fish",
+          "quantity": 1
+        },
+        {
+          "name": "Fox",
+          "quantity": 1
+        }
+      ]
     },
     "1232207235493400600": {
       "wallet": 32,
-      "bank": 3.242343243243243e+28,
+      "bank": 499999968,
       "lastDaily": 0,
       "lastWork": 0,
       "lastWeekly": 0,
@@ -87,7 +104,7 @@
       "inventory": []
     },
     "1497395481591156808": {
-      "wallet": 226,
+      "wallet": 500000000,
       "bank": 0,
       "lastDaily": 0,
       "lastWork": 1792923547113,
@@ -105,10 +122,10 @@
       ]
     },
     "716959849509945355": {
-      "wallet": 505,
+      "wallet": 712,
       "bank": 0,
       "lastDaily": 0,
-      "lastWork": 1792923553558,
+      "lastWork": 1792942131963,
       "lastWeekly": 0,
       "lastMonthly": 0,
       "inventory": []
@@ -121,6 +138,61 @@
       "lastWeekly": 0,
       "lastMonthly": 0,
       "inventory": []
+    },
+    "1546903050646454464": {
+      "wallet": 0,
+      "bank": 0,
+      "lastDaily": 0,
+      "lastWork": 0,
+      "lastWeekly": 0,
+      "lastMonthly": 0,
+      "inventory": []
+    },
+    "1556950063094308897": {
+      "wallet": 183,
+      "bank": 137,
+      "lastDaily": 0,
+      "lastWork": 1792942123359,
+      "lastWeekly": 0,
+      "lastMonthly": 0,
+      "inventory": []
+    },
+    "1054563290384187482": {
+      "wallet": 67401000,
+      "bank": 432599000,
+      "lastDaily": 0,
+      "lastWork": 0,
+      "lastWeekly": 0,
+      "lastMonthly": 0,
+      "inventory": []
+    },
+    "1555894301924401185": {
+      "wallet": 0,
+      "bank": 500000000,
+      "lastDaily": 0,
+      "lastWork": 1792946056501,
+      "lastWeekly": 0,
+      "lastMonthly": 0,
+      "inventory": []
+    },
+    "802515941019222016": {
+      "wallet": 100,
+      "bank": 0,
+      "lastDaily": 0,
+      "lastWork": 0,
+      "lastWeekly": 0,
+      "lastMonthly": 0,
+      "inventory": []
+    },
+    "880481267399950376": {
+      "wallet": 500000000,
+      "bank": 0,
+      "lastDaily": 0,
+      "lastWork": 0,
+      "lastWeekly": 0,
+      "lastMonthly": 0,
+      "inventory": []
     }
-  }
+  },
+  "1054563290384187482": 1
 }

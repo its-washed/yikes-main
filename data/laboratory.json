@@ -1,4 +1,13 @@
 {
-    "labs": {},
-    "experiments": {}
+  "labs": {
+    "1529178342278828257": {
+      "level": 10,
+      "purchasedAt": 1792941554227
+    },
+    "1356641639212384357": {
+      "level": 10,
+      "purchasedAt": 1792941573138
+    }
+  },
+  "experiments": {}
 }

@@ -1,5 +1,5 @@
 const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
-const { getBusiness, createBusiness, upgradeBusiness, hireEmployee, collectIncome, deleteBusiness } = require('../../utils/business');
+const { getBusiness, createBusiness, upgradeBusiness, hireEmployee, collectIncome, deleteBusiness, MAX_LEVEL } = require('../../utils/business');
 const { getUser, updateWallet } = require('../../utils/economy');
 const { Paginator } = require('../../utils/pagination');
 
@@ -61,6 +61,7 @@ module.exports = {
         if (sub === 'upgrade') {
             const biz = getBusiness(message.author.id);
             if (!biz) return message.reply({ embeds: [errorEmbed('No Business', 'Create a business first.')] });
+            if (biz.level >= MAX_LEVEL) return message.reply({ embeds: [errorEmbed('Max Level', `Your business is already at the maximum level (${MAX_LEVEL}).`)] });
             const cost = biz.level * 2000;
             const user = getUser(message.author.id);
             if (user.wallet < cost) return message.reply({ embeds: [errorEmbed('Not Enough', `Upgrade costs **$${cost.toLocaleString()}**.`)] });
@@ -83,10 +84,15 @@ module.exports = {
         if (sub === 'collect') {
             const result = collectIncome(message.author.id);
             if (!result) return message.reply({ embeds: [errorEmbed('No Business', 'Create a business first.')] });
+            if (!result.ready) {
+                const secs = Math.ceil(result.wait / 1000);
+                const label = secs >= 60 ? `${Math.floor(secs / 60)}m ${secs % 60}s` : `${secs}s`;
+                return message.reply({ embeds: [errorEmbed('Too Soon', `Your business pays out every 10 minutes.\nNext payout in **${label}**.`)] });
+            }
             const { profit } = result;
             if (profit <= 0) return message.reply({ embeds: [errorEmbed('No Profit', `Your business is breaking even or losing money.`)] });
             updateWallet(message.author.id, profit);
-            return message.reply({ embeds: [successEmbed('Collected', `You earned **$${profit.toLocaleString()}** from **${result.biz.name}**!`)] });
+            return message.reply({ embeds: [successEmbed('Collected', `You earned **$${profit.toLocaleString()}** from **${result.biz.name}**!\nNext payout available in 10 minutes.`)] });
         }
 
         if (sub === 'delete') {

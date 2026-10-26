@@ -1,11 +1,13 @@
 const { errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
-const { servers, ensureServer, connect } = require('./play');
+const { servers, ensureServer, connect, enqueueTrack, startPlayback } = require('./play');
+
+const DEFAULT_SONG = 'lofi girl';
 
 module.exports = {
     data: {
         name: '247',
-        description: 'Keep the bot in a voice channel 24/7 while the bot is online',
-        usage: ',24/7 [#voice-channel | off]'
+        description: 'Keep the bot in a voice channel 24/7 and keep music playing',
+        usage: ',24/7 [#voice-channel | song | off]'
     },
     aliases: ['24/7', 'stay', 'stayinvc'],
     cooldown: 5,
@@ -21,6 +23,7 @@ module.exports = {
             }
 
             server.stay247 = false;
+            server.autoQuery = null;
 
             if (server.queue.length === 0 && !server.playing) {
                 servers.delete(guildId);
@@ -33,11 +36,16 @@ module.exports = {
             return message.reply({ embeds: [successEmbed('24/7 Disabled', '24/7 mode is off — music will keep playing and the bot will leave when the queue finishes.')] });
         }
 
+        const queryArgs = args.filter(t => !/^<#\d+>$/.test(t));
+
         let target = message.mentions.channels.first();
         if (target && target.type !== 2) target = null;
         if (!target && /^\d{17,20}$/.test(args[0] || '')) {
             const found = message.guild.channels.cache.get(args[0]);
-            if (found && found.type === 2) target = found;
+            if (found && found.type === 2) {
+                target = found;
+                queryArgs.shift();
+            }
         }
         if (!target) target = message.member.voice.channel;
         if (!target) {
@@ -51,7 +59,10 @@ module.exports = {
 
         const server = ensureServer(guildId, message);
         const wasEnabled = server.stay247;
+        const wasPlaying = server.playing;
         server.stay247 = true;
+        server.autoQuery = DEFAULT_SONG || null;
+        server.textChannel = message.channel.id;
 
         try {
             connect(server, guildId, message, target);
@@ -60,8 +71,38 @@ module.exports = {
             return message.reply({ embeds: [errorEmbed('Connection Failed', `Could not join voice: ${error.message}`)] });
         }
 
+        const query = queryArgs.join(' ').trim();
+        let added = null;
+        let failure = null;
+
+        try {
+            if (query) {
+                added = await enqueueTrack(guildId, message, query);
+            } else if (server.queue.length === 0 && server.autoQuery) {
+                added = await enqueueTrack(guildId, message, server.autoQuery);
+            }
+            startPlayback(server, guildId, message, false);
+        } catch (error) {
+            failure = error.message;
+        }
+
+        let status;
+        if (failure) {
+            status = `⚠️ Music did not start: ${failure}`;
+        } else if (added && !wasPlaying && server.playing) {
+            status = `▶️ Now playing **${added.title}**`;
+        } else if (added && wasPlaying) {
+            status = `▶️ Added **${added.title}** to the queue`;
+        } else if (server.playing) {
+            status = '▶️ Music is running';
+        } else if (server.queue.length) {
+            status = `▶️ ${server.queue.length} track${server.queue.length !== 1 ? 's' : ''} queued`;
+        } else {
+            status = 'Nothing queued yet — start some with `,play`';
+        }
+
         return message.reply({
-            embeds: [successEmbed('24/7 Enabled', `Staying in **${target.name}** while enabled.\nUse \`,24/7 off\` to disable.`)]
+            embeds: [successEmbed('24/7 Enabled', `Staying in **${target.name}** while enabled.\n${status}\nUse \`,24/7 off\` to disable.`)]
         });
     }
 };

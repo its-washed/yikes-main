@@ -147,7 +147,8 @@ function ensureServer(guildId, message) {
             currentResource: null,
             currentStream: null,
             skipRequested: false,
-            stay247: false
+            stay247: false,
+            autoQuery: null
         };
         servers.set(guildId, server);
 
@@ -289,6 +290,8 @@ function advance(server, guildId, message) {
 
     if (server.queue.length > 0) {
         playNext(server, guildId, message, true);
+    } else if (server.stay247 && server.autoQuery) {
+        replayAuto(server, guildId, message);
     } else {
         server.playing = false;
         scheduleLeave(server, guildId);
@@ -421,6 +424,54 @@ function postTo(server, message, embed) {
     } catch {}
 }
 
+function makeSong(message, query) {
+    return {
+        title: query,
+        url: URL_RE.test(query) ? query : null,
+        requestedBy: displayName(message.author),
+        requestedByAvatar: message.author.displayAvatarURL({ size: 64 }),
+        thumbnail: null,
+        authorName: '',
+        durationSec: null,
+        metaResolved: false,
+        info: null
+    };
+}
+
+async function enqueueTrack(guildId, message, query) {
+    const server = ensureServer(guildId, message);
+    const song = makeSong(message, query);
+    await resolveMeta(song);
+    server.queue.push(song);
+    return song;
+}
+
+function startPlayback(server, guildId, message, announce = false) {
+    if (server.playing || server.queue.length === 0) return false;
+    server.playing = true;
+    playNext(server, guildId, message, announce);
+    return true;
+}
+
+async function replayAuto(server, guildId, message) {
+    try {
+        const song = makeSong(message, server.autoQuery);
+        await resolveMeta(song);
+        if (servers.get(guildId) !== server || !server.stay247 || !server.autoQuery) return;
+        server.queue.push(song);
+        playNext(server, guildId, message, true);
+    } catch (error) {
+        console.error('[24/7] auto replay failed:', error.message);
+        if (servers.get(guildId) !== server) return;
+        server.playing = false;
+        scheduleLeave(server, guildId);
+    }
+}
+
 module.exports.servers = servers;
 module.exports.ensureServer = ensureServer;
 module.exports.connect = connect;
+module.exports.enqueueTrack = enqueueTrack;
+module.exports.startPlayback = startPlayback;
+module.exports.replayAuto = replayAuto;
+module.exports.advance = advance;

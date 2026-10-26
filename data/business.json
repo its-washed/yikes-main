@@ -1,3 +1,74 @@
 {
-    "businesses": {}
+  "businesses": {
+    "1529178342278828257": {
+      "name": "papaspizzeria",
+      "type": "restaurant",
+      "level": 50,
+      "employees": 24,
+      "income": 1000,
+      "upkeep": 250,
+      "totalEarned": 50000000,
+      "createdAt": 1792935877100
+    },
+    "1497395481591156808": {
+      "name": "CottonFarm",
+      "type": "retail",
+      "level": 3,
+      "employees": 1,
+      "income": 742,
+      "upkeep": 134,
+      "totalEarned": 1432,
+      "createdAt": 1792937454954
+    },
+    "1333507781495357587": {
+      "name": "imgay",
+      "type": "tech",
+      "level": 50,
+      "employees": 18,
+      "income": 1000,
+      "upkeep": 250,
+      "totalEarned": 50000000,
+      "createdAt": 1792938446762
+    },
+    "743168413958012939": {
+      "name": "Axiom",
+      "type": "tech",
+      "level": 2,
+      "employees": 8,
+      "income": 1000,
+      "upkeep": 250,
+      "totalEarned": 6656,
+      "createdAt": 1792938798524
+    },
+    "1054563290384187482": {
+      "name": "aidropship",
+      "type": "tech",
+      "level": 50,
+      "employees": 32,
+      "income": 1000,
+      "upkeep": 250,
+      "totalEarned": 50000000,
+      "createdAt": 1792939506570
+    },
+    "1356641639212384357": {
+      "name": "loreisgay",
+      "type": "tech",
+      "level": 32,
+      "employees": 7,
+      "income": 1000,
+      "upkeep": 250,
+      "totalEarned": 50000000,
+      "createdAt": 1792939606864
+    },
+    "1557425778293997690": {
+      "name": "Axiom",
+      "type": "tech",
+      "level": 50,
+      "employees": 0,
+      "income": 1000,
+      "upkeep": 250,
+      "totalEarned": 50000000,
+      "createdAt": 1792944352319
+    }
+  }
 }
