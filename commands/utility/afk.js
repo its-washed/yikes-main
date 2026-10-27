@@ -1,3 +1,4 @@
+const { EmbedBuilder } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -37,6 +38,11 @@ module.exports = {
 
         saveData(data);
 
-        return message.reply(`🤨 <@${message.author.id}>: You're now AFK with the status: ${reason}`);
+        return message.reply({
+            embeds: [new EmbedBuilder()
+                .setColor(0xfbbf24)
+                .setDescription(`😴 <@${message.author.id}>: You're now AFK with the status: ${reason}`)
+            ]
+        });
     }
 };

@@ -68,7 +68,12 @@ module.exports = {
             for (const [, user] of message.mentions.users) {
                 if (guildAfk && guildAfk[user.id]) {
                     const afkEntry = guildAfk[user.id];
-                    message.reply(`👋 <@${user.id}> is AFK for ${formatDuration(Date.now() - afkEntry.timestamp)} - ${afkEntry.reason}`).catch(() => {});
+                    message.reply({
+                        embeds: [new EmbedBuilder()
+                            .setColor(0xfbbf24)
+                            .setDescription(`😴 <@${user.id}> is AFK for ${formatDuration(Date.now() - afkEntry.timestamp)} - ${afkEntry.reason}`)
+                        ]
+                    }).catch(() => {});
                 }
             }
         }
