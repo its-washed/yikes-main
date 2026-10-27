@@ -3,7 +3,7 @@ const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
 
 module.exports = {
     data: { name: 'setsplash', description: 'Set server splash', usage: ',setsplash [image URL]' },
-    aliases: ['splash'],
+    aliases: [],
     cooldown: 30,
     async execute(message, args) {
         if (!hasPermission(message.member, 'ManageGuild')) return message.reply({ embeds: [permissionDenied(message, 'manage_guild')] });

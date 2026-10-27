@@ -7,7 +7,7 @@ module.exports = {
         description: 'Mute everyone in voice channel',
         usage: ',muteall'
     },
-    aliases: ['deafenall'],
+    aliases: [],
     cooldown: 10,
 
     async execute(message) {

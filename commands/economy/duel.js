@@ -3,7 +3,7 @@ const { getUser, updateWallet, parseBet } = require('../../utils/economy');
 
 module.exports = {
     data: { name: 'duel', description: 'Duel another user for money', usage: ',duel [@user] [bet/all/half/%]' },
-    aliases: ['fight'],
+    aliases: [],
     cooldown: 30,
     async execute(message, args) {
         const target = message.mentions.users.first();

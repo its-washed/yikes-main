@@ -13,7 +13,7 @@ function formatDuration(ms) {
 
 module.exports = {
     data: { name: 'activity', description: 'View your activity stats', usage: ',activity [@user]' },
-    aliases: ['stats'],
+    aliases: [],
     cooldown: 5,
     async execute(message) {
         const target = message.mentions.users.first() || message.author;

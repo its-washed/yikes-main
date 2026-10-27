@@ -6,7 +6,7 @@ module.exports = {
         description: 'Reverse text',
         usage: ',reverse [text]'
     },
-    aliases: ['flip'],
+    aliases: [],
     cooldown: 3,
 
     async execute(message, args) {

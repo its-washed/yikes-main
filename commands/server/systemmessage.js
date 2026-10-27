@@ -10,7 +10,7 @@ module.exports = {
         description: 'Manage system messages (welcome, goodbye, boost, joindm)',
         usage: ',systemmessage <welcome|goodbye|boost|joindm> <add|remove|list|test> [args]'
     },
-    aliases: ['sm', 'sysmsg'],
+    aliases: ['sysmsg'],
     cooldown: 5,
 
     async execute(message, args, client, config) {

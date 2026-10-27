@@ -15,7 +15,7 @@ module.exports = {
         description: 'View your collected cards',
         usage: ',cards [@user]'
     },
-    aliases: ['inventory', 'collection'],
+    aliases: ['collection'],
     cooldown: 5,
 
     async execute(message, args) {

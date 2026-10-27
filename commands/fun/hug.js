@@ -2,7 +2,7 @@ const { createEmbed } = require('../../utils/embeds');
 
 module.exports = {
     data: { name: 'hug', description: 'Hug someone', usage: ',hug @user' },
-    aliases: ['pat'],
+    aliases: [],
     cooldown: 3,
     async execute(message, args) {
         const target = message.mentions.users.first();

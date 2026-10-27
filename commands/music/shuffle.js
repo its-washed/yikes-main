@@ -7,7 +7,7 @@ module.exports = {
         description: 'Shuffle the music queue',
         usage: ',shuffle'
     },
-    aliases: ['sh'],
+    aliases: [],
     cooldown: 5,
 
     async execute(message) {

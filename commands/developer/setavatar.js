@@ -3,7 +3,7 @@ const { isDeveloper } = require('../../utils/developer');
 
 module.exports = {
     data: { name: 'setavatar', description: 'Set bot avatar (Developer only)', usage: ',setavatar <url>' },
-    aliases: ['avatar'],
+    aliases: [],
     cooldown: 0,
     async execute(message, args, client) {
         if (!isDeveloper(message.author.id)) return message.reply({ embeds: [permissionDenied(message, 'bot_developer')] });

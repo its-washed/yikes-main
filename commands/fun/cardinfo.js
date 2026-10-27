@@ -15,7 +15,7 @@ module.exports = {
         description: 'Get info on a card by ID',
         usage: ',cardinfo [card_id]'
     },
-    aliases: ['ci'],
+    aliases: [],
     cooldown: 3,
 
     async execute(message, args) {

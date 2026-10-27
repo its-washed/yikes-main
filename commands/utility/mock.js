@@ -4,7 +4,7 @@ const { PermissionFlagsBits } = require('discord.js');
 
 module.exports = {
     data: { name: 'mock', description: 'Send a message as another user via webhook', usage: ',mock @user <message>' },
-    aliases: ['impersonate', 'webhook'],
+    aliases: ['impersonate'],
     cooldown: 5,
     async execute(message, args) {
         if (!isAdmin(message.member)) {

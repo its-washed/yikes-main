@@ -2,7 +2,7 @@ const { createEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
     data: { name: 'fliptext', description: 'Flip text upside down', usage: ',fliptext <text>' },
-    aliases: ['flip', 'upsidedown'],
+    aliases: ['upsidedown'],
     cooldown: 2,
     async execute(message, args) {
         const text = args.join(' ');

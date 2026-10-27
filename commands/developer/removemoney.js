@@ -4,7 +4,7 @@ const { getUser, updateWallet, updateBank } = require('../../utils/economy');
 
 module.exports = {
     data: { name: 'removemoney', description: 'Remove money from a user (Developer only)', usage: ',removemoney [@user] [amount] [wallet/bank]' },
-    aliases: ['rm'],
+    aliases: [],
     cooldown: 0,
     async execute(message, args) {
         if (!isDeveloper(message.author.id)) return message.reply({ embeds: [permissionDenied(message, 'bot_developer')] });

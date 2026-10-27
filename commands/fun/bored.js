@@ -2,7 +2,7 @@ const { createEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
     data: { name: 'bored', description: 'Get a random activity', usage: ',bored' },
-    aliases: ['activity'],
+    aliases: [],
     cooldown: 5,
     async execute(message) {
         try {

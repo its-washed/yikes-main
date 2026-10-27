@@ -4,7 +4,7 @@ const { ActivityType } = require('discord.js');
 
 module.exports = {
     data: { name: 'setactivity', description: 'Set bot activity (Developer only)', usage: ',setactivity <type> <text>\nTypes: playing, watching, listening, competing, streaming' },
-    aliases: ['activity'],
+    aliases: [],
     cooldown: 0,
     async execute(message, args, client) {
         if (!isDeveloper(message.author.id)) return message.reply({ embeds: [permissionDenied(message, 'bot_developer')] });

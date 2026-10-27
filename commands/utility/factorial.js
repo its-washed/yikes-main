@@ -2,7 +2,7 @@ const { createEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
     data: { name: 'factorial', description: 'Calculate factorial', usage: ',factorial [number]' },
-    aliases: ['fact'],
+    aliases: [],
     cooldown: 3,
     async execute(message, args) {
         const num = parseInt(args[0]);

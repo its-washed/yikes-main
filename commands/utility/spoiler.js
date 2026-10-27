@@ -6,7 +6,7 @@ module.exports = {
         description: 'Send spoiler text',
         usage: ',spoiler [text]'
     },
-    aliases: ['sp'],
+    aliases: [],
     cooldown: 3,
 
     async execute(message, args) {

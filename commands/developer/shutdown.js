@@ -7,7 +7,7 @@ module.exports = {
         description: 'Shut down the bot (Developer only)',
         usage: ',shutdown'
     },
-    aliases: ['restart', 'die'],
+    aliases: ['die'],
     cooldown: 30,
 
     async execute(message) {

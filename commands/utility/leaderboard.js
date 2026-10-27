@@ -8,7 +8,7 @@ module.exports = {
         description: 'Show server XP leaderboard',
         usage: ',leaderboard'
     },
-    aliases: ['lb', 'top'],
+    aliases: ['top'],
     cooldown: 10,
 
     async execute(message, args, client) {

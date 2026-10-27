@@ -9,7 +9,7 @@ module.exports = {
         description: 'Configure starboard',
         usage: ',starboard <#channel> [threshold] [emoji] | ,starboard disable | ,starboard status'
     },
-    aliases: ['sb', 'setstarboard'],
+    aliases: ['setstarboard'],
     cooldown: 10,
 
     async execute(message, args, client, config) {

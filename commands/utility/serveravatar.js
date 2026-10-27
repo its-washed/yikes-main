@@ -2,7 +2,7 @@ const { createEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
     data: { name: 'serveravatar', description: 'Get server icon', usage: ',serveravatar' },
-    aliases: ['sicon', 'guildicon'],
+    aliases: ['sicon', 'guildicon', 'sav'],
     cooldown: 3,
     async execute(message) {
         const icon = message.guild.iconURL({ size: 1024, dynamic: true });

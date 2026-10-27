@@ -3,7 +3,7 @@ const { getUser, updateWallet } = require('../../utils/economy');
 
 module.exports = {
     data: { name: 'rob', description: 'Rob another user', usage: ',rob [@user]' },
-    aliases: ['steal'],
+    aliases: [],
     cooldown: 300,
     async execute(message, args) {
         const target = message.mentions.users.first();

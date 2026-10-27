@@ -9,7 +9,7 @@ module.exports = {
         description: 'Configure goodbye messages',
         usage: ',goodbye [#channel] [message]'
     },
-    aliases: ['leave', 'setgoodbye'],
+    aliases: ['setgoodbye'],
     cooldown: 10,
 
     async execute(message, args, client, config) {

@@ -3,7 +3,7 @@ const { isDeveloper } = require('../../utils/developer');
 
 module.exports = {
     data: { name: 'botstats', description: 'View detailed bot statistics (Developer only)', usage: ',botstats' },
-    aliases: ['stats', 'bs'],
+    aliases: ['bs'],
     cooldown: 0,
     async execute(message, args, client) {
         if (!isDeveloper(message.author.id)) return message.reply({ embeds: [permissionDenied(message, 'bot_developer')] });

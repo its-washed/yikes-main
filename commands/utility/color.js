@@ -6,7 +6,7 @@ module.exports = {
         description: 'Show a color preview',
         usage: ',color #hexcolor'
     },
-    aliases: ['colour', 'hex'],
+    aliases: ['colour'],
     cooldown: 3,
 
     async execute(message, args) {

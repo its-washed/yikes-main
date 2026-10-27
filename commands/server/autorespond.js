@@ -10,7 +10,7 @@ module.exports = {
         description: 'Manage auto-responders',
         usage: ',autorespond <add|remove|list> [trigger] [response]'
     },
-    aliases: ['ar', 'autoresponder'],
+    aliases: ['autoresponder'],
     cooldown: 5,
 
     async execute(message, args, client, config) {

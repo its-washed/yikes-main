@@ -16,7 +16,7 @@ const n = value => Number(value).toLocaleString('en-US');
 
 module.exports = {
     data: { name: 'stats', description: 'Bot stats', usage: ',stats' },
-    aliases: ['botstats'],
+    aliases: [],
     cooldown: 5,
     async execute(message, args, client) {
         const stats = await getStats(client);

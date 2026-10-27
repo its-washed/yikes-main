@@ -9,7 +9,7 @@ module.exports = {
         description: 'Ban and immediately unban to delete messages',
         usage: ',softban @user [reason]'
     },
-    aliases: ['sb'],
+    aliases: [],
     cooldown: 10,
 
     async execute(message, args, client, config) {

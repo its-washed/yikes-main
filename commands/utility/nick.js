@@ -7,7 +7,7 @@ module.exports = {
         description: 'Change a member\'s nickname',
         usage: ',nick [@user] [nickname]'
     },
-    aliases: ['nickname'],
+    aliases: [],
     cooldown: 5,
 
     async execute(message, args) {
