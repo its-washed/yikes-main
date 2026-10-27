@@ -58,7 +58,12 @@ module.exports = {
                 } catch {}
             }
 
-            message.reply(`👋 <@${message.author.id}>: Welcome back! You were gone for ${formatDuration(goneFor)}`)
+            message.reply({
+                embeds: [new EmbedBuilder()
+                    .setColor(0xfbbf24)
+                    .setDescription(`😴 <@${message.author.id}>: Welcome back! You were gone for ${formatDuration(goneFor)}`)
+                ]
+            })
                 .catch(() => {}).then(msg => {
                 if (msg) setTimeout(() => msg.delete().catch(() => {}), 5000);
             });
