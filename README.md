@@ -57,7 +57,7 @@ Enable these in the [Discord Developer Portal](https://discord.com/developers/ap
 ## Command List
 
 ### Moderation (72)
-`,ban`, `,unban`, `,kick`, `,mute`, `,unmute`, `,warn`, `,warnings`, `,unwarn`, `,purge`, `,nuke`, `,banall`, `,unbanall`, `,massban`, `,masskick`, `,massnick`, `,massrole`, `,lock`, `,unlock`, `,hide`, `,unhide`, `,lockdown`, `,purgelinks`, `,slowmode`, `,delmsg`, `,freeze`, `,unfreeze`, `,freezeall`, `,timeoutall`, `,softban`, `,tempban`, `,deafen`, `,undeafen`, `,move`, `,warnall`
+`,ban`, `,unban`, `,kick`, `,mute`, `,unmute`, `,warn`, `,warnings`, `,unwarn`, `,purge`, `,nuke`, `,unbanall`, `,massban`, `,masskick`, `,massnick`, `,massrole`, `,lock`, `,unlock`, `,hide`, `,unhide`, `,lockdown`, `,purgelinks`, `,slowmode`, `,delmsg`, `,freeze`, `,unfreeze`, `,freezeall`, `,timeoutall`, `,softban`, `,tempban`, `,deafen`, `,undeafen`, `,move`, `,warnall`
 
 ### Server (98)
 `,setup`, `,prefix`, `,welcome`, `,goodbye`, `,setwelcome`, `,setgoodbye`, `,setlogs`, `,setautorole`, `,autorole`, `,setstarboard`, `,starboard`, `,setbooster`, `,boosters`, `,boostrole`, `,boostconfig`, `,setcounter`, `,counter`, `,setantispam`, `,antispam`, `,automod`, `,fakeperms`, `,antinuke`, `,vanity`, `,reactionrole`, `,buttonmessage`, `,voicemaster`, `,systemmessage`, `,timer`, `,autorespond`, `,invites`, `,ticket`, `,giveaway`, `,announce`, `,clone`, `,category`, `,level`, `,autoreact`, `,alias`, `,youtube`, `,twitter`, `,twitch`, `,tiktok`, `,instagram`, `,setupactivity`, `,removeactivity`
