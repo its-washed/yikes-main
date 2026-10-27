@@ -8,7 +8,7 @@ module.exports = {
         description: 'Add or remove a role from a user',
         usage: ',role [@user] [@role or role name]'
     },
-    aliases: ['addrole', 'removerole'],
+    aliases: ['r'],
     cooldown: 5,
 
     async execute(message, args) {
