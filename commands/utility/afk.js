@@ -1,4 +1,3 @@
-const { createEmbed, errorEmbed } = require('../../utils/embeds');
 const fs = require('fs');
 const path = require('path');
 
@@ -38,12 +37,6 @@ module.exports = {
 
         saveData(data);
 
-        return message.reply({
-            embeds: [createEmbed({
-                color: 0xfbbf24,
-                title: 'AFK Set',
-                description: `${message.author.tag} is now AFK.\n**Reason:** ${reason}`
-            })]
-        });
+        return message.reply(`🤨 <@${message.author.id}>: You're now AFK with the status: ${reason}`);
     }
 };

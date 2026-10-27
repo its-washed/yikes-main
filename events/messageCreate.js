@@ -15,6 +15,17 @@ function loadJSON(file) {
     return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
+function formatDuration(ms) {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    if (s < 60) return `${s} second${s === 1 ? '' : 's'}`;
+    const m = Math.floor(s / 60);
+    if (m < 60) return `${m} minute${m === 1 ? '' : 's'}`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h} hour${h === 1 ? '' : 's'}`;
+    const d = Math.floor(h / 24);
+    return `${d} day${d === 1 ? '' : 's'}`;
+}
+
 module.exports = {
     name: Events.MessageCreate,
     once: false,
@@ -31,7 +42,7 @@ module.exports = {
         const isCommand = message.content.startsWith(config.prefix || ',');
         if (!isCommand && guildAfk && guildAfk[message.author.id]) {
             const afkEntry = guildAfk[message.author.id];
-            const duration = Math.floor((Date.now() - afkEntry.timestamp) / 60000);
+            const goneFor = Date.now() - afkEntry.timestamp;
             delete guildAfk[message.author.id];
 
             try {
@@ -47,13 +58,8 @@ module.exports = {
                 } catch {}
             }
 
-            message.reply({
-                embeds: [new EmbedBuilder()
-                    .setColor(0x22c55e)
-                    .setTitle('Welcome Back!')
-                    .setDescription(`Welcome back ${message.author}! You were AFK for **${duration}** minute(s).`)
-                ]
-            }).catch(() => {}).then(msg => {
+            message.reply(`👋 <@${message.author.id}>: Welcome back! You were gone for ${formatDuration(goneFor)}`)
+                .catch(() => {}).then(msg => {
                 if (msg) setTimeout(() => msg.delete().catch(() => {}), 5000);
             });
         }
@@ -62,14 +68,7 @@ module.exports = {
             for (const [, user] of message.mentions.users) {
                 if (guildAfk && guildAfk[user.id]) {
                     const afkEntry = guildAfk[user.id];
-                    const duration = Math.floor((Date.now() - afkEntry.timestamp) / 60000);
-                    message.reply({
-                        embeds: [new EmbedBuilder()
-                            .setColor(0xfbbf24)
-                            .setTitle('User is AFK')
-                            .setDescription(`**${user.tag}** is AFK.\n**Reason:** ${afkEntry.reason}\n**For:** ${duration} minute(s)`)
-                        ]
-                    }).catch(() => {});
+                    message.reply(`👋 <@${user.id}> is AFK for ${formatDuration(Date.now() - afkEntry.timestamp)} - ${afkEntry.reason}`).catch(() => {});
                 }
             }
         }
