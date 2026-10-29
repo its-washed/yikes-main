@@ -122,10 +122,10 @@ class Paginator {
     buildRow() {
         if (this.pages.length <= 1) return new ActionRowBuilder();
         return new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('prev').setEmoji(EMOJIS.LEFT).setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId('next').setEmoji(EMOJIS.RIGHT).setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId('goto').setEmoji(EMOJIS.GOTO).setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId('delete').setEmoji(EMOJIS.CANCEL).setStyle(ButtonStyle.Danger)
+            new ButtonBuilder().setCustomId('prev').setEmoji('◀️').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('next').setEmoji('▶️').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('goto').setEmoji('↕️').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('delete').setEmoji('✖️').setStyle(ButtonStyle.Danger)
         );
     }
 }
