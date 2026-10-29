@@ -103,7 +103,7 @@ const { initDatabase, closeDatabase, run, first } = require('./utils/database');
 const { logger } = require('./utils/logger');
 const { isBlacklisted, isDeveloper, isServerBlacklisted, isCommandDisabled } = require('./utils/developer');
 const { isPremium, isPremiumCommand } = require('./utils/premium');
-const { sendCard, extractMetadata, paramList } = require('./utils/helpCard');
+const { sendCard, extractMetadata, paramList, resolveSubcommands } = require('./utils/helpCard');
 const { normalizePayload, wrapReply, ALERT } = require('./utils/embeds');
 const { COLORS, EMOJIS } = require('./utils/styles');
 
@@ -160,7 +160,10 @@ function loadCommands() {
                 const cmd = require(fp);
                 if ('data' in cmd && 'execute' in cmd) {
                     cmd.category = cat;
-                    Object.assign(cmd, extractMetadata(fs.readFileSync(fp, 'utf8'), cat, file));
+                    const meta = extractMetadata(fs.readFileSync(fp, 'utf8'), cat, file);
+                    const subcommands = resolveSubcommands(cmd, meta);
+                    Object.assign(cmd, meta);
+                    cmd.subcommands = subcommands;
                     client.commands.set(cmd.data.name, cmd);
                     if (cmd.aliases) {
                         for (const alias of cmd.aliases) {

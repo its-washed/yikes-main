@@ -73,7 +73,13 @@ class Paginator {
             }];
         }
 
-        const extra = page.footer && page.footer.text ? `${page.footer.text}` : '';
+        const lastEmbed = Array.isArray(page.embeds) && page.embeds.length
+            ? page.embeds[page.embeds.length - 1]
+            : null;
+        const ownFooter = (page.footer && page.footer.text)
+            ? page.footer
+            : (lastEmbed && lastEmbed.footer) || null;
+        const extra = ownFooter && ownFooter.text ? `${ownFooter.text}` : '';
         const entriesMatch = /^\((\d+)\s+entries?\)$/.exec(extra);
         const text = entriesMatch
             ? `${footerText} (${entriesMatch[1]} entries)`

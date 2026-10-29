@@ -1,10 +1,10 @@
 {
   "users": {
     "1529178342278828257": {
-      "wallet": 1200,
+      "wallet": 1310,
       "bank": 56179020,
       "lastDaily": 1793000269953,
-      "lastWork": 1793038032900,
+      "lastWork": 1793273356180,
       "lastWeekly": 1792999863406,
       "lastMonthly": 1792999866069,
       "inventory": [
@@ -83,10 +83,10 @@
       ]
     },
     "1497395481591156808": {
-      "wallet": 0,
+      "wallet": 600,
       "bank": 12000000,
       "lastDaily": 1793053315697,
-      "lastWork": 1793052071528,
+      "lastWork": 1793273163947,
       "lastWeekly": 0,
       "lastMonthly": 0,
       "inventory": [
@@ -237,10 +237,10 @@
       ]
     },
     "1232207235493400600": {
-      "wallet": 1,
+      "wallet": 704,
       "bank": 0,
       "lastDaily": 0,
-      "lastWork": 0,
+      "lastWork": 1793273311572,
       "lastWeekly": 0,
       "lastMonthly": 0,
       "inventory": []
@@ -638,6 +638,15 @@
       ]
     },
     "1388535363689123923": {
+      "wallet": 0,
+      "bank": 0,
+      "lastDaily": 0,
+      "lastWork": 0,
+      "lastWeekly": 0,
+      "lastMonthly": 0,
+      "inventory": []
+    },
+    "1505100799456448668": {
       "wallet": 0,
       "bank": 0,
       "lastDaily": 0,

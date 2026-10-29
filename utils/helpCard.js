@@ -126,8 +126,12 @@ function extractMetadata(src, category, file) {
         /permissions\.has\(\s*['"](\w+)['"]/
     ];
 
+    const needPermMatch = /needPerm\(\s*[^,]+,\s*PermissionFlagsBits\.(\w+)/.exec(src)
+        || /needPerm\(\s*[^,]+,\s*['"]([A-Za-z ]+)['"]/.exec(src);
+
     if (permissionPatterns[0].test(src)) meta.permissionKey = 'administrator';
     else if (permissionPatterns[1].test(src)) meta.permissionKey = 'server_owner';
+    else if (needPermMatch) meta.permissionKey = toKey(needPermMatch[1]);
     else {
         for (let i = 2; i < permissionPatterns.length; i++) {
             const m = permissionPatterns[i].exec(src);
@@ -175,39 +179,137 @@ function paramList(cmd, usage, sub) {
     return list;
 }
 
+function resolveSubcommands(cmd, meta) {
+    const declared = Array.isArray(cmd.subcommands) ? cmd.subcommands : [];
+    const scraped = (meta && Array.isArray(meta.subcommands)) ? meta.subcommands : [];
+    const keys = cmd.subs && typeof cmd.subs === 'object' && !Array.isArray(cmd.subs) ? Object.keys(cmd.subs) : [];
+    return [...new Set([...scraped, ...declared, ...keys])];
+}
+
+function subHandlerOf(cmd, sub) {
+    if (!sub || !cmd.subs || typeof cmd.subs !== 'object' || Array.isArray(cmd.subs)) return null;
+    const handler = cmd.subs[sub];
+    return handler && typeof handler === 'object' && handler.data ? handler : null;
+}
+
+function normalizeUsage(usage) {
+    const raw = String(usage || '').trim();
+    if (!raw) return null;
+    return raw.startsWith(',') ? raw : `,${raw}`;
+}
+
+function sampleFor(token) {
+    const raw = String(token).trim();
+    const t = raw.toLowerCase();
+    if (!t) return null;
+    if (t.includes('|')) return t.split('|')[0].trim() || null;
+    if (/(^|[^a-z])(user|users|member|members|mention|target|victim|owner|author|username|person|player)([^a-z]|$)/.test(t)) return 'its_washed';
+    if (t.includes('category')) return '#category';
+    if (t.includes('channel')) return '#general';
+    if (t.includes('role')) return '@role';
+    if (t.includes('emoji')) return '⭐';
+    if (t.includes('bitrate')) return '384';
+    if (t.includes('region')) return 'us-east';
+    if (/(^|[^a-z])(ids?|uid)([^a-z]|$)/.test(t)) return '123456789012345678';
+    if (/^\d+-\d+$/.test(t)) return t.split('-')[1];
+    if (/^\d+(\.\d+)?$/.test(t)) return t;
+    if (/(amount|count|number|level|limit|threshold|multiplier|percent|quantity|pages|position|index|rank|days|hours|minutes|seconds|weeks|months|times?)/.test(t)) return '10';
+    if (/(duration|time)/.test(t)) return '10m';
+    if (/(reason|text|message|name|title|content|word|words|description|query|topic|note|label|url|link)/.test(t)) return 'text';
+    if (/prefix/.test(t)) return ',';
+    if (/(^|[^a-z])flags?([^a-z]|$)/.test(t)) return '--flag value';
+    if (raw.includes('-') || /\d/.test(raw)) return raw;
+    return null;
+}
+
+function literalParamName(token) {
+    const t = String(token).toLowerCase();
+    if (t === 'its_washed') return 'user';
+    if (/^\d+$/.test(t)) return 'amount';
+    if (/^\d+[smhdw]$/.test(t)) return 'time';
+    if (/^#[\w-]+$/.test(t)) return 'channel';
+    if (/^@[\w][\w ]*$/.test(t)) return 'role';
+    if (/^[a-z][a-z0-9]{0,19}$/.test(t) && sampleFor(t)) return t;
+    return null;
+}
+
 function cardPage(cmd, sub, botUser) {
-    const usage = (sub && cmd.subUsages && cmd.subUsages[sub]) || cmd.data.usage || `,${cmd.data.name}`;
-    const params = paramList(cmd, usage, sub);
-    const flags = cmd.data.flags && Object.keys(cmd.data.flags).length ? cmd.data.flags : null;
-    const aliasText = cmd.aliases && cmd.aliases.length ? cmd.aliases.join(', ') : 'N/A';
+    const handler = subHandlerOf(cmd, sub);
+    const meta = handler ? handler.data : cmd.data;
+
+    const usage = (sub && cmd.subUsages && cmd.subUsages[sub])
+        || (handler && normalizeUsage(handler.data.usage))
+        || (sub ? `,${cmd.data.name} ${sub}` : normalizeUsage(cmd.data.usage) || `,${cmd.data.name}`);
+
+    const label = `${cmd.data.name}${sub ? ` ${sub}` : ''}`;
+
+    const params = paramList(handler || cmd, usage, sub).map(p => {
+        const valueLike = /\d/.test(p.name) || p.name.includes('-');
+        return {
+            name: sub && valueLike ? sub : p.name,
+            required: p.required,
+            sample: sampleFor(p.name)
+        };
+    });
+
+    if (!params.length && usage && !/[<[]/.test(usage) && usage.trim().startsWith(`,${label}`)) {
+        const extra = usage.trim().split(/\s+/).slice(label.split(/\s+/).length);
+        for (const token of extra) {
+            const name = literalParamName(token);
+            if (!name) break;
+            params.push({ name, required: true, sample: token });
+        }
+    }
+
+    const flags = handler && handler.data.flags
+        ? (Object.keys(handler.data.flags).length ? handler.data.flags : null)
+        : sub
+            ? null
+            : cmd.data.flags && Object.keys(cmd.data.flags).length ? cmd.data.flags : null;
+
+    const parentAliases = cmd.aliases && cmd.aliases.length ? cmd.aliases.join(', ') : null;
+    const ownAliases = handler && handler.aliases && handler.aliases.length ? handler.aliases.join(', ') : null;
+    const aliasText = sub ? (ownAliases || 'N/A') : (parentAliases || 'N/A');
+
     const names = params.map(p => p.name);
     if (flags) names.push('flags');
     const parameterText = names.length ? names.join(', ') : 'N/A';
-    const permission = cmd.permissionKey;
-    const brief = typeof cmd.permission === 'string' && cmd.permission.trim()
-        ? titleCase(cmd.permission.trim())
-        : permission
-            ? displayName(permission)
+
+    const permissionKey = (handler && handler.permissionKey) || cmd.permissionKey;
+    const permissionText = handler && typeof handler.permission === 'string'
+        ? handler.permission
+        : cmd.permission;
+    const brief = typeof permissionText === 'string' && permissionText.trim()
+        ? titleCase(permissionText.trim())
+        : permissionKey
+            ? displayName(permissionKey)
             : null;
+    const cooldown = handler && handler.cooldown !== undefined ? handler.cooldown : cmd.cooldown;
     const information = [
-        cmd.cooldown ? `${EMOJIS.COOLDOWN} ${cmd.cooldown} seconds` : null,
+        cooldown ? `${EMOJIS.COOLDOWN} ${cooldown} seconds` : null,
         brief ? `${EMOJIS.WARNING} ${brief}` : null
     ].filter(Boolean).join('\n') || 'N/A';
 
-    const label = `${cmd.data.name}${sub ? ` ${sub}` : ''}`;
     const syntaxParts = params.map(p => `[${p.name}]`);
     if (flags) syntaxParts.push('[flags]');
     const syntax = `,${label}${syntaxParts.length ? ` ${syntaxParts.join(' ')}` : ''}`;
-    const example = usage && !/[<[]/.test(usage) && usage.trim() !== `,${label}` ? usage.trim() : null;
+
+    const literal = usage && !/[<[]/.test(usage) && usage.trim() !== `,${label}`;
+    let example = literal ? usage.trim() : null;
+    if (!example && params.length && params.every(p => p.sample)) {
+        example = [`,${label}`, ...params.map(p => p.sample)].join(' ');
+    }
     const lines = [`Syntax: ${syntax}`];
     if (example) lines.push(`Example: ${example}`);
     const usageBlock = ['```js', ...lines, '```'].join('\n');
 
-    const description = cmd.data.description
-        ? `${cmd.data.description}${sub ? `\n\nSubcommand: \`${sub}\`` : ''}`
-        : sub
-            ? `Subcommand: \`${sub}\``
-            : '';
+    const description = meta.description
+        ? meta.description
+        : cmd.data.description
+            ? `${cmd.data.description}${sub ? `\n\nSubcommand: \`${sub}\`` : ''}`
+            : sub
+                ? `Subcommand: \`${sub}\``
+                : '';
 
     const fields = [
         { name: 'Aliases', value: aliasText, inline: true },
@@ -223,6 +325,10 @@ function cardPage(cmd, sub, botUser) {
     }
     fields.push({ name: 'Usage', value: usageBlock, inline: false });
 
+    const footerText = sub && parentAliases
+        ? `Aliases: ${parentAliases} • Module: ${(cmd.category || 'unknown')}.py`
+        : `Module: ${(cmd.category || 'unknown')}.py`;
+
     return {
         [PRESERVE]: true,
         embeds: [{
@@ -234,7 +340,7 @@ function cardPage(cmd, sub, botUser) {
                 icon_url: botUser.displayAvatarURL ? botUser.displayAvatarURL({ size: 256 }) : undefined
             } : undefined,
             fields,
-            footer: { text: `Module: ${(cmd.category || 'unknown')}.py` }
+            footer: { text: footerText }
         }]
     };
 }
@@ -261,4 +367,4 @@ async function sendCard(message, cmd, opts = {}) {
     return sent;
 }
 
-module.exports = { extractMetadata, buildCardPages, sendCard, toKey, displayName, cardPage, paramList };
+module.exports = { extractMetadata, buildCardPages, sendCard, toKey, displayName, cardPage, paramList, resolveSubcommands };

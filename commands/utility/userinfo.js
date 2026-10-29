@@ -57,18 +57,13 @@ module.exports = {
             description += `${EMOJIS.INFO} ${activity.name} (\`${state}\`)\n`;
         }
 
-        const embed = createEmbed({
-            color: COLORS.NEUTRAL,
-            description,
-            author: { name: `${target.username} (${target.id})`, icon_url: avatar },
-            thumbnail: { url: avatar },
-            fields: [
-                {
-                    name: 'Created',
-                    value: `<t:${Math.floor(target.createdTimestamp / 1000)}:D>\n<t:${Math.floor(target.createdTimestamp / 1000)}:R>`
-                }
-            ]
-        });
+        const fields = [
+            {
+                name: 'Created',
+                value: `<t:${Math.floor(target.createdTimestamp / 1000)}:D>\n<t:${Math.floor(target.createdTimestamp / 1000)}:R>`
+            }
+        ];
+        let footerText;
 
         const mutual = mutualGuilds(client, target.id);
         if (member) {
@@ -76,13 +71,13 @@ module.exports = {
                 .filter(m => m.joinedTimestamp)
                 .sort((a, b) => a.joinedTimestamp - b.joinedTimestamp);
             const joinPos = sorted.findIndex(m => m.id === member.id) + 1;
-            embed.footer = { text: `Join position: ${joinPos.toLocaleString('en-US')} • ${mutual.toLocaleString('en-US')} server(s)` };
-            embed.fields.push({
+            footerText = `Join position: ${joinPos.toLocaleString('en-US')} • ${mutual.toLocaleString('en-US')} server(s)`;
+            fields.push({
                 name: 'Joined',
                 value: `<t:${Math.floor(member.joinedTimestamp / 1000)}:D>\n<t:${Math.floor(member.joinedTimestamp / 1000)}:R>`
             });
             if (member.premiumSince) {
-                embed.fields.push({
+                fields.push({
                     name: 'Boosted',
                     value: `<t:${Math.floor(member.premiumSince.getTime() / 1000)}:D>\n<t:${Math.floor(member.premiumSince.getTime() / 1000)}:R>`
                 });
@@ -92,11 +87,20 @@ module.exports = {
                 const shown = roles.length < 5 ? roles : roles.slice(0, 4);
                 const value = shown.map(r => r.toString()).join(' ') +
                     (roles.length < 5 ? '' : ` ... and ${roles.length - 4} more`);
-                embed.fields.push({ name: `Roles [${roles.length}]`, value: value.slice(0, 1024), inline: false });
+                fields.push({ name: `Roles [${roles.length}]`, value: value.slice(0, 1024), inline: false });
             }
         } else {
-            embed.footer = { text: `${mutual.toLocaleString('en-US')} server(s)` };
+            footerText = `${mutual.toLocaleString('en-US')} server(s)`;
         }
+
+        const embed = createEmbed({
+            color: COLORS.NEUTRAL,
+            description,
+            author: { name: `${target.username} (${target.id})`, icon_url: avatar },
+            thumbnail: { url: avatar },
+            footer: { text: footerText },
+            fields
+        });
 
         return message.reply({ embeds: [embed] });
     }

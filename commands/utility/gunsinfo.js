@@ -143,34 +143,31 @@ function buildEmbed(data) {
         badges = enabled.filter(b => BADGE_EMOJIS[b]).map(b => BADGE_EMOJIS[b]).join(' ') || null;
     }
 
-    const embed = createEmbed({
+    const fields = [{ name: 'Account Creation', value: `<t:${Math.floor(Number(accountCreated) || 0)}:R>` }];
+
+    if (alias) fields.push({ name: 'Alias', value: String(alias) });
+    if (avatarUrl) fields.push({ name: 'Avatar', value: `[Click here](${avatarUrl})` });
+    if (backgroundUrl) fields.push({ name: 'Background', value: `[Click here](${backgroundUrl})` });
+    if (customCursor) fields.push({ name: 'Cursor', value: `[Click here](${customCursor})` });
+    if (audioUrl && typeof audioUrl === 'string') {
+        fields.push({ name: 'Audio', value: `[Click here](${audioUrl})` });
+    } else if (Array.isArray(audioUrl) && audioUrl.length) {
+        fields.push({ name: 'Audio', value: audioUrl.map(a => `[${a.title}](${a.url})`).join(', '), inline: false });
+    }
+
+    return createEmbed({
         color: COLORS.NEUTRAL,
         title: `${displayName} (@${username})`,
         url: `https://guns.lol/${username}`,
         description: `${badges ? badges + '\n' : ''}${description}\n${discordId}`.trim(),
-        fields: [{ name: 'Account Creation', value: `<t:${Math.floor(Number(accountCreated) || 0)}:R>` }],
+        fields,
+        thumbnail: avatarUrl ? { url: avatarUrl } : undefined,
+        image: backgroundUrl ? { url: backgroundUrl } : undefined,
         footer: {
             text: `Views: ${Number(pageViews).toLocaleString('en-US')} ● UID ${Number(uidValue).toLocaleString('en-US')}`,
             icon_url: ICONS.GUNS
         }
     });
-
-    if (alias) embed.fields.push({ name: 'Alias', value: String(alias) });
-    if (avatarUrl) {
-        embed.thumbnail = { url: avatarUrl };
-        embed.fields.push({ name: 'Avatar', value: `[Click here](${avatarUrl})` });
-    }
-    if (backgroundUrl) {
-        embed.image = { url: backgroundUrl };
-        embed.fields.push({ name: 'Background', value: `[Click here](${backgroundUrl})` });
-    }
-    if (customCursor) embed.fields.push({ name: 'Cursor', value: `[Click here](${customCursor})` });
-    if (audioUrl && typeof audioUrl === 'string') {
-        embed.fields.push({ name: 'Audio', value: `[Click here](${audioUrl})` });
-    } else if (Array.isArray(audioUrl) && audioUrl.length) {
-        embed.fields.push({ name: 'Audio', value: audioUrl.map(a => `[${a.title}](${a.url})`).join(', '), inline: false });
-    }
-    return embed;
 }
 
 function attachView(sent, data, authorId) {

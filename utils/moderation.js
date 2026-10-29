@@ -1,6 +1,6 @@
 const { PermissionFlagsBits } = require('discord.js');
 const { first, run, addHistory } = require('./database');
-const { createEmbed, COLORS, ALERT } = require('./embeds');
+const { createEmbed, warningEmbed, COLORS, ALERT } = require('./embeds');
 const { EMOJIS } = require('./styles');
 const { warn, approve, deny } = require('./context');
 const { resolveMember } = require('./roleplay');

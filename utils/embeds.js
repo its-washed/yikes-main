@@ -24,8 +24,22 @@ function createEmbed(opts = {}) {
     if (opts.color) embed.setColor(opts.color);
     if (opts.title) embed.setTitle(opts.title);
     if (opts.description) embed.setDescription(opts.description);
-    if (opts.author) embed.setAuthor(opts.author);
-    if (opts.footer) embed.setFooter(opts.footer);
+    if (opts.author) {
+        const author = typeof opts.author === 'string' ? { name: opts.author } : { ...opts.author };
+        if (author.icon_url && !author.iconURL) {
+            author.iconURL = author.icon_url;
+            delete author.icon_url;
+        }
+        embed.setAuthor(author);
+    }
+    if (opts.footer) {
+        const footer = typeof opts.footer === 'string' ? { text: opts.footer } : { ...opts.footer };
+        if (footer.icon_url && !footer.iconURL) {
+            footer.iconURL = footer.icon_url;
+            delete footer.icon_url;
+        }
+        embed.setFooter(footer);
+    }
     if (opts.thumbnail) embed.setThumbnail(typeof opts.thumbnail === 'string' ? opts.thumbnail : opts.thumbnail.url);
     if (opts.image) embed.setImage(typeof opts.image === 'string' ? opts.image : opts.image.url);
     if (opts.fields) embed.addFields(opts.fields);

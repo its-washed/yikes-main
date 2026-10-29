@@ -2,8 +2,8 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, version: djsVersion } = re
 const { createEmbed, COLORS, PRESERVE } = require('../../utils/embeds');
 const { getStats } = require('../../utils/botStats');
 
-const SUPPORT_URL = 'https://discord.gg/evelina';
-const GITHUB_URL = 'https://github.com/evelinabot';
+const SUPPORT_URL = 'https://discord.com/users/1232207235493400600';
+const GITHUB_URL = 'https://discord.gg/ukjvTacC5';
 
 const n = value => Number(value).toLocaleString('en-US');
 
@@ -43,7 +43,7 @@ module.exports = {
                 icon_url: client.user.displayAvatarURL({ size: 256 })
             },
             description: [
-                'Premium multi-purpose discord bot made by the [**Evelina Team**](https://evelina.bot/team)\n',
+                'Premium multi-purpose discord bot made by [**its_washed**](https://itswashed.lol)\n',
                 `Used by **${n(users)}** members in **${n(guildsCount)}** servers on **${n(shardCount)}** shards`
             ].join(''),
             fields: [
