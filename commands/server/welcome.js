@@ -1,41 +1,39 @@
 const { PermissionFlagsBits } = require('discord.js');
-const { updateGuildConfig } = require('../../utils/config');
-const { errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
-const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
+const { first, run, query } = require('../../utils/database');
+const { warn, approve } = require('../../utils/context');
+const { needPerm } = require('../../utils/moderation');
+const { sendCard } = require('../../utils/helpCard');
+const { eventGroup, templateOf } = require('../../utils/eventMessages');
+const { parseChannel } = require('../../utils/helpers');
+
+const subs = eventGroup('welcome', 'welcome', { deleteGroup: true });
+
+subs.joinping = {
+    aliases: [],
+    data: { name: 'welcome joinping', description: 'Add a join ping in a specific channel', usage: ',welcome joinping <channel>' },
+    execute: async (message, args) => {
+        if (!await needPerm(message, PermissionFlagsBits.ManageGuild)) return;
+        const channel = parseChannel(message, args[0]);
+        if (!channel) return warn(message, 'Usage: `welcome joinping <channel>`');
+        const rows = query('SELECT * FROM welcome WHERE guild_id = ?', message.guild.id);
+        if (rows.length >= 10) return warn(message, 'You can only have **10 welcome messages** per server.');
+        const code = '{embed}$v{content: {user.mention}}$v{delete: 1}';
+        const check = first('SELECT * FROM welcome WHERE channel_id = ?', channel.id);
+        if (check) run('UPDATE welcome SET message = ? WHERE channel_id = ?', code, channel.id);
+        else run('INSERT INTO welcome (guild_id, channel_id, message) VALUES (?, ?, ?)', message.guild.id, channel.id, code);
+        return approve(message, `Added join ping message to ${channel}`);
+    }
+};
 
 module.exports = {
-    data: {
-        name: 'welcome',
-        description: 'Configure welcome messages',
-        usage: ',welcome [#channel] [message]'
+    data: { name: 'welcome', description: 'Set up a welcome message in one or multiple channels', usage: ',welcome <add|joinping|remove|list|delete|test|reset>' },
+    aliases: ['greet', 'wlc', 'welc'],
+    cooldown: 5,
+    subcommands: ['add', 'joinping', 'remove', 'list', 'delete', 'test', 'reset'],
+    execute: async (message, args) => {
+        const sub = args[0];
+        if (sub) return warn(message, 'Valid subcommands: add, joinping, remove, list, delete, test, reset');
+        return sendCard(message, module.exports);
     },
-    aliases: ['setwelcome'],
-    cooldown: 10,
-
-    async execute(message, args, client, config) {
-        if (!isAdmin(message.member)) {
-            return message.reply({ embeds: [permissionDenied(message, 'administrator')] });
-        }
-
-        const channel = message.mentions.channels.first();
-        const msg = args.slice(channel ? 1 : 0).join(' ');
-
-        if (!channel && !msg) {
-            return message.reply({ embeds: [errorEmbed('Missing Arguments', 'Usage: ,welcome [#channel] [message]\n\nVariables: {user}, {server}, {memberCount}')] });
-        }
-
-        const updates = {};
-        if (channel) updates.welcomeChannel = channel.id;
-        if (msg) updates.welcomeMessage = msg;
-
-        updateGuildConfig(message.guild.id, updates);
-
-        const response = [];
-        if (channel) response.push(`Channel set to ${channel}`);
-        if (msg) response.push(`Message set to: "${msg}"`);
-
-        return message.reply({
-            embeds: [successEmbed('Welcome Configured', response.join('\n'))]
-        });
-    }
+    subs
 };

@@ -3,8 +3,8 @@ const { hasPermission, isAdmin } = require('../../utils/permissions');
 const { PermissionFlagsBits } = require('discord.js');
 
 module.exports = {
-    data: { name: 'mock', description: 'Send a message as another user via webhook', usage: ',mock @user <message>' },
-    aliases: ['impersonate'],
+    data: { name: 'mock', description: 'Send a message as another user via webhook', usage: ',mock its_washed message', params: ['user', 'message'] },
+    aliases: [],
     cooldown: 5,
     async execute(message, args) {
         if (!isAdmin(message.member)) {
@@ -13,7 +13,7 @@ module.exports = {
 
         const target = message.mentions.members.first();
         const text = args.slice(1).join(' ').replace(/<@\d+>/g, '').trim();
-        if (!target || !text) return message.reply({ embeds: [errorEmbed('Usage', ',mock @user <message>')] });
+        if (!target || !text) return message.reply({ embeds: [errorEmbed('Usage', ',mock its_washed message')] });
 
         try {
             await message.delete().catch(() => {});

@@ -22,7 +22,7 @@ module.exports = {
         description: 'Clear the last deleted message and edit snipes so they cannot be sniped',
         usage: ',clearsnipe [#channel]'
     },
-    aliases: ['cs', 'snipeclear'],
+    aliases: ['snipeclear'],
     cooldown: 3,
 
     async execute(message) {
@@ -34,8 +34,9 @@ module.exports = {
 
         const hadSnipe = clearStore(message.client.snipes, channel.id);
         const hadEdit = clearStore(message.client.editSnipes, channel.id);
+        const hadReaction = clearStore(message.client.reactionSnipes, channel.id);
 
-        if (!hadSnipe && !hadEdit) {
+        if (!hadSnipe && !hadEdit && !hadReaction) {
             return message.reply({ embeds: [errorEmbed('Nothing to Clear', `nothing has been deleted in ${channel}.`)] });
         }
 

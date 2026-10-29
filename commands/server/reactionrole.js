@@ -1,125 +1,183 @@
-const { PermissionFlagsBits, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { updateGuildConfig } = require('../../utils/config');
-const { errorEmbed, successEmbed, createEmbed, permissionDenied } = require('../../utils/embeds');
-const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
+const { PermissionFlagsBits, parseEmoji } = require('discord.js');
+const { warn, approve, paginate } = require('../../utils/context');
+const { needPerm, confirm } = require('../../utils/moderation');
+const { sendCard } = require('../../utils/helpCard');
+const { query, first, run } = require('../../utils/database');
+const { successEmbed, errorEmbed } = require('../../utils/embeds');
+const { EMOJIS } = require('../../utils/styles');
+const { dangerousRole } = require('../../utils/roleGuard');
+
+function guildAuthor(message) {
+    return { name: message.guild.name, icon_url: message.guild.iconURL() || undefined };
+}
+
+async function resolveTargetMessage(message, input) {
+    const link = /(?:https?:\/\/)?(?:ptb\.|canary\.)?discord\.com\/channels\/(\d+)\/(\d+)\/(\d+)/.exec(input || '');
+    try {
+        if (link) {
+            if (link[1] !== message.guild.id) return { error: 'That message is in another server.' };
+            const channel = message.guild.channels.cache.get(link[2]);
+            if (!channel || !channel.messages) return { error: 'Could not find this message. I do not have access to this channel.' };
+            return { msg: await channel.messages.fetch(link[3]) };
+        }
+        if (/^\d+$/.test(input)) {
+            return { msg: await message.channel.messages.fetch(input) };
+        }
+    } catch (err) {
+        return { error: 'This is **not** a message id or a message link' };
+    }
+    return { error: 'This is **not** a message id or a message link' };
+}
+
+function resolveEmoji(guild, token) {
+    if (!token) return null;
+    const custom = parseEmoji(token);
+    if (custom && custom.id) {
+        const found = guild.emojis.cache.get(custom.id) || guild.emojis.cache.find(e => e.name === custom.name);
+        if (!found) return null;
+        return `<:${found.name}:${found.id}>`;
+    }
+    const bare = token.replace(/^:+|:+$/g, '');
+    const guildEmoji = guild.emojis.cache.find(e => e.name === bare);
+    if (guildEmoji) return `<:${guildEmoji.name}:${guildEmoji.id}>`;
+    if (token.includes(':')) return null;
+    return token;
+}
 
 module.exports = {
     data: {
         name: 'reactionrole',
-        description: 'Create a reaction role message',
-        usage: ',reactionrole [setup|add|remove|list]'
+        description: 'Set up self-assignable roles with reactions',
+        usage: ',reactionrole <add|remove|removeall|list|clear>'
     },
     aliases: ['rr'],
-    cooldown: 10,
+    subcommands: ['add', 'remove', 'removeall', 'list', 'clear'],
+    cooldown: 5,
 
-    async execute(message, args, client, config) {
-        if (!isAdmin(message.member)) {
-            return message.reply({ embeds: [permissionDenied(message, 'administrator')] });
-        }
+    async execute(message) {
+        return sendCard(message, module.exports);
+    },
 
-        const action = args[0]?.toLowerCase();
-
-        if (!action || action === 'list') {
-            const rrs = config.reactionRoles || [];
-            if (rrs.length === 0) {
-                return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Reaction Roles', description: 'No reaction roles configured.\nUse `,reactionrole setup` to create one.' })] });
-            }
-
-            const list = rrs.map((rr, i) => {
-                const channel = message.guild.channels.cache.get(rr.channelId);
-                return `**${i + 1}.** ${channel || 'Deleted channel'} — ${rr.roles.length} role(s)`;
-            }).join('\n');
-
-            return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: `Reaction Roles (${rrs.length})`, description: list })] });
-        }
-
-        if (action === 'setup') {
-            const channel = message.mentions.channels.first() || message.channel;
-            const title = args.slice(2).join(' ') || 'Select your roles';
-
-            const selectMenu = new ActionRowBuilder().addComponents(
-                new StringSelectMenuBuilder()
-                    .setCustomId('rr_select')
-                    .setPlaceholder('Select roles to add')
-                    .setMinValues(1)
-                    .setMaxValues(10)
-            );
-
-            const allRoles = message.guild.roles.cache
-                .filter(r => r.position !== 0 && r.position < message.guild.members.me.roles.highest.position && !r.managed)
-                .sort((a, b) => b.position - a.position)
-                .first(25);
-
-            if (allRoles.length === 0) {
-                return message.reply({ embeds: [errorEmbed('No Roles', 'No assignable roles found.')] });
-            }
-
-            selectMenu.components[0].addOptions(
-                allRoles.map(r => ({
-                    label: r.name,
-                    value: r.id,
-                    emoji: '🎭'
-                }))
-            );
-
-            const embed = createEmbed({
-                color: 0x6c5ce7,
-                title: title,
-                description: 'Select the roles you want in the reaction role message.\nChoose roles from the menu below.'
-            });
-
-            const reply = await message.reply({ embeds: [embed], components: [selectMenu] });
-
-            const collector = reply.createMessageComponentCollector({
-                filter: (i) => i.user.id === message.author.id,
-                time: 60000,
-                max: 1
-            });
-
-            collector.on('collect', async (interaction) => {
-                const selectedRoles = interaction.values;
-                const roleList = selectedRoles.map(id => {
-                    const role = message.guild.roles.cache.get(id);
-                    return role ? `${role}` : id;
-                });
-
-                const rrEmbed = createEmbed({
-                    color: 0x6c5ce7,
-                    title: title,
-                    description: `React with the emoji to get the role.\n\n${roleList.join('\n')}`
-                });
-
-                const rrMsg = await channel.send({ embeds: [rrEmbed] });
-
-                const emojis = ['🔴', '🔵', '🟢', '🟡', '🟣', '⚫', '⚪', '🟠', '🩷', '💙'];
-                const roleMap = {};
-
-                for (let i = 0; i < selectedRoles.length; i++) {
-                    await rrMsg.react(emojis[i]);
-                    roleMap[emojis[i]] = selectedRoles[i];
+    subs: {
+        add: {
+            aliases: [],
+            data: { name: 'reactionrole add', description: 'Adds a reaction role to a message', usage: ',reactionrole add .../channels/... :skull: dead chat' },
+            async execute(message, args, client, config) {
+                if (!await needPerm(message, PermissionFlagsBits.ManageRoles)) return;
+                const resolved = await resolveTargetMessage(message, args[0]);
+                if (resolved.error) return warn(message, resolved.error);
+                const target = resolved.msg;
+                const emojiToken = args[1];
+                const roleText = args.slice(2).join(' ');
+                if (!emojiToken || !roleText) {
+                    return warn(message, 'Usage: `reactionrole add <message> <emoji> <role>`');
                 }
 
-                const rrs = config.reactionRoles || [];
-                rrs.push({
-                    messageId: rrMsg.id,
-                    channelId: channel.id,
-                    roles: selectedRoles,
-                    roleMap
-                });
-                updateGuildConfig(message.guild.id, { reactionRoles: rrs });
+                const emoji = resolveEmoji(message.guild, emojiToken);
+                if (!emoji) return warn(message, `Emoji \`${emojiToken.replace(/^:|:$/g, '')}\` is not **available** on this server or it's not a valid emoji`);
 
-                await interaction.reply({ content: 'Reaction role created!', ephemeral: true });
-                await reply.delete().catch(() => {});
-            });
+                const guard = await dangerousRole(message, roleText, config);
+                if (guard.error) return warn(message, guard.error);
+                const role = guard.role;
 
-            collector.on('end', (collected) => {
-                if (collected.size === 0) {
-                    reply.edit({ embeds: [errorEmbed('Timed Out', 'Setup cancelled.')] });
+                const check = first('SELECT 1 AS ok FROM reactionrole WHERE guild_id = ? AND channel_id = ? AND message_id = ? AND emoji = ?',
+                    message.guild.id, target.channel.id, target.id, emoji);
+                if (check) return warn(message, 'A similar reaction role is **already** added');
+
+                run('INSERT INTO reactionrole (guild_id, channel_id, message_id, emoji, role_id) VALUES (?, ?, ?, ?, ?)',
+                    message.guild.id, target.channel.id, target.id, emoji, role.id);
+
+                try {
+                    await target.react(emoji);
+                } catch (err) {
+                    if (err.code === 10008) {
+                        return warn(message, 'Could not add the reaction to the message. It might be invalid or the message could have been deleted.');
+                    }
+                    return warn(message, 'An error occurred while trying to add the emoji');
                 }
-            });
-            return;
-        }
+                return approve(message, `Added ${emoji} to [\`${target.id}\`](${target.url}) with ${role} assigned`);
+            }
+        },
 
-        return message.reply({ embeds: [errorEmbed('Invalid Action', 'Valid: `setup`, `list`')] });
+        remove: {
+            aliases: [],
+            data: { name: 'reactionrole remove', description: 'Removes a reaction role from a message', usage: ',reactionrole remove .../channels/... :skull:' },
+            async execute(message, args) {
+                if (!await needPerm(message, PermissionFlagsBits.ManageRoles)) return;
+                const resolved = await resolveTargetMessage(message, args[0]);
+                if (resolved.error) return warn(message, resolved.error);
+                const target = resolved.msg;
+                const emojiToken = args[1];
+                if (!emojiToken) return warn(message, 'Usage: `reactionrole remove <message> <emoji>`');
+
+                const emoji = resolveEmoji(message.guild, emojiToken) || emojiToken;
+                const check = first('SELECT 1 AS ok FROM reactionrole WHERE guild_id = ? AND channel_id = ? AND message_id = ? AND emoji = ?',
+                    message.guild.id, target.channel.id, target.id, emoji);
+                if (!check) return warn(message, 'No reaction role found for the message provided');
+
+                run('DELETE FROM reactionrole WHERE guild_id = ? AND channel_id = ? AND message_id = ? AND emoji = ?',
+                    message.guild.id, target.channel.id, target.id, emoji);
+                try {
+                    const reaction = target.reactions.resolve(emoji);
+                    if (reaction) await reaction.remove(message.guild.members.me);
+                } catch (err) {}
+                return approve(message, `**No longer** assigning role for ${emoji} for [\`${target.id}\`](${target.url})`);
+            }
+        },
+
+        removeall: {
+            aliases: [],
+            data: { name: 'reactionrole removeall', description: 'Removes all reaction roles from a message', usage: ',reactionrole removeall .../channels/...' },
+            async execute(message, args) {
+                if (!await needPerm(message, PermissionFlagsBits.ManageRoles)) return;
+                const resolved = await resolveTargetMessage(message, args[0]);
+                if (resolved.error) return warn(message, resolved.error);
+                const target = resolved.msg;
+
+                const check = first('SELECT 1 AS ok FROM reactionrole WHERE guild_id = ? AND channel_id = ? AND message_id = ?',
+                    message.guild.id, target.channel.id, target.id);
+                if (!check) return warn(message, 'No reaction roles found for the message provided');
+
+                run('DELETE FROM reactionrole WHERE guild_id = ? AND channel_id = ? AND message_id = ?',
+                    message.guild.id, target.channel.id, target.id);
+                await target.reactions.removeAll().catch(() => {});
+                return approve(message, `**No longer** assigning roles for message [\`${target.id}\`](${target.url})`);
+            }
+        },
+
+        list: {
+            aliases: [],
+            data: { name: 'reactionrole list', description: 'View a list of every reaction role', usage: ',reactionrole list' },
+            async execute(message) {
+                const rows = query('SELECT * FROM reactionrole WHERE guild_id = ?', message.guild.id);
+                if (!rows.length) return warn(message, 'No reaction roles available for this server');
+                const lines = rows.map(row =>
+                    `${row.emoji} [\`${row.message_id}\`](https://discord.com/channels/${message.guild.id}/${row.channel_id}/${row.message_id}) - <@&${row.role_id}>`);
+                return paginate(message, lines, 'Reaction Roles', guildAuthor(message));
+            }
+        },
+
+        clear: {
+            aliases: [],
+            data: { name: 'reactionrole clear', description: 'Clears every reaction role from guild', usage: ',reactionrole clear' },
+            async execute(message, args, client, config) {
+                if (!await needPerm(message, PermissionFlagsBits.ManageGuild)) return;
+                return confirm(message,
+                    `${EMOJIS.QUESTION} ${message.author}: Are you sure you want to clear **all** reaction roles from the server? The reactions won't be removed`,
+                    async i => {
+                        run('DELETE FROM reactionrole WHERE guild_id = ?', message.guild.id);
+                        return i.update({
+                            embeds: [successEmbed(null, `${i.user}: Cleared **all** reaction roles from the server`)],
+                            components: []
+                        }).catch(() => {});
+                    },
+                    async i => {
+                        return i.update({
+                            embeds: [errorEmbed(null, `${i.user}: Reaction roles deletion got canceled`)],
+                            components: []
+                        }).catch(() => {});
+                    });
+            }
+        }
     }
 };

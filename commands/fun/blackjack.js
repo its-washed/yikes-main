@@ -2,7 +2,7 @@ const { createEmbed, errorEmbed } = require('../../utils/embeds');
 const { getUser, updateWallet, parseBet } = require('../../utils/economy');
 
 module.exports = {
-    data: { name: 'blackjack', description: 'Play blackjack', usage: ',blackjack [bet/all/half/%]' },
+    data: { name: 'blackjack', description: "Start a blackjack game", usage: ',blackjack [bet/all/half/%]' },
     aliases: ['bj'],
     cooldown: 15,
     async execute(message, args) {
@@ -10,6 +10,7 @@ module.exports = {
         const bet = parseBet(args[0], user.wallet);
 
         if (isNaN(bet) || bet <= 0) return message.reply({ embeds: [errorEmbed('Invalid Bet', 'Usage: ,blackjack [bet/all/half/%]')] });
+        if (bet < 10) return message.reply({ embeds: [errorEmbed('Invalid Bet', "You can't bet less than **10** 💵")] });
         if (bet > user.wallet) return message.reply({ embeds: [errorEmbed('Not Enough', `You only have **$${user.wallet.toLocaleString()}** in your wallet.`)] });
 
         const deck = [];
@@ -42,7 +43,12 @@ module.exports = {
 
         const msg = await message.reply({
             embeds: [createEmbed({
-                color: 0x6c5ce7, title: 'Blackjack',
+                color: 0x729bb0,
+                title: `Playing Blackjack with ${bet.toLocaleString('en-US')} 💵`,
+                fields: [
+                    { name: `${message.author}`, value: "Hit 'Hit' to start the game.", inline: true },
+                    { name: 'Dealer', value: "Hit 'Hit' to start the game.", inline: true }
+                ],
                 description: `**Your Hand:** ${renderHand(hand)} (${handVal(hand)})\n**Dealer:** ${dealer[0].value}${dealer[0].suit} ??\n**Bet:** $${bet.toLocaleString()}\n\nReact ✅ to hit, ❌ to stand.`
             })]
         });
@@ -58,7 +64,7 @@ module.exports = {
             while (dVal < 17) { dealer.push(deck.pop()); dVal = handVal(dealer); }
             const pVal = handVal(hand);
             const result = dVal > 21 ? 'Dealer busts! You win!' : pVal > dVal ? 'You win!' : pVal < dVal ? 'Dealer wins!' : 'Push!';
-            const color = result.includes('win') && !result.includes('Dealer') ? 0x00d26a : result.includes('Push') ? 0xfbbf24 : 0xff4757;
+            const color = result.includes('win') && !result.includes('Dealer') ? 0x39ffb8 : result.includes('Push') ? 0xffd600 : 0xff3939;
             let outcome = '';
             if (result === 'Push!') {
                 settled = true;
@@ -81,12 +87,12 @@ module.exports = {
                 const val = handVal(hand);
                 if (val > 21) {
                     settle(-bet);
-                    await msg.edit({ embeds: [createEmbed({ color: 0xff4757, title: 'Bust!', description: `**${renderHand(hand)}** (${val})\nDealer: **${renderHand(dealer)}** (${handVal(dealer)})\n\nYou lost **$${bet.toLocaleString()}**.` })] });
+                    await msg.edit({ embeds: [createEmbed({ color: 0xff3939, title: 'Bust!', description: `**${renderHand(hand)}** (${val})\nDealer: **${renderHand(dealer)}** (${handVal(dealer)})\n\nYou lost **$${bet.toLocaleString()}**.` })] });
                     msg.reactions.removeAll().catch(() => {});
                     collector.stop();
                     return;
                 }
-                await msg.edit({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Blackjack', description: `**Your Hand:** ${renderHand(hand)} (${val})\n**Dealer:** ${dealer[0].value}${dealer[0].suit} ??` })] });
+                await msg.edit({ embeds: [createEmbed({ color: 0x729bb0, title: 'Blackjack', description: `**Your Hand:** ${renderHand(hand)} (${val})\n**Dealer:** ${dealer[0].value}${dealer[0].suit} ??` })] });
             } else {
                 await stand();
             }

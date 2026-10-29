@@ -1,34 +1,39 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
-const { readJSON, writeJSON } = require('../../utils/database');
-const { v4: uuid } = require('uuid');
+const { warn, approve, parseTime } = require('../../utils/context');
+const { run } = require('../../utils/database');
+
+function humanizeTimespan(seconds) {
+    const d = Math.floor(seconds / 86400);
+    const h = Math.floor((seconds % 86400) / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    const parts = [];
+    if (d) parts.push(`${d} day${d === 1 ? '' : 's'}`);
+    if (h) parts.push(`${h} hour${h === 1 ? '' : 's'}`);
+    if (m) parts.push(`${m} minute${m === 1 ? '' : 's'}`);
+    if (s || !parts.length) parts.push(`${s} second${s === 1 ? '' : 's'}`);
+    return parts.join(' and ').replace(/, and /g, ' and ');
+}
 
 module.exports = {
-    data: { name: 'remind', description: 'Set a reminder', usage: ',remind <time> <message>\nTime: 10s, 5m, 2h, 1d' },
-    aliases: ['remindme', 'reminder'],
+    data: { name: 'remind', description: "Add a reminder", usage: ',remind 1h Close the window', params: ['time', 'message'] },
+    aliases: ['remindme'],
     cooldown: 5,
+
     async execute(message, args) {
-        if (!args[0]) return message.reply({ embeds: [errorEmbed('Usage', ',remind <time> <message>\nExamples: 10s, 5m, 2h, 1d')] });
+        const time = parseTime(String(args[0] || '').toLowerCase());
+        if (time === null) return warn(message, 'Invalid time\n> Usage: `,remind 1h Close the window`');
+        if (time < 60) return warn(message, "Reminder time can't be less than a minute");
 
-        const time = args[0].toLowerCase();
-        const match = time.match(/^(\d+)(s|m|h|d)$/);
-        if (!match) return message.reply({ embeds: [errorEmbed('Invalid Time', 'Use s/m/h/d (e.g., 10s, 5m, 2h, 1d)')] });
+        const task = args.slice(1).join(' ').trim();
+        if (!task) return warn(message, 'You must provide a task\n> Usage: `,remind 1h Close the window`');
 
-        const ms = { s: 1000, m: 60000, h: 3600000, d: 86400000 }[match[2]];
-        const duration = parseInt(match[1]) * ms;
-        const text = args.slice(1).join(' ');
-        if (!text) return message.reply({ embeds: [errorEmbed('No Message', 'Provide a reminder message.')] });
-
-        const reminders = readJSON('reminders.json') || [];
-        reminders.push({
-            id: uuid(),
-            userId: message.author.id,
-            channelId: message.channel.id,
-            guildId: message.guild.id,
-            text,
-            expires: Date.now() + duration
-        });
-        writeJSON('reminders.json', reminders);
-
-        return message.reply({ embeds: [successEmbed('Reminder Set', `I'll remind you in **${args[0]}**.`)] });
+        try {
+            const remindTime = Math.floor(Date.now() / 1000) + time;
+            run('INSERT INTO reminder (user_id, channel_id, guild_id, remind_time, task) VALUES (?, ?, ?, ?, ?)',
+                message.author.id, message.channel.id, message.guild.id, remindTime, task);
+            return approve(message, `I'm going to remind you **in ${humanizeTimespan(time)}** about **${task}**`);
+        } catch (err) {
+            return warn(message, 'An error occurred while setting the reminder');
+        }
     }
 };

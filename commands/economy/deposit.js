@@ -1,31 +1,76 @@
-const { createEmbed, errorEmbed } = require('../../utils/embeds');
-const { getUser, updateWallet, updateBank } = require('../../utils/economy');
+const { createEmbed } = require('../../utils/embeds');
+const { COLORS } = require('../../utils/styles');
+const { warn } = require('../../utils/context');
+const { run, first } = require('../../utils/database');
+const { ensureEconomy } = require('../../utils/predicates');
+const E = require('../../utils/econ');
+
+function money(value) {
+    const n = Number(value) || 0;
+    return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function round2(value) {
+    return Math.round(value * 100) / 100;
+}
+
+function parseAmount(token, cash) {
+    const text = String(token).trim();
+    const lower = text.toLowerCase();
+    const multipliers = { k: 1000, m: 1000000, b: 1000000000 };
+
+    if (lower === 'all') return { amount: cash };
+    if (lower === 'half') return { amount: round2(cash / 2) };
+    if (lower.endsWith('%')) {
+        const percent = Number(lower.slice(0, -1));
+        if (!Number.isFinite(percent) || percent < 1 || percent > 100) {
+            return { error: 'Percentage must be between 1% and 100%' };
+        }
+        return { amount: round2(cash * (percent / 100)) };
+    }
+    const match = /^(\d+(?:\.\d+)?)([kmb])?$/i.exec(text);
+    if (!match) return { error: `**${text}** is **not** a number` };
+    if ((match[1].split('.')[1] || '').length > 2) {
+        return { error: 'The number **cannot** have more than **2** decimals' };
+    }
+    return { amount: round2(Number(match[1]) * (match[2] ? multipliers[match[2].toLowerCase()] : 1)) };
+}
 
 module.exports = {
-    data: { name: 'deposit', description: 'Deposit money into your bank', usage: ',deposit [amount/all]' },
+    data: { name: 'deposit', description: 'Deposit cash money to card', usage: ',deposit 125', params: ['amount'] },
     aliases: ['dep'],
     cooldown: 5,
-    async execute(message, args) {
-        const user = getUser(message.author.id);
-        let amount;
+    async execute(message, args, client) {
+        if (!await ensureEconomy(message, client)) return;
 
-        if (args[0] === 'all' || args[0] === 'max') {
-            amount = user.wallet;
-        } else {
-            amount = parseInt(args[0]);
-        }
+        const row = first('SELECT cash, card, item_bank FROM economy WHERE user_id = ?', message.author.id);
+        if (!row) return warn(message, 'You do **not** have an economy account created.');
 
-        if (isNaN(amount) || amount <= 0) return message.reply({ embeds: [errorEmbed('Invalid Amount', 'Usage: ,deposit [amount/all]')] });
-        if (amount > user.wallet) return message.reply({ embeds: [errorEmbed('Not Enough', `You only have **$${user.wallet.toLocaleString()}** in your wallet.`)] });
+        const cash = Number(row.cash) || 0;
+        const card = Number(row.card) || 0;
+        const space = round2((Number(row.item_bank) || 0) - card);
 
-        updateWallet(message.author.id, -amount);
-        updateBank(message.author.id, amount);
+        if (space <= 0) return warn(message, 'Your bank balance is already full!');
+        if (cash === 0) return warn(message, "You don't have any money in your **pocket** to use.");
+        if (cash < 0) return warn(message, 'Your balance is negative dude :skull:');
+        if (!args[0]) return warn(message, 'You do **not** have enough arguments to run this command');
+
+        const parsed = parseAmount(args[0], cash);
+        if (parsed.error) return warn(message, parsed.error);
+        let amount = parsed.amount;
+
+        if (amount < 0) return warn(message, "You can't use less than **0** 💵");
+        if (amount === 0) return warn(message, "You can't use **0** 💵");
+        if (amount > space) amount = space;
+        if (cash < amount) return warn(message, "You don't have enough money in your **pocket** to use");
+
+        run('UPDATE economy SET cash = ?, card = ? WHERE user_id = ?', round2(cash - amount), round2(card + amount), message.author.id);
+        E.logging(message.author.id, amount, 'deposit', 'bank');
 
         return message.reply({
             embeds: [createEmbed({
-                color: 0x22c55e,
-                title: 'Deposited',
-                description: `Deposited **$${amount.toLocaleString()}** into your bank.`
+                color: COLORS.ECONOMY,
+                description: `💰 ${message.author}: Deposited **${money(amount)}** 💵`
             })]
         });
     }

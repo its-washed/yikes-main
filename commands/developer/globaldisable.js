@@ -2,8 +2,9 @@ const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../
 const { isDeveloper, loadDevData, saveDevData } = require('../../utils/developer');
 
 module.exports = {
-    data: { name: 'globaldisable', description: 'Disable a command or category globally (Developer only)', usage: ',globaldisable [add/remove] [command/category]' },
-    aliases: ['gdisable'],
+    permission: "bot moderator",
+    data: { name: 'globaldisable', description: "Globally disable a command", usage: ',globaldisable [add/remove] [command/category]' },
+    aliases: ["gd"],
     cooldown: 0,
     async execute(message, args, client) {
         if (!isDeveloper(message.author.id)) return message.reply({ embeds: [permissionDenied(message, 'bot_developer')] });
@@ -24,12 +25,13 @@ module.exports = {
         }
 
         if (action === 'add') {
+            if (cmd === 'globalenable' || cmd === 'globaldisable') return message.reply({ embeds: [errorEmbed('Blocked', 'Unable to globally disable this command.')] });
             if (categories.has('developer') && cmd === 'developer') return message.reply({ embeds: [errorEmbed('Blocked', 'The **developer** category cannot be disabled — it would lock developers out of these commands.')] });
             if (commands.size && !commands.has(cmd) && !categories.has(cmd)) {
                 const list = [...categories].sort().join(', ');
                 return message.reply({ embeds: [errorEmbed('Unknown Target', `No command or category named \`${cmd}\`. Categories: ${list}`)] });
             }
-            if (data.globalDisabled.includes(cmd)) return message.reply({ embeds: [errorEmbed('Already Disabled', `\`${cmd}\` is already globally disabled.`)] });
+            if (data.globalDisabled.includes(cmd)) return message.reply({ embeds: [errorEmbed('Already Disabled', 'This command is **already** globally disabled.')] });
             data.globalDisabled.push(cmd);
             saveDevData(data);
             const kind = categories.has(cmd) ? ' (category)' : '';

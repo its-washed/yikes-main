@@ -32,7 +32,7 @@ module.exports = {
                         if (logChannel) {
                             logChannel.send({
                                 embeds: [new EmbedBuilder()
-                                    .setColor(0xff4757)
+                                    .setColor(0xff3939)
                                     .setTitle('Antinuke Triggered')
                                     .setDescription(`${newMember} added dangerous role **${role.name}**. Role removed.`)
                                     .setTimestamp()
@@ -54,7 +54,7 @@ module.exports = {
                         if (logChannel) {
                             logChannel.send({
                                 embeds: [new EmbedBuilder()
-                                    .setColor(0xffa502)
+                                    .setColor(0xffd600)
                                     .setTitle('Antinuke Triggered')
                                     .setDescription(`${newMember} removed role **${role.name}**. Role restored.`)
                                     .setTimestamp()

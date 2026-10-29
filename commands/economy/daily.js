@@ -1,35 +1,52 @@
-const { createEmbed, errorEmbed } = require('../../utils/embeds');
-const { getUser, updateWallet } = require('../../utils/economy');
+const { warn, approve } = require('../../utils/context');
+const { first, run } = require('../../utils/database');
+const { ensureEconomy } = require('../../utils/predicates');
+const { humanize, logging } = require('../../utils/econ');
+const { humanizeTime } = require('../../utils/helpers');
+const { prefix } = require('../../utils/moderation');
+
+function calculateBonus(streak, userId) {
+    const bonusPercentage = streak >= 60 ? 50 : streak >= 30 ? 15 : streak >= 14 ? 10 : streak >= 7 ? 5 : streak >= 3 ? 3 : 0;
+    const donor = first('SELECT 1 AS ok FROM donor WHERE user_id = ?', userId);
+    const donorBonusPercentage = donor ? 20 : 0;
+    return bonusPercentage + donorBonusPercentage;
+}
 
 module.exports = {
-    data: { name: 'daily', description: 'Claim your daily reward', usage: ',daily' },
+    data: { name: 'daily', description: "Claim your daily cash", usage: ',daily' },
     aliases: [],
     cooldown: 5,
-    async execute(message) {
-        const user = getUser(message.author.id);
-        const now = Date.now();
-        const cooldown = 24 * 60 * 60 * 1000;
 
-        if (now - user.lastDaily < cooldown) {
-            const remaining = cooldown - (now - user.lastDaily);
-            const hours = Math.floor(remaining / 3600000);
-            const minutes = Math.floor((remaining % 3600000) / 60000);
-            return message.reply({ embeds: [errorEmbed('Cooldown', `Come back in **${hours}h ${minutes}m**.`)] });
+    async execute(message, args, client) {
+        if (!await ensureEconomy(message, client)) return;
+
+        const check = first('SELECT cash, daily, daily_streak FROM economy WHERE user_id = ?', message.author.id);
+        if (!check) return message.reply('Error: User data not found.');
+
+        const now = Date.now();
+        const lastClaim = check.daily ? new Date(Number(check.daily) * 1000) : null;
+        const dailyStreak = lastClaim && (now - lastClaim.getTime()) < 2 * 86400000 ? Number(check.daily_streak) || 1 : 1;
+
+        if (check.daily && now < Number(check.daily) * 1000) {
+            const p = await prefix(message);
+            const remaining = Math.ceil((Number(check.daily) * 1000 - now) / 1000);
+            return warn(message, `You can run \`${p}daily\` again **in ${humanizeTime(remaining)}**`);
         }
 
-        const reward = Math.floor(Math.random() * 500) + 200;
-        updateWallet(message.author.id, reward);
+        const config = first('SELECT daily_min, daily_max FROM economy_config WHERE active = 1')
+            || first('SELECT daily_min, daily_max FROM economy_config');
+        const minWin = Number(config ? config.daily_min : 500) || 500;
+        const maxWin = Number(config ? config.daily_max : 1500) || 1500;
 
-        const data = require('../../utils/economy').loadEconomy();
-        data.users[message.author.id].lastDaily = now;
-        require('../../utils/economy').saveEconomy(data);
+        const baseReward = minWin + Math.random() * (maxWin - minWin);
+        const totalBonus = calculateBonus(dailyStreak, message.author.id);
+        const totalReward = Math.round(baseReward * (1 + totalBonus / 100) * 100) / 100;
 
-        return message.reply({
-            embeds: [createEmbed({
-                color: 0x22c55e,
-                title: 'Daily Reward',
-                description: `You claimed your daily **$${reward.toLocaleString()}**!`
-            })]
-        });
+        run('UPDATE economy SET cash = cash + ?, daily_streak = ?, daily = ? WHERE user_id = ?',
+            totalReward, dailyStreak, Math.floor((now + 86400000) / 1000), message.author.id);
+
+        const bonusMessage = totalBonus > 0 ? `+${totalBonus}% Total Bonus` : '';
+        logging(message.author.id, totalReward, 'collect', 'daily');
+        return approve(message, `You have claimed **${humanize(totalReward)}** 💵 ${bonusMessage}`.trim());
     }
 };

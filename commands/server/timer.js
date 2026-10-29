@@ -1,155 +1,98 @@
-const { updateGuildConfig } = require('../../utils/config');
-const { errorEmbed, successEmbed, createEmbed, permissionDenied } = require('../../utils/embeds');
-const { isAdmin } = require('../../utils/permissions');
-const { parseEmbed, resolve } = require('../../utils/variables');
+const { PermissionFlagsBits } = require('discord.js');
+const { warn, approve, paginate, parseTime } = require('../../utils/context');
+const { needPerm, formatTimespan } = require('../../utils/moderation');
+const { sendCard } = require('../../utils/helpCard');
+const { query, first, run } = require('../../utils/database');
+const { altConvert, scriptPayload } = require('../../utils/embedScript');
 
-const timers = new Map();
+function guildAuthor(message) {
+    return { name: message.guild.name, icon_url: message.guild.iconURL() || undefined };
+}
 
 module.exports = {
+    permission: "manage guild",
     data: {
         name: 'timer',
-        description: 'Manage auto messages on an interval',
-        usage: ',timer <add|remove|test|list> [args]'
+        description: 'Post repeating messages in your server',
+        usage: ',timer <add|remove|test|list>'
     },
-    aliases: ['automessage', 'am'],
+    subcommands: ['add', 'remove', 'test', 'list'],
     cooldown: 5,
 
-    async execute(message, args, client, config) {
-        if (!isAdmin(message.member)) {
-            return message.reply({ embeds: [permissionDenied(message, 'administrator')] });
-        }
-
-        const sub = args[0]?.toLowerCase();
-        if (!sub) return message.reply({ embeds: [errorEmbed('Subcommands', 'Valid: `add`, `remove`, `test`, `list`')] });
-
-        if (sub === 'add') return this.handleAdd(message, args.slice(1), config);
-        if (sub === 'remove') return this.handleRemove(message, args.slice(1), config);
-        if (sub === 'test') return this.handleTest(message, args.slice(1), config);
-        if (sub === 'list') return this.handleList(message, config);
-
-        return message.reply({ embeds: [errorEmbed('Invalid', 'Valid: `add`, `remove`, `test`, `list`')] });
+    async execute(message) {
+        return sendCard(message, module.exports);
     },
 
-    async handleAdd(message, args, config) {
-        const channel = message.mentions.channels.first();
-        const interval = args[1];
-        const code = args.slice(2).join(' ').replace(/<#\d+>/g, '').trim();
-        if (!channel || !interval || !code) {
-            return message.reply({ embeds: [errorEmbed('Usage', ',timer add #channel <interval like 10m> <embed code>')] });
-        }
+    subs: {
+        add: {
+            aliases: [],
+            data: { name: 'timer add', description: 'Add repeating message to a channel', usage: ',timer add #general 10m {embed}$v{description: Hello world}' },
+            async execute(message, args) {
+                if (!await needPerm(message, PermissionFlagsBits.ManageGuild)) return;
+                const channel = message.mentions.channels.first();
+                if (!channel) return warn(message, 'You must mention a channel');
+                const intervalArg = args.find(a => !a.startsWith('<#'));
+                const interval = intervalArg ? parseTime(intervalArg) : null;
+                if (!interval) return warn(message, 'You must provide a valid interval like `10m`');
+                if (interval < 300) return warn(message, 'Interval must be at least 5 minutes');
+                const code = args.slice(args.indexOf(intervalArg) + 1).join(' ').trim();
+                if (!code) return warn(message, 'You must provide a message code');
 
-        const ms = this.parseInterval(interval);
-        if (!ms || ms < 300000) {
-            return message.reply({ embeds: [errorEmbed('Invalid Interval', 'Minimum interval is 5 minutes (5m).')] });
-        }
+                const check = first('SELECT 1 AS ok FROM timer WHERE guild_id = ? AND channel_id = ?', message.guild.id, channel.id);
+                if (check) return warn(message, `Channel ${channel} already has a timed message`);
+                run('INSERT INTO timer (guild_id, channel_id, "interval", code, time) VALUES (?, ?, ?, ?, ?)',
+                    message.guild.id, channel.id, interval, code, Date.now() / 1000);
+                return approve(message, `Added an **auto message** with \`${formatTimespan(interval)}\` interval to ${channel}\nYou can preview your message by running \`,timer test ${channel}\``);
+            }
+        },
 
-        const timersList = config.timers || [];
-        const existing = timersList.find(t => t.channelId === channel.id);
-        if (existing) {
-            return message.reply({ embeds: [errorEmbed('Exists', 'This channel already has a timer. Remove it first.')] });
-        }
+        remove: {
+            aliases: [],
+            data: { name: 'timer remove', description: 'Remove repeating message from a channel', usage: ',timer remove #general' },
+            async execute(message, args) {
+                if (!await needPerm(message, PermissionFlagsBits.ManageGuild)) return;
+                const channel = message.mentions.channels.first();
+                if (!channel) return warn(message, 'You must mention a channel');
+                const check = first('SELECT 1 AS ok FROM timer WHERE guild_id = ? AND channel_id = ?', message.guild.id, channel.id);
+                if (!check) return warn(message, `Channel ${channel} doesn't have a timed message`);
+                run('DELETE FROM timer WHERE guild_id = ? AND channel_id = ?', message.guild.id, channel.id);
+                return approve(message, `Removed the **auto message** for ${channel}`);
+            }
+        },
 
-        const timerData = {
-            id: Date.now().toString(36),
-            channelId: channel.id,
-            interval: ms,
-            code,
-            createdBy: message.author.id
-        };
+        test: {
+            aliases: [],
+            data: { name: 'timer test', description: "Preview a channel's auto message", usage: ',timer test #general' },
+            async execute(message, args) {
+                if (!await needPerm(message, PermissionFlagsBits.ManageGuild)) return;
+                const mentioned = message.mentions.channels.first();
+                const channel = mentioned || message.channel;
+                const check = first('SELECT * FROM timer WHERE guild_id = ? AND channel_id = ?', message.guild.id, channel.id);
+                if (!check) return warn(message, `Channel ${channel} does not have a timed message`);
+                const target = message.guild.channels.cache.get(check.channel_id);
+                if (!target) return warn(message, `Channel ${channel} is not available`);
+                const payload = scriptPayload(altConvert(message.member, check.code));
+                if (!payload.content && !payload.embeds) return warn(message, 'The message code did not produce anything to send');
+                const sent = await target.send(payload).catch(() => null);
+                if (!sent) return warn(message, 'Could not send the message to that channel');
+                return approve(message, `Sent the message ${sent.url}`);
+            }
+        },
 
-        timersList.push(timerData);
-        updateGuildConfig(message.guild.id, { timers: timersList });
-        this.startTimer(message.guild, timerData);
-        return message.reply({ embeds: [successEmbed('Timer Added', `Sending every **${interval}** to ${channel}`)] });
-    },
-
-    async handleRemove(message, args, config) {
-        const channel = message.mentions.channels.first();
-        if (!channel) return message.reply({ embeds: [errorEmbed('No Channel', 'Mention a channel.')] });
-
-        const key = `timer_${message.guild.id}_${channel.id}`;
-        if (timers.has(key)) {
-            clearInterval(timers.get(key));
-            timers.delete(key);
-        }
-
-        const timersList = (config.timers || []).filter(t => t.channelId !== channel.id);
-        updateGuildConfig(message.guild.id, { timers: timersList });
-        return message.reply({ embeds: [successEmbed('Timer Removed', `Timer for ${channel} stopped.`)] });
-    },
-
-    async handleTest(message, args, config) {
-        const channel = message.mentions.channels.first() || message.channel;
-        const timer = (config.timers || []).find(t => t.channelId === channel.id);
-        if (!timer) return message.reply({ embeds: [errorEmbed('Not Found', `No timer for ${channel}.`)] });
-
-        const ctx = { member: message.member, user: message.author, guild: message.guild, message };
-        const parsed = parseEmbed(timer.code, ctx);
-        if (parsed) {
-            const { EmbedBuilder } = require('discord.js');
-            const embed = new EmbedBuilder();
-            if (parsed.color) embed.setColor(parsed.color);
-            if (parsed.title) embed.setTitle(parsed.title);
-            if (parsed.description) embed.setDescription(parsed.description);
-            if (parsed.fields) embed.addFields(parsed.fields);
-            await channel.send({ embeds: [embed] }).catch(() => {});
-        } else {
-            await channel.send({ content: resolve(timer.code, ctx) }).catch(() => {});
-        }
-        return message.reply({ embeds: [successEmbed('Test Sent', `Test message sent to ${channel}`)] });
-    },
-
-    async handleList(message, config) {
-        const timersList = config.timers || [];
-        if (!timersList.length) {
-            return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Auto Messages', description: 'No timers configured.' })] });
-        }
-        const list = timersList.map((t, i) => `**${i + 1}.** <#${t.channelId}> — every **${this.formatInterval(t.interval)}**`).join('\n');
-        return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: `Auto Messages (${timersList.length})`, description: list })] });
-    },
-
-    startTimer(guild, timerData) {
-        const key = `timer_${guild.id}_${timerData.channelId}`;
-        if (timers.has(key)) clearInterval(timers.get(key));
-
-        const interval = setInterval(async () => {
-            try {
-                const channel = guild.channels.cache.get(timerData.channelId);
-                if (!channel) { clearInterval(interval); timers.delete(key); return; }
-
-                const { getGuildConfig } = require('../../utils/config');
-                const config = getGuildConfig(guild.id);
-                const { parseEmbed: pe, resolve: r } = require('../../utils/variables');
-                const parsed = pe(timerData.code, { guild });
-                if (parsed) {
-                    const { EmbedBuilder } = require('discord.js');
-                    const embed = new EmbedBuilder();
-                    if (parsed.color) embed.setColor(parsed.color);
-                    if (parsed.title) embed.setTitle(parsed.title);
-                    if (parsed.description) embed.setDescription(parsed.description);
-                    if (parsed.fields) embed.addFields(parsed.fields);
-                    await channel.send({ embeds: [embed] }).catch(() => {});
-                } else {
-                    await channel.send({ content: r(timerData.code, { guild }) }).catch(() => {});
+        list: {
+            aliases: [],
+            data: { name: 'timer list', description: 'View all auto messages in your server', usage: ',timer list' },
+            async execute(message) {
+                if (!await needPerm(message, PermissionFlagsBits.ManageGuild)) return;
+                const rows = query('SELECT * FROM timer WHERE guild_id = ?', message.guild.id);
+                if (!rows.length) return warn(message, 'There is no timed message configured in this server');
+                const lines = [];
+                for (const row of rows) {
+                    const channel = message.guild.channels.cache.get(row.channel_id);
+                    lines.push(`${channel || 'None'} - \`${formatTimespan(row.interval)}\`\n\`\`\`${row.code}\`\`\``);
                 }
-            } catch {}
-        }, timerData.interval);
-
-        timers.set(key, interval);
-    },
-
-    parseInterval(str) {
-        const match = str.match(/^(\d+)(m|h|d)$/);
-        if (!match) return null;
-        const units = { m: 60000, h: 3600000, d: 86400000 };
-        return parseInt(match[1]) * units[match[2]];
-    },
-
-    formatInterval(ms) {
-        if (ms >= 86400000) return `${ms / 86400000}d`;
-        if (ms >= 3600000) return `${ms / 3600000}h`;
-        return `${ms / 60000}m`;
+                return paginate(message, lines, 'Timed Messages Configuration', guildAuthor(message), { perPage: 4, maxChars: 1800 });
+            }
+        }
     }
 };
-
-module.exports.timers = timers;

@@ -1,84 +1,76 @@
 const { PermissionFlagsBits } = require('discord.js');
-const { parseMember, parseDuration, formatDuration, checkHierarchy } = require('../../utils/helpers');
-const { modLogEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
-const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
+const { needPerm, needBotPerm, noStaff, formatTimespan, invokeDm, invokeMessage, insertCase, sendModLog, splitReason, caseId } = require('../../utils/moderation');
+const { approve, warn, parseTime } = require('../../utils/context');
+const { sendPunishmentDm } = require('../../utils/appeals');
+
+const MAX_DURATION = 28 * 24 * 60 * 60;
 
 module.exports = {
-    data: {
-        name: 'mute',
-        description: 'Timeout a member',
-        usage: ',mute @user [duration] [reason]'
-    },
-    aliases: ['timeout', 'tm'],
-    cooldown: 5,
+    permission: "moderate members",
+    data: { name: 'mute', description: 'Timeout a member', usage: ',mute its_washed 1d rassist --s', params: ['member', '[duration]', '[reason]'], flags: { s: 'Punish a user silently' } },
+    aliases: ['timeout'],
+    cooldown: 3,
 
-    async execute(message, args, client, config) {
-        if (!hasPermission(message.member, PermissionFlagsBits.ModerateMembers)) {
-            return message.reply({ embeds: [permissionDenied(message, 'moderate_members')] });
+    async execute(message, args, client) {
+        if (!await needPerm(message, PermissionFlagsBits.ModerateMembers)) return;
+        if (!await needBotPerm(message, PermissionFlagsBits.ModerateMembers)) return;
+
+        const member = await noStaff(message, args[0], 'mute');
+        if (!member) return;
+
+        const time = args[1] ? parseTime(args[1]) : null;
+        if (args[1] && time === null) {
+            return warn(message, `**${args[1]}** is an invalid timespan`);
         }
 
-        if (!message.guild.members.me.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-            return message.reply({ embeds: [permissionDenied(message, 'moderate_members', { bot: true })] });
+        const duration = time || 3600;
+        if (duration > MAX_DURATION) {
+            return warn(message, "You can't mute a user for more than **28 days**");
+        }
+        if (member.isTimedOut()) {
+            return warn(message, `${member} is **already** muted`);
+        }
+        if (member.permissions.has(PermissionFlagsBits.Administrator)) {
+            return warn(message, "You **can't** mute an administrator");
         }
 
-        if (!args[0]) {
-            return message.reply({ embeds: [errorEmbed('Missing Target', 'Please mention a user or provide their ID.')] });
-        }
+        const parsed = splitReason(args, args[1] ? 2 : 1);
+        const reason = parsed.reason;
+        const silent = parsed.silent;
+        const formatted = formatTimespan(duration);
+        const discordReason = `${reason} | ${message.author.username} (${message.author.id})`;
 
-        const target = parseMember(message, args[0]);
-        if (!target) {
-            return message.reply({ embeds: [errorEmbed('User Not Found', 'Could not find that user in this server.')] });
-        }
-
-        if (!checkHierarchy(message.member, target, message.guild)) {
-            return message.reply({ embeds: [errorEmbed('Hierarchy', 'You cannot timeout someone with an equal or higher role.')] });
-        }
-
-        if (!checkHierarchy(message.guild.members.me, target, message.guild)) {
-            return message.reply({ embeds: [errorEmbed('Hierarchy', 'I cannot timeout someone with an equal or higher role than me.')] });
-        }
-
-        let durationMs = 600000;
-        let durationStr = '10 minutes';
-        let reasonArgs = [...args];
-        reasonArgs.shift();
-
-        const durationIndex = reasonArgs.findIndex(a => /^(\d+)(s|m|h|d)$/.test(a));
-        if (durationIndex !== -1) {
-            const parsed = parseDuration(reasonArgs[durationIndex]);
-            if (parsed && parsed <= 2419200000) {
-                durationMs = parsed;
-                durationStr = formatDuration(parsed);
-                reasonArgs.splice(durationIndex, 1);
+        let dmMessageId = null;
+        if (!silent) {
+            const sent = await invokeDm(member, message.guild.id, 'mute', { reason, duration: formatted })
+                .catch(() => false);
+            if (!sent) {
+                try {
+                    dmMessageId = await sendPunishmentDm(member, message.guild.id, `You have been muted for **${formatted}** on **${message.guild.name}** by ${message.author} for the following reason: **${reason}**`);
+                } catch (err) {
+                    dmMessageId = null;
+                }
             }
         }
 
-        const reason = reasonArgs.join(' ') || 'No reason provided';
+        await member.timeout(duration * 1000, discordReason).catch(() => null);
 
-        try {
-            await target.timeout(durationMs, `${reason} | Timed out by ${message.author.tag}`);
+        const historyId = insertCase(message, member, 'Mute', formatted, reason, Date.now() / 1000, dmMessageId);
+        const expiration = Math.floor(Date.now() / 1000 + duration);
 
-            await target.send({
-                embeds: [{
-                    color: 0xffa502,
-                    title: `You have been timed out in ${message.guild.name}`,
-                    description: `**Duration:** ${durationStr}\n**Reason:** ${reason}`,
-                    timestamp: new Date().toISOString()
-                }]
-            }).catch(() => {});
+        await sendModLog(message.guild, {
+            user: member,
+            moderator: message.author,
+            reason,
+            description: `muted until <t:${expiration}:f>`,
+            punishment: 'Mute',
+            historyId
+        });
 
-            const logChannel = message.guild.channels.cache.get(config.logChannel);
-            if (logChannel) {
-                logChannel.send({
-                    embeds: [modLogEmbed('Mute (Timeout)', message.author, target, `${reason} | Duration: ${durationStr}`, 0xffa502)]
-                });
-            }
-
-            return message.reply({
-                embeds: [successEmbed('Member Muted', `**${target.user.tag}** has been timed out for ${durationStr}.`)]
-            });
-        } catch (error) {
-            return message.reply({ embeds: [errorEmbed('Error', `Failed to mute: ${error.message}`)] });
+        const invoked = await invokeMessage(message, 'mute', member, { reason, duration: formatted, historyId }).catch(() => false);
+        if (!invoked) {
+            return approve(message, `Muted ${member} (\`#${historyId}\`) for ${formatted} - **${reason}**`);
         }
+        return null;
     }
 };

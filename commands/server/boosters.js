@@ -1,4 +1,5 @@
 const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
+const { warn } = require('../../utils/context');
 const fs = require('fs');
 const path = require('path');
 
@@ -25,17 +26,17 @@ function saveBoosterRole(guildId, roleId) {
 module.exports = {
     data: {
         name: 'boosters',
-        description: 'View all server boosters',
+        description: "View all recent server boosters",
         usage: ',boosters'
     },
-    aliases: ['listboosters'],
+    aliases: [],
     cooldown: 10,
 
     async execute(message) {
         const boosters = message.guild.members.cache.filter(m => m.premiumSince);
 
         if (boosters.size === 0) {
-            return message.reply({ embeds: [createEmbed({ color: 0xec4899, description: 'No boosters in this server.' })] });
+            return warn(message, 'This server has no boosters');
         }
 
         const list = boosters.map(m => {
@@ -45,7 +46,7 @@ module.exports = {
 
         return message.reply({
             embeds: [createEmbed({
-                color: 0xec4899,
+                color: 0x729bb0,
                 title: `Server Boosters (${boosters.size})`,
                 description: list
             })]

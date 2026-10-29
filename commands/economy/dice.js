@@ -2,8 +2,8 @@ const { createEmbed, errorEmbed } = require('../../utils/embeds');
 const { getUser, updateWallet, parseBet } = require('../../utils/economy');
 
 module.exports = {
-    data: { name: 'dice', description: 'Roll dice against the bot', usage: ',dice [bet/all/half/%]' },
-    aliases: ['diceroll'],
+    data: { name: 'dice', description: "Play a dice game", usage: ',dice [bet/all/half/%]' },
+    aliases: ["gamble"],
     cooldown: 5,
     async execute(message, args) {
         const user = getUser(message.author.id);
@@ -32,7 +32,7 @@ module.exports = {
 
         return message.reply({
             embeds: [createEmbed({
-                color: winnings > 0 ? 0x22c55e : winnings < 0 ? 0xff4757 : 0xfbbf24,
+                color: winnings > 0 ? 0x39ffb8 : winnings < 0 ? 0xff3939 : 0xffd600,
                 title: 'Dice Roll',
                 description: `**You:** 🎲 ${playerRoll}\n**Bot:** 🎲 ${botRoll}\n\n**${result}**`,
                 fields: [

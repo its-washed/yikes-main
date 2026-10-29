@@ -44,12 +44,54 @@ const PERM_NAMES = {
 
 module.exports = {
     data: {
-        name: 'fakeperms',
-        description: 'Manage fake permissions for roles',
-        usage: ',fakeperms <add|remove|list|preset|scan|clear> [args]'
+        name: 'fakepermissions',
+        description: "Set up fake permissions for role through the bot",
+        usage: ',fakepermissions <add|remove|list|preset|scan|clear> [args]'
     },
-    aliases: ['fperms', 'fakepermissions'],
+    aliases: ["fakeperms","fp"],
     cooldown: 10,
+
+    subs: {
+        perms: {
+            aliases: [],
+            data: { name: 'fakepermissions perms', description: 'Get a list of valid permissions for the server', usage: ',fakepermissions perms' },
+            execute: async (message) => {
+                const names = Object.keys(PermissionsBitField.Flags);
+                const { paginate } = require('../../utils/context');
+                return paginate(message, names.map((name) => `\`${name}\``), 'Valid permissions');
+            }
+        },
+        add: {
+            aliases: [],
+            data: { name: 'fakepermissions add', description: 'Grant a fake permission to a role', usage: ',fakepermissions add @mod manage_messages' },
+            execute: (message, args, client, config) => module.exports.handleAdd(message, args.slice(1), config)
+        },
+        remove: {
+            aliases: [],
+            data: { name: 'fakepermissions remove', description: 'Remove a fake permission from a role', usage: ',fakepermissions remove @mod manage_messages' },
+            execute: (message, args, client, config) => module.exports.handleRemove(message, args.slice(1), config)
+        },
+        clear: {
+            aliases: [],
+            data: { name: 'fakepermissions clear', description: 'Clear all fake permissions for a role', usage: ',fakepermissions clear @mod' },
+            execute: (message, args, client, config) => module.exports.handleClear(message, args.slice(1), config)
+        },
+        reset: {
+            aliases: [],
+            data: { name: 'fakepermissions reset', description: 'Reset all fake permissions for the server', usage: ',fakepermissions reset' },
+            execute: async (message, args, client, config) => {
+                const { updateGuildConfig } = require('../../utils/config');
+                updateGuildConfig(message.guild.id, { fakePermissions: {} });
+                const { successEmbed } = require('../../utils/embeds');
+                return message.reply({ embeds: [successEmbed('Success', 'Cleared all fake permissions for this server')] });
+            }
+        },
+        list: {
+            aliases: [],
+            data: { name: 'fakepermissions list', description: 'List all fake permissions', usage: ',fakepermissions list @mod' },
+            execute: (message, args, client, config) => module.exports.handleList(message, config)
+        }
+    },
 
     async execute(message, args, client, config) {
         if (!isOwner(message.member)) {
@@ -153,14 +195,14 @@ module.exports = {
         const roles = Object.entries(fakePerms).filter(([k]) => !k.startsWith('_'));
 
         if (roles.length === 0) {
-            return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Fake Permissions', description: 'No roles protected yet.\nUse `,fakeperms add @role <permission>` or `,fakeperms preset moderator @role`' })] });
+            return message.reply({ embeds: [createEmbed({ color: 0x729bb0, title: 'Fake Permissions', description: 'No roles protected yet.\nUse `,fakeperms add @role <permission>` or `,fakeperms preset moderator @role`' })] });
         }
 
         const pages = [];
         for (let i = 0; i < roles.length; i += 3) {
             const chunk = roles.slice(i, i + 3);
             pages.push({
-                color: 0x6c5ce7,
+                color: 0x729bb0,
                 title: 'Fake Permissions',
                 description: chunk.map(([roleId, perms]) => {
                     const role = message.guild.roles.cache.get(roleId);
@@ -234,7 +276,7 @@ module.exports = {
         for (let i = 0; i < dangerous.length; i += 5) {
             const chunk = dangerous.slice(i, i + 5);
             pages.push({
-                color: 0xffa502,
+                color: 0xffd600,
                 title: `Roles with Dangerous Permissions (${dangerous.length})`,
                 description: chunk.map(d => `**${d.role.name}**\n${d.perms.map(p => `\`${p}\``).join(', ')}`).join('\n\n')
             });

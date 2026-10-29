@@ -1,133 +1,205 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
-const { getBusiness, createBusiness, upgradeBusiness, hireEmployee, collectIncome, deleteBusiness, MAX_LEVEL, MAX_INCOME } = require('../../utils/business');
-const { getUser, updateWallet } = require('../../utils/economy');
+const { PermissionFlagsBits } = require('discord.js');
+const { sendCard } = require('../../utils/helpCard');
+const { warn, approve } = require('../../utils/context');
+const { run, first, query } = require('../../utils/database');
+const { confirm, needPerm } = require('../../utils/moderation');
+const { ensureEconomy } = require('../../utils/predicates');
+const { EMOJIS, COLORS } = require('../../utils/styles');
+const { createEmbed } = require('../../utils/embeds');
 const { Paginator } = require('../../utils/pagination');
+const E = require('../../utils/econ');
 
 module.exports = {
-    data: {
-        name: 'business',
-        description: 'Manage your business',
-        usage: ',business <create|info|upgrade|hire|collect|delete|leaderboard> [args]'
+    data: { name: 'business', description: 'Manage your business', usage: ',business <subcommand>' },
+    aliases: ["b"],
+    cooldown: 5,
+    subcommands: ['buy', 'sell', 'info', 'collect', 'list', 'add', 'remove'],
+    subUsages: {
+        buy: ',business buy <name>',
+        sell: ',business sell',
+        info: ',business info [user]',
+        collect: ',business collect',
+        list: ',business list',
+        add: ',business add <user> <business id>',
+        remove: ',business remove <user>'
     },
-    aliases: ['biz'],
-    cooldown: 10,
-
-    async execute(message, args, client, config) {
-        const sub = args[0]?.toLowerCase();
-        if (!sub) return message.reply({ embeds: [errorEmbed('Subcommands', 'Valid: `create`, `info`, `upgrade`, `hire`, `collect`, `delete`, `leaderboard`')] });
-
-        if (sub === 'create') {
-            const name = args.slice(1, -1).join(' ');
-            const type = args[args.length - 1]?.toLowerCase();
-            if (!name || !type) return message.reply({ embeds: [errorEmbed('Usage', ',business create <name> <type>\nTypes: `restaurant`, `tech`, `retail`, `media`, `fitness`')] });
-
-            const bizTypes = { restaurant: 5000, tech: 10000, retail: 3000, media: 7500, fitness: 4000 };
-            const cost = bizTypes[type];
-            if (!cost) return message.reply({ embeds: [errorEmbed('Invalid Type', 'Valid: `restaurant`, `tech`, `retail`, `media`, `fitness`')] });
-
-            const user = getUser(message.author.id);
-            if (user.wallet < cost) return message.reply({ embeds: [errorEmbed('Not Enough', `You need **$${cost.toLocaleString()}** to start a ${type} business.`)] });
-
-            const existing = getBusiness(message.author.id);
-            if (existing) return message.reply({ embeds: [errorEmbed('Already Owned', 'You already have a business. Delete it first.')] });
-
-            updateWallet(message.author.id, -cost);
-            createBusiness(message.author.id, name, type);
-            return message.reply({ embeds: [successEmbed('Business Created', `**${name}** (${type}) is now yours!\nCost: $${cost.toLocaleString()}`)] });
-        }
-
-        if (sub === 'info') {
-            const target = message.mentions.users.first() || message.author;
-            const biz = getBusiness(target.id);
-            if (!biz) return message.reply({ embeds: [errorEmbed('No Business', `${target.tag} doesn't own a business.`)] });
-            const profit = biz.income - biz.upkeep;
-            return message.reply({
-                embeds: [createEmbed({
-                    color: 0x6c5ce7,
-                    title: biz.name,
-                    fields: [
-                        { name: 'Type', value: biz.type, inline: true },
-                        { name: 'Level', value: `${biz.level}`, inline: true },
-                        { name: 'Employees', value: `${biz.employees}`, inline: true },
-                        { name: 'Income', value: `$${biz.income.toLocaleString()}`, inline: true },
-                        { name: 'Upkeep', value: `$${biz.upkeep.toLocaleString()}`, inline: true },
-                        { name: 'Profit', value: `$${profit.toLocaleString()}`, inline: true },
-                        { name: 'Total Earned', value: `$${biz.totalEarned.toLocaleString()}`, inline: true }
-                    ]
-                })]
-            });
-        }
-
-        if (sub === 'upgrade') {
-            const biz = getBusiness(message.author.id);
-            if (!biz) return message.reply({ embeds: [errorEmbed('No Business', 'Create a business first.')] });
-            if (biz.level >= MAX_LEVEL) return message.reply({ embeds: [errorEmbed('Max Level', `Your business is already at the maximum level (${MAX_LEVEL}).`)] });
-            if (biz.income >= MAX_INCOME) return message.reply({ embeds: [errorEmbed('Income Maxed', `Your business income is already at the **$${MAX_INCOME.toLocaleString()}** cap, so upgrades can't improve it.`)] });
-            const cost = biz.level * 2000;
-            const user = getUser(message.author.id);
-            if (user.wallet < cost) return message.reply({ embeds: [errorEmbed('Not Enough', `Upgrade costs **$${cost.toLocaleString()}**.`)] });
-            const upgraded = upgradeBusiness(message.author.id);
-            if (!upgraded) return message.reply({ embeds: [errorEmbed('Cannot Upgrade', 'Your business cannot be upgraded right now.')] });
-            updateWallet(message.author.id, -cost);
-            return message.reply({ embeds: [successEmbed('Upgraded', `**${biz.name}** is now level **${upgraded.level}**!\nIncome \`${biz.income.toLocaleString()}\` → \`${upgraded.income.toLocaleString()}\` • Upkeep \`${biz.upkeep.toLocaleString()}\` → \`${upgraded.upkeep.toLocaleString()}\` • Profit \`${(upgraded.income - upgraded.upkeep).toLocaleString()}\``)] });
-        }
-
-        if (sub === 'hire') {
-            const biz = getBusiness(message.author.id);
-            if (!biz) return message.reply({ embeds: [errorEmbed('No Business', 'Create a business first.')] });
-            if (biz.income >= MAX_INCOME) return message.reply({ embeds: [errorEmbed('Income Maxed', `Your business income is already at the **$${MAX_INCOME.toLocaleString()}** cap — new employees would only add upkeep.`)] });
-            const cost = 500;
-            const user = getUser(message.author.id);
-            if (user.wallet < cost) return message.reply({ embeds: [errorEmbed('Not Enough', `Hiring costs **$${cost.toLocaleString()}**.`)] });
-            const hired = hireEmployee(message.author.id);
-            if (!hired) return message.reply({ embeds: [errorEmbed('Cannot Hire', 'Your business cannot take on employees right now.')] });
-            updateWallet(message.author.id, -cost);
-            return message.reply({ embeds: [successEmbed('Hired', `**${biz.name}** now has **${hired.employees}** employees!\nIncome \`${biz.income.toLocaleString()}\` → \`${hired.income.toLocaleString()}\` • Upkeep \`${biz.upkeep.toLocaleString()}\` → \`${hired.upkeep.toLocaleString()}\` • Profit \`${(hired.income - hired.upkeep).toLocaleString()}\``)] });
-        }
-
-        if (sub === 'collect') {
-            const result = collectIncome(message.author.id);
-            if (!result) return message.reply({ embeds: [errorEmbed('No Business', 'Create a business first.')] });
-            if (!result.ready) {
-                const secs = Math.ceil(result.wait / 1000);
-                const label = secs >= 60 ? `${Math.floor(secs / 60)}m ${secs % 60}s` : `${secs}s`;
-                return message.reply({ embeds: [errorEmbed('Too Soon', `Your business pays out every 10 minutes.\nNext payout in **${label}**.`)] });
+    execute: async (message) => {
+        return sendCard(message, module.exports);
+    },
+    subs: {
+        buy: {
+            data: { name: 'business buy', description: 'Buy a business', usage: ',business buy <name>' },
+            execute: async (message, args, client) => {
+                if (!await ensureEconomy(message, client)) return;
+                const userId = message.author.id;
+                const name = args.join(' ').trim();
+                if (!name) return warn(message, 'You need to provide a business name.\n> **Usage:** `,business buy <name>`');
+                if (E.getUserBusiness(userId)) return warn(message, 'You already own a business.');
+                const systemBusiness = E.getSystemBusiness(name);
+                if (!systemBusiness) return warn(message, "This business doesn't exist.");
+                const row = E.ensureAccount(userId);
+                if (row.cash < systemBusiness.cost) {
+                    return warn(message, `You don't have enough money to buy this business.\n> You need **${E.cleanHumanize(systemBusiness.cost)}** \ud83d\udcb5`);
+                }
+                run('INSERT INTO economy_business (user_id, last_collected, business_id) VALUES (?, ?, ?)', userId, Date.now() / 1000, systemBusiness.business_id);
+                run('UPDATE economy SET cash = cash - ? WHERE user_id = ?', systemBusiness.cost, userId);
+                E.logging(userId, systemBusiness.cost, 'buy', 'business');
+                E.loggingBusiness(userId, client.user ? client.user.id : userId, systemBusiness.cost, 'buy', systemBusiness.business_id);
+                return approve(message, `You have successfully bought the business **${systemBusiness.name}** for **${E.humanize(systemBusiness.cost)}** \ud83d\udcb5`);
             }
-            const { profit } = result;
-            if (profit <= 0) return message.reply({ embeds: [errorEmbed('No Profit', `Your business is breaking even or losing money.`)] });
-            updateWallet(message.author.id, profit);
-            return message.reply({ embeds: [successEmbed('Collected', `You earned **$${profit.toLocaleString()}** from **${result.biz.name}**!\nNext payout available in 10 minutes.`)] });
-        }
+        },
+        sell: {
+            data: { name: 'business sell', description: 'Sell your business', usage: ',business sell' },
+            execute: async (message, args, client) => {
+                if (!await ensureEconomy(message, client)) return;
+                const userId = message.author.id;
+                const userBusiness = E.getUserBusiness(userId);
+                if (!userBusiness) return warn(message, "You don't own any business.");
+                const systemBusiness = E.getSystemBusinessById(userBusiness.business_id);
+                if (!systemBusiness) return warn(message, "This business doesn't exist.");
+                const salePrice = Math.floor(systemBusiness.cost / 2);
+                return confirm(message,
+                    `${EMOJIS.QUESTION} ${message.author}: Are you sure you want to sell **${systemBusiness.name}** for **${E.humanize(salePrice)}** \ud83d\udcb5?`,
+                    async (i) => {
+                        const stillOwned = E.getUserBusiness(userId);
+                        if (!stillOwned) {
+                            return i.update({ embeds: [{ color: COLORS.WARNING, description: `${EMOJIS.WARNING} ${i.user}: You don't own any business.` }], components: [] });
+                        }
+                        run('DELETE FROM economy_business WHERE user_id = ?', userId);
+                        run('UPDATE economy SET cash = cash + ? WHERE user_id = ?', salePrice, userId);
+                        E.logging(userId, salePrice, 'sell', 'business');
+                        E.loggingBusiness(userId, userId, salePrice, 'sell', systemBusiness.business_id);
+                        const usedCard = first('SELECT card_id FROM economy_cards_used WHERE user_id = ? AND business = ?', userId, 'business');
+                        if (usedCard) {
+                            run('UPDATE economy_cards_user SET active = 1 WHERE user_id = ? AND card_id = ?', userId, usedCard.card_id);
+                            run('DELETE FROM economy_cards_used WHERE user_id = ? AND card_id = ?', userId, usedCard.card_id);
+                        }
+                        await i.update({ embeds: [{ color: COLORS.SUCCESS, description: `${EMOJIS.APPROVE} ${i.user}: You have successfully sold the business **${systemBusiness.name}** for **${E.humanize(salePrice)}** \ud83d\udcb5` }], components: [] });
+                    },
+                    async (i) => {
+                        await i.update({ embeds: [{ color: COLORS.ERROR, description: `${EMOJIS.DENY} ${i.user}: Sale got canceled` }], components: [] });
+                    });
+            }
+        },
+        info: {
+            data: { name: 'business info', description: 'Get information about your business', usage: ',business info [user]' },
+            aliases: ['status'],
+            execute: async (message, args, client) => {
+                if (!await ensureEconomy(message, client)) return;
+                const target = (message.mentions && message.mentions.users && message.mentions.users.first()) || message.author;
+                const userBusiness = E.getUserBusiness(target.id);
+                if (!userBusiness) {
+                    const does = target.id === message.author.id ? "don't" : "doesn't";
+                    return warn(message, `${target.id === message.author.id ? 'You' : `${target}`} ${does} own any business.`);
+                }
+                const systemBusiness = E.getSystemBusinessById(userBusiness.business_id);
+                if (!systemBusiness) return warn(message, "This business doesn't exist.");
 
-        if (sub === 'delete') {
-            const biz = getBusiness(message.author.id);
-            if (!biz) return message.reply({ embeds: [errorEmbed('No Business', 'You don\'t own a business.')] });
-            deleteBusiness(message.author.id);
-            return message.reply({ embeds: [successEmbed('Deleted', `**${biz.name}** has been shut down.`)] });
-        }
-
-        if (sub === 'leaderboard') {
-            const { loadBiz } = require('../../utils/business');
-            const data = loadBiz();
-            const entries = Object.entries(data.businesses)
-                .map(([id, b]) => ({ id, ...b }))
-                .sort((a, b) => b.totalEarned - a.totalEarned)
-                .slice(0, 20);
-
-            if (!entries.length) return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Business Leaderboard', description: 'No businesses yet.' })] });
-
-            const pages = [];
-            for (let i = 0; i < entries.length; i += 10) {
-                const chunk = entries.slice(i, i + 10);
-                pages.push({
-                    color: 0x6c5ce7,
-                    title: 'Business Leaderboard',
-                    description: chunk.map((e, j) => `**${i + j + 1}.** <@${e.id}> — **${e.name}** ($${e.totalEarned.toLocaleString()})`).join('\n')
+                const embed = createEmbed({
+                    color: COLORS.NEUTRAL,
+                    title: `${systemBusiness.name} ${systemBusiness.emoji || ''}`,
+                    author: { name: target.username }
                 });
-            }
-            return new Paginator(pages, { userId: message.author.id }).start(message.channel);
-        }
+                if (systemBusiness.description) embed.setDescription(systemBusiness.description);
 
-        return message.reply({ embeds: [errorEmbed('Invalid', 'Valid subcommands listed above.')] });
+                const pending = E.businessEarning(target.id, userBusiness.last_collected, systemBusiness.earnings);
+                if (pending <= 0) {
+                    embed.addFields({ name: 'Next collection time', value: `<t:${Math.floor(userBusiness.last_collected + 3600)}:R>`, inline: false });
+                }
+
+                const used = E.getUsedCard(target.id, 'business');
+                if (used) {
+                    embed.addFields(
+                        { name: 'Manager', value: `\`\`\`${used.name} | ${'\u2b50'.repeat(used.stars)}\`\`\``, inline: true },
+                        { name: 'Storage', value: `\`\`\`${used.storage}h\`\`\``, inline: true },
+                        { name: 'Multiplier', value: `\`\`\`${used.multiplier}x\`\`\``, inline: true }
+                    );
+                }
+                embed.addFields({ name: 'State Value', value: `\`\`\`${E.cleanHumanize(systemBusiness.cost)} \ud83d\udcb5\`\`\`` });
+                embed.addFields({
+                    name: 'Hour Revenue',
+                    value: `\`\`\`${E.cleanHumanize(used ? systemBusiness.earnings * used.multiplier : systemBusiness.earnings)} \ud83d\udcb5\`\`\``,
+                    inline: true
+                });
+                embed.addFields({ name: 'Balance', value: `\`\`\`${E.cleanHumanize(pending)} \ud83d\udcb5\`\`\``, inline: true });
+                return message.reply({ embeds: [embed] });
+            }
+        },
+        collect: {
+            data: { name: 'business collect', description: 'Collect the balance from your business', usage: ',business collect' },
+            execute: async (message, args, client) => {
+                if (!await ensureEconomy(message, client)) return;
+                const userId = message.author.id;
+                const userBusiness = E.getUserBusiness(userId);
+                if (!userBusiness) return warn(message, "You don't own any business.");
+                const systemBusiness = E.getSystemBusinessById(userBusiness.business_id);
+                if (!systemBusiness) return warn(message, "This business doesn't exist.");
+                const pending = E.businessEarning(userId, userBusiness.last_collected, systemBusiness.earnings);
+                if (pending <= 0) {
+                    return warn(message, `You can **only** collect your business earnings **once** every hour\n> Next collection time: <t:${Math.floor(userBusiness.last_collected + 3600)}:R>`);
+                }
+                run('UPDATE economy SET cash = cash + ? WHERE user_id = ?', pending, userId);
+                run('UPDATE economy_business SET last_collected = ? WHERE user_id = ?', Date.now() / 1000, userId);
+                E.addCollectMoney(userId, 'business', pending);
+                E.logging(userId, pending, 'collect', 'business');
+                E.loggingBusiness(userId, client.user ? client.user.id : userId, pending, 'collect', systemBusiness.business_id);
+                return approve(message, `You have successfully collected **${E.humanizeClean(pending)}** \ud83d\udcb5 from your business **${systemBusiness.name}**.`);
+            }
+        },
+        list: {
+            data: { name: 'business list', description: 'List all businesses', usage: ',business list' },
+            execute: async (message, args, client) => {
+                if (!await ensureEconomy(message, client)) return;
+                const businesses = E.getAllBusinesses();
+                if (!businesses.length) return warn(message, 'No businesses found.');
+                const pages = businesses.map((business, index) => ({
+                    color: COLORS.NEUTRAL,
+                    title: `${business.name} ${business.emoji || ''}`,
+                    description: business.description || '',
+                    fields: [
+                        { name: 'Cost', value: `${E.humanizeClean(business.cost)} \ud83d\udcb5`, inline: true },
+                        { name: 'Earnings per Hour', value: `${E.humanizeClean(business.earnings)} \ud83d\udcb5`, inline: true }
+                    ],
+                    image: business.image || undefined,
+                    footer: { text: `Page: ${index + 1}/${businesses.length} (${businesses.length} entries)` }
+                }));
+                const paginator = new Paginator(pages, { userId: message.author.id });
+                const components = pages.length > 1 ? [paginator.buildRow()] : [];
+                const sent = await message.reply({ embeds: paginator.buildEmbeds(), components });
+                if (pages.length > 1) await paginator.start(message.channel, sent);
+                return sent;
+            }
+        },
+        add: {
+            data: { name: 'business add', description: 'Add a business to a user', usage: ',business add <user> <business id>' },
+            execute: async (message, args, client) => {
+                if (!await needPerm(message, PermissionFlagsBits.ManageGuild)) return;
+                const target = message.mentions && message.mentions.users ? message.mentions.users.first() : null;
+                const businessId = parseInt(args[1], 10);
+                if (!target || !Number.isFinite(businessId)) {
+                    return warn(message, 'Invalid arguments.\n> **Usage:** `,business add <user> <business id>`');
+                }
+                const business = E.getSystemBusinessById(businessId);
+                if (!business) return warn(message, "This business doesn't exist.");
+                if (E.getUserBusiness(target.id)) return warn(message, `${target} already owns a business.`);
+                run('INSERT INTO economy_business (user_id, last_collected, business_id) VALUES (?, ?, ?)', target.id, Date.now() / 1000, businessId);
+                E.loggingBusiness(target.id, message.author.id, 0, 'add', businessId);
+                return approve(message, `Successfully added the business **${business.name}** to ${target}.`);
+            }
+        },
+        remove: {
+            data: { name: 'business remove', description: 'Remove a business from a user', usage: ',business remove <user>' },
+            execute: async (message, args, client) => {
+                if (!await needPerm(message, PermissionFlagsBits.ManageGuild)) return;
+                const target = message.mentions && message.mentions.users ? message.mentions.users.first() : null;
+                if (!target) return warn(message, 'You need to mention a user.\n> **Usage:** `,business remove <user>`');
+                const userBusiness = E.getUserBusiness(target.id);
+                if (!userBusiness) return warn(message, `${target} doesn't own any business.`);
+                const business = E.getSystemBusinessById(userBusiness.business_id);
+                run('DELETE FROM economy_business WHERE user_id = ?', target.id);
+                E.loggingBusiness(target.id, message.author.id, 0, 'remove', userBusiness.business_id);
+                return approve(message, `Successfully removed the business from ${target}${business ? ` (**${business.name}**)` : ''}.`);
+            }
+        }
     }
 };

@@ -1,13 +1,36 @@
-const { createEmbed, errorEmbed } = require('../../utils/embeds');
+const { warn, paginate } = require('../../utils/context');
+const { COLORS } = require('../../utils/styles');
+
+function findRole(message, value) {
+    const raw = String(value || '').trim();
+    if (!raw) return null;
+    const mentioned = message.mentions.roles.first();
+    if (mentioned) return mentioned;
+    const id = raw.replace(/[<@&>]/g, '');
+    if (/^\d{17,20}$/.test(id)) {
+        const byId = message.guild.roles.cache.get(id);
+        if (byId) return byId;
+    }
+    return message.guild.roles.cache.find(role => role.name.toLowerCase() === raw.toLowerCase())
+        || message.guild.roles.cache.find(role => role.name.toLowerCase().startsWith(raw.toLowerCase()))
+        || null;
+}
 
 module.exports = {
-    data: { name: 'inrole', description: 'Show members with a role', usage: ',inrole [@role]' },
+    data: { name: 'inrole', description: "View members in a role", usage: ',inrole admin', params: ['role'] },
     aliases: [''],
     cooldown: 10,
+
     async execute(message, args) {
-        const role = message.mentions.roles.first();
-        if (!role) return message.reply({ embeds: [errorEmbed('Missing Role', 'Usage: ,inrole [@role]')] });
-        const members = role.members;
-        return message.reply({ embeds: [createEmbed({ color: role.color || 0x6c5ce7, title: `${role.name} (${members.size})`, description: members.map(m => m.user.tag).join('\n').slice(0, 2000) || 'No members' })] });
+        const role = findRole(message, args.join(' '));
+        if (!role) return warn(message, 'Role not found');
+        if (role.members.size > 500) return warn(message, "can't view roles with more than **500** members");
+        if (!role.members.size) return warn(message, 'No members found with this role');
+
+        const lines = role.members.map(member => `${member} (\`${member.id}\`)`);
+        return paginate(message, lines, `Members with ${role.name}`, {
+            name: message.guild.name,
+            icon_url: message.guild.iconURL() || undefined
+        }, { color: COLORS.NEUTRAL });
     }
 };

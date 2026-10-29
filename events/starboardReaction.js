@@ -50,7 +50,7 @@ module.exports = {
         } else {
             const attachment = message.attachments.first();
             const embed = new EmbedBuilder()
-                .setColor(0xffd700)
+                .setColor(0xffd600)
                 .setAuthor({ name: message.author.tag, iconURL: message.author.displayAvatarURL({ dynamic: true }) })
                 .setDescription(message.content || '*No text*')
                 .setFooter({ text: `${emoji} ${starCount} | ${message.id}` })

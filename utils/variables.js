@@ -135,9 +135,9 @@ function parseSubParams(str) {
 }
 
 function parseColor(str) {
-    if (!str) return 0x6c5ce7;
+    if (!str) return 0x729bb0;
     str = str.replace('#', '');
-    return parseInt(str, 16) || 0x6c5ce7;
+    return parseInt(str, 16) || 0x729bb0;
 }
 
 module.exports = { resolve, parseEmbed, parseColor };

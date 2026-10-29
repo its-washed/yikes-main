@@ -1,27 +1,28 @@
-const { createEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
-const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
+const { PermissionFlagsBits } = require('discord.js');
+const { needPerm, needBotPerm, noStaff } = require('../../utils/moderation');
+const { approve, warn } = require('../../utils/context');
 
 module.exports = {
-    data: {
-        name: 'voicekick',
-        description: 'Disconnect a user from voice',
-        usage: ',voicekick [@user]'
-    },
-    aliases: ['vkick'],
-    cooldown: 5,
+    permission: "move members",
+    data: { name: 'voicekick', description: 'Kick a member from a voice channel', usage: ',voicekick [member]' },
+    aliases: [],
+    cooldown: 3,
 
-    async execute(message, args) {
-        if (!hasPermission(message.member, 'MoveMembers')) {
-            return message.reply({ embeds: [permissionDenied(message, 'move_members')] });
+    async execute(message, args, client) {
+        if (!await needPerm(message, PermissionFlagsBits.MoveMembers)) return;
+        if (!await needBotPerm(message, PermissionFlagsBits.MoveMembers)) return;
+
+        let member = message.member;
+        if (args[0]) {
+            member = await noStaff(message, args[0], 'voicekick');
+            if (!member) return;
         }
 
-        const target = message.mentions.members.first();
-        if (!target) return message.reply({ embeds: [errorEmbed('Missing User', 'Usage: ,voicekick [@user]')] });
+        if (!member.voice || !member.voice.channel) {
+            return warn(message, 'This member is **not** in a voice channel');
+        }
 
-        if (!target.voice.channel) return message.reply({ embeds: [errorEmbed('Not in Voice', 'That user is not in a voice channel.')] });
-
-        await target.voice.disconnect();
-
-        return message.reply({ embeds: [successEmbed('Voice Kick', `Kicked **${target.user.tag}** from voice.`)] });
+        await member.voice.disconnect(`Member kicked from voice channel by ${message.author}`).catch(() => {});
+        return approve(message, `Kicked ${member} from the voice channel`);
     }
 };

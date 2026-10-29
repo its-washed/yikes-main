@@ -15,7 +15,7 @@ const jobs = [
 ];
 
 module.exports = {
-    data: { name: 'work', description: 'Work to earn money', usage: ',work' },
+    data: { name: 'work', description: "Work a job and earn money", usage: ',work' },
     aliases: [],
     cooldown: 5,
     async execute(message) {
@@ -40,7 +40,7 @@ module.exports = {
 
         return message.reply({
             embeds: [createEmbed({
-                color: 0x22c55e,
+                color: 0x39ffb8,
                 title: 'Work',
                 description: `You worked as a **${job.name}** and earned **$${earned.toLocaleString()}**!`
             })]

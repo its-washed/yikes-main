@@ -3,46 +3,100 @@
     "1557425778293997690": {
       "name": "Axiom",
       "type": "tech",
-      "level": 3,
-      "employees": 7,
-      "income": 1000,
-      "upkeep": 250,
-      "totalEarned": 8300,
+      "level": 8,
+      "employees": 10,
+      "income": 10000,
+      "upkeep": 1090,
+      "totalEarned": 115970,
       "createdAt": 1793000379081,
-      "lastCollect": 1793011187083
+      "lastCollect": 1793121684924
     },
     "1556950063094308897": {
       "name": "papazieria",
       "type": "tech",
       "level": 2,
-      "employees": 6,
-      "income": 1000,
-      "upkeep": 250,
-      "totalEarned": 1500,
+      "employees": 8,
+      "income": 1210,
+      "upkeep": 350,
+      "totalEarned": 3750,
       "createdAt": 1793000864250,
-      "lastCollect": 1793005857717
+      "lastCollect": 1793092314572
     },
     "1529178342278828257": {
       "name": "P",
       "type": "tech",
-      "level": 2,
-      "employees": 3,
-      "income": 1000,
-      "upkeep": 250,
-      "totalEarned": 1550,
+      "level": 3,
+      "employees": 23,
+      "income": 10000,
+      "upkeep": 1325,
+      "totalEarned": 56189,
       "createdAt": 1793001949057,
-      "lastCollect": 1793007111111
+      "lastCollect": 1793121692038
     },
     "880481267399950376": {
       "name": "Scarlet",
       "type": "tech",
-      "level": 1,
+      "level": 7,
       "employees": 15,
-      "income": 1000,
-      "upkeep": 250,
-      "totalEarned": 1500,
+      "income": 10000,
+      "upkeep": 1202,
+      "totalEarned": 81432,
       "createdAt": 1793007442850,
-      "lastCollect": 1793009811372
+      "lastCollect": 1793120696617
+    },
+    "716959849509945355": {
+      "name": "goldytfr Clan",
+      "type": "tech",
+      "level": 3,
+      "employees": 3,
+      "income": 2994,
+      "upkeep": 552,
+      "totalEarned": 9309,
+      "createdAt": 1793029373288,
+      "lastCollect": 1793123991348
+    },
+    "743168413958012939": {
+      "name": "Axiom",
+      "type": "tech",
+      "level": 1,
+      "employees": 2,
+      "income": 1210,
+      "upkeep": 300,
+      "totalEarned": 850,
+      "createdAt": 1793029461363,
+      "lastCollect": 1793029527269
+    },
+    "1328175490577469502": {
+      "name": "niger",
+      "type": "tech",
+      "level": 5,
+      "employees": 4,
+      "income": 7409,
+      "upkeep": 956,
+      "totalEarned": 2620,
+      "createdAt": 1793039061039,
+      "lastCollect": 1793118945414
+    },
+    "1497395481591156808": {
+      "name": "niggers",
+      "type": "tech",
+      "level": 1,
+      "employees": 0,
+      "income": 1000,
+      "upkeep": 200,
+      "totalEarned": 0,
+      "createdAt": 1793054142117
+    },
+    "1356641639212384357": {
+      "name": "Pizzeria",
+      "type": "tech",
+      "level": 7,
+      "employees": 0,
+      "income": 10000,
+      "upkeep": 963,
+      "totalEarned": 54222,
+      "createdAt": 1793111483935,
+      "lastCollect": 1793123518414
     }
   }
 }

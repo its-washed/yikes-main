@@ -12,7 +12,7 @@ module.exports = {
     async execute(message) {
         return message.reply({
             embeds: [createEmbed({
-                color: 0x6c5ce7,
+                color: 0x729bb0,
                 title: 'Support Server',
                 description: '[Join our support server](https://discord.gg/yikes)'
             })]

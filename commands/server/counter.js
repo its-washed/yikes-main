@@ -1,141 +1,188 @@
-const { ChannelType } = require('discord.js');
-const { updateGuildConfig } = require('../../utils/config');
-const { errorEmbed, successEmbed, createEmbed, permissionDenied } = require('../../utils/embeds');
-const { isAdmin } = require('../../utils/permissions');
-const { Paginator } = require('../../utils/pagination');
+const { PermissionFlagsBits, GuildChannelType } = require('discord.js');
+const { first, run, query } = require('../../utils/database');
+const { warn, approve, paginate } = require('../../utils/context');
+const { needPerm, needBotPerm } = require('../../utils/moderation');
+const { sendCard } = require('../../utils/helpCard');
 
-const COUNTER_TYPES = {
-    members: { label: 'Members', fn: (guild) => guild.memberCount },
-    humans: { label: 'Humans', fn: (guild) => guild.members.cache.filter(m => !m.user.bot).size },
-    bots: { label: 'Bots', fn: (guild) => guild.members.cache.filter(m => m.user.bot).size },
-    boosters: { label: 'Boosters', fn: (guild) => guild.members.cache.filter(m => m.premiumSince).size },
-    boosts: { label: 'Boosts', fn: (guild) => guild.premiumSubscriptionCount || 0 },
-    voice: { label: 'Voice', fn: (guild) => guild.channels.cache.filter(c => c.type === ChannelType.GuildVoice).reduce((acc, ch) => acc + ch.members.size, 0) },
-    roles: { label: 'Roles', fn: (guild) => guild.roles.cache.size },
-    channels: { label: 'Channels', fn: (guild) => guild.channels.cache.size }
-};
+const CHANNEL_TYPES = ['voice', 'stage', 'text', 'category'];
 
-const CHANNEL_TYPES = {
-    voice: ChannelType.GuildVoice,
-    text: ChannelType.GuildText,
-    category: ChannelType.GuildCategory
-};
+async function createCounterChannel(message, chanMessage, replaceWith, channeltype) {
+    const guild = message.guild;
+    const name = chanMessage.replace('{target}', replaceWith);
+    const reason = 'creating member counter';
+    if (channeltype === 'stage') {
+        return guild.channels.create({ name, type: GuildChannelType.Stage, reason, permissionOverwrites: [{ id: guild.roles.everyone.id, deny: [PermissionFlagsBits.Connect] }] });
+    }
+    if (channeltype === 'voice') {
+        return guild.channels.create({ name, type: GuildChannelType.Voice, reason, permissionOverwrites: [{ id: guild.roles.everyone.id, deny: [PermissionFlagsBits.Connect] }] });
+    }
+    if (channeltype === 'category') {
+        return guild.channels.create({ name, type: GuildChannelType.Category, reason });
+    }
+    return guild.channels.create({ name, type: GuildChannelType.GuildText, reason, permissionOverwrites: [{ id: guild.roles.everyone.id, deny: [PermissionFlagsBits.SendMessages] }] });
+}
+
+async function addCounter(message, args, client, moduleName, valueFn) {
+    if (!await needPerm(message, PermissionFlagsBits.ManageGuild)) return;
+    if (!await needBotPerm(message, PermissionFlagsBits.ManageChannels)) return;
+    const channeltype = args[0];
+    if (!CHANNEL_TYPES.includes(channeltype)) return warn(message, 'Usage: `counter add ' + moduleName + ' <voice|stage|text|category> [message]`');
+    const roleToken = moduleName === 'role' ? args[1] : null;
+    const chanMessage = (moduleName === 'role' ? args.slice(2) : args.slice(1)).join(' ').trim() || '{target}';
+    const check = roleToken
+        ? first('SELECT * FROM counters WHERE guild_id = ? AND module = ? AND role_id = ?', message.guild.id, moduleName, String(roleToken).replace(/[<@&>]/g, ''))
+        : first('SELECT * FROM counters WHERE guild_id = ? AND module = ?', message.guild.id, moduleName);
+    if (check) {
+        return warn(message, `<#${check.channel_id}> is already a **${moduleName === 'role' ? 'role' : moduleName}** counter`);
+    }
+    try {
+        const channel = await createCounterChannel(message, chanMessage, String(valueFn()), channeltype);
+        if (roleToken) {
+            const roleId = String(roleToken).replace(/[<@&>]/g, '');
+            run('INSERT INTO counters (guild_id, channeltype, channel_id, message, module, role_id) VALUES (?, ?, ?, ?, ?, ?)',
+                message.guild.id, channeltype, channel.id, chanMessage, moduleName, roleId);
+            return approve(message, `Created **role** counter for <@&${roleId}> -> ${channel.toString()}`);
+        }
+        run('INSERT INTO counters (guild_id, channeltype, channel_id, message, module) VALUES (?, ?, ?, ?, ?)',
+            message.guild.id, channeltype, channel.id, chanMessage, moduleName);
+        return approve(message, `Created **${moduleName}** counter -> ${channel.toString()}`);
+    } catch (err) {
+        return warn(message, `Failed to create the counter channel\n \`\`\`${err.message}\`\`\``);
+    }
+}
 
 module.exports = {
-    data: {
-        name: 'counter',
-        description: 'Manage stat counters',
-        usage: ',counter <add|remove|list> [args]'
+    data: { name: 'counter', description: 'Create counters for everybody to see', usage: ',counter <types|add|remove|list>' },
+    aliases: [],
+    cooldown: 5,
+    subcommands: ['types', 'add', 'remove', 'list'],
+    subUsages: {
+        types: ',counter types',
+        add: ',counter add <members|humans|bots|voice|boosters|boosts|role> <channeltype> [message]',
+        remove: ',counter remove <type> [role]',
+        list: ',counter list'
     },
-    cooldown: 10,
-
-    async execute(message, args, client, config) {
-        if (!isAdmin(message.member)) {
-            return message.reply({ embeds: [permissionDenied(message, 'administrator')] });
-        }
-
-        const sub = args[0]?.toLowerCase();
-        if (!sub) return message.reply({ embeds: [errorEmbed('Subcommands', 'Valid: `add`, `remove`, `list`, `types`')] });
-
-        if (sub === 'types') {
-            const list = Object.entries(COUNTER_TYPES).map(([k, v]) => `\`${k}\` — ${v.label}`).join('\n');
-            return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Counter Types', description: list })] });
-        }
-
-        if (sub === 'add') return this.handleAdd(message, args.slice(1), config);
-        if (sub === 'remove') return this.handleRemove(message, args.slice(1), config);
-        if (sub === 'list') return this.handleList(message, config);
-
-        return message.reply({ embeds: [errorEmbed('Invalid', 'Valid: `add`, `remove`, `list`, `types`')] });
+    execute: async (message, args, client) => {
+        return sendCard(message, module.exports);
     },
-
-    async handleAdd(message, args, config) {
-        const type = args[0]?.toLowerCase();
-        const channelType = args[1]?.toLowerCase();
-        const name = args.slice(2).join(' ');
-
-        if (!type || !channelType || !name) {
-            return message.reply({ embeds: [errorEmbed('Usage', ',counter add <type> <channeltype> <name>\nExample: ,counter add humans category {target} humans')] });
-        }
-
-        if (!COUNTER_TYPES[type]) return message.reply({ embeds: [errorEmbed('Invalid Type', 'Use `,counter types` to see options.')] });
-        if (CHANNEL_TYPES[channelType] === undefined) return message.reply({ embeds: [errorEmbed('Invalid Channel Type', 'Valid: `voice`, `text`, `category`')] });
-
-        try {
-            const channel = await message.guild.channels.create({
-                name: name.replace('{target}', '0'),
-                type: CHANNEL_TYPES[channelType],
-                parent: channelType === 'category' ? null : undefined,
-                topic: channelType === 'text' ? `Counter: ${type}` : undefined,
-                bitrate: channelType === 'voice' ? 64000 : undefined,
-                permissionOverwrites: channelType !== 'category' ? [
-                    { id: message.guild.id, deny: ['SendMessages', 'Connect'] }
-                ] : undefined
-            });
-
-            const counters = config.counters || [];
-            counters.push({
-                type,
-                channelId: channel.id,
-                channelType,
-                name,
-                createdBy: message.author.id
-            });
-
-            updateGuildConfig(message.guild.id, { counters });
-            this.updateCounter(message.guild, counters.find(c => c.channelId === channel.id));
-            return message.reply({ embeds: [successEmbed('Counter Created', `**${COUNTER_TYPES[type].label}** counter created in ${channel}`)] });
-        } catch (e) {
-            return message.reply({ embeds: [errorEmbed('Failed', e.message)] });
-        }
-    },
-
-    async handleRemove(message, args, config) {
-        const type = args[0]?.toLowerCase();
-        if (!type) return message.reply({ embeds: [errorEmbed('Usage', ',counter remove <type>')] });
-
-        const counters = config.counters || [];
-        const idx = counters.findIndex(c => c.type === type);
-        if (idx === -1) return message.reply({ embeds: [errorEmbed('Not Found', `No counter of type \`${type}\`.`)] });
-
-        const counter = counters[idx];
-        try {
-            const ch = message.guild.channels.cache.get(counter.channelId);
-            if (ch) await ch.delete();
-        } catch {}
-
-        counters.splice(idx, 1);
-        updateGuildConfig(message.guild.id, { counters });
-        return message.reply({ embeds: [successEmbed('Removed', `Counter \`${type}\` deleted.`)] });
-    },
-
-    async handleList(message, config) {
-        const counters = config.counters || [];
-        if (!counters.length) {
-            return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Counters', description: 'No counters configured.\nUse `,counter add <type> <channeltype> <name>` to create one.' })] });
-        }
-
-        const list = counters.map(c => {
-            const info = COUNTER_TYPES[c.type];
-            return `**${info?.label || c.type}** → <#${c.channelId}> (${c.channelType})`;
-        }).join('\n');
-
-        return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: `Counters (${counters.length})`, description: list })] });
-    },
-
-    async updateCounter(guild, counter) {
-        if (!counter) return;
-        const info = COUNTER_TYPES[counter.type];
-        if (!info) return;
-        const count = info.fn(guild);
-        const channel = guild.channels.cache.get(counter.channelId);
-        if (!channel) return;
-
-        const newName = counter.name.replace('{target}', count.toString());
-        if (channel.name !== newName) {
-            channel.setName(newName).catch(() => {});
+    subs: {
+        types: {
+            aliases: [],
+            data: { name: 'counter types', description: 'Returns the counter types and channel types', usage: ',counter types' },
+            execute: async (message) => {
+                return message.reply({
+                    embeds: [
+                        {
+                            color: 0x729BB0,
+                            title: 'counter types',
+                            description: '>>> members - all members from the server (including bots)\nhumans - all members from the server (excluding bots)\nbots - all bots from the server\nboosters - all server boosters\nvoice - all members in a voice channel\nrole - all members in a certain role\nboosts - all boosts from the server'
+                        },
+                        {
+                            color: 0x729BB0,
+                            title: 'channel types',
+                            description: '>>> voice - creates voice channel\nstage - creates stage channel\ntext - creates text channel\ncategory - creates category channel'
+                        }
+                    ]
+                });
+            }
+        },
+        add: {
+            aliases: [],
+            data: { name: 'counter add', description: 'Create channel counter', usage: ',counter add <type> <channeltype> [message]' },
+            subcommands: ['members', 'humans', 'bots', 'voice', 'boosters', 'boosts', 'role'],
+            subUsages: {
+                members: ',counter add members <channeltype> [message]',
+                humans: ',counter add humans <channeltype> [message]',
+                bots: ',counter add bots <channeltype> [message]',
+                voice: ',counter add voice <channeltype> [message]',
+                boosters: ',counter add boosters <channeltype> [message]',
+                boosts: ',counter add boosts <channeltype> [message]',
+                role: ',counter add role <channeltype> @role [message]'
+            },
+            execute: async (message, args, client) => {
+                return sendCard(message, module.exports.subs.add);
+            },
+            subs: {
+                members: {
+                    aliases: [],
+                    data: { name: 'counter add members', description: 'Add a counter for the member count', usage: ',counter add members <channeltype> [message]' },
+                    execute: async (message, args, client) => addCounter(message, args, client, 'members', () => message.guild.memberCount)
+                },
+                humans: {
+                    aliases: [],
+                    data: { name: 'counter add humans', description: 'Add a counter for non bots members', usage: ',counter add humans <channeltype> [message]' },
+                    execute: async (message, args, client) => addCounter(message, args, client, 'humans', () => message.guild.members.cache.filter(m => !m.bot).size)
+                },
+                bots: {
+                    aliases: [],
+                    data: { name: 'counter add bots', description: 'Add a counter for bots', usage: ',counter add bots <channeltype> [message]' },
+                    execute: async (message, args, client) => addCounter(message, args, client, 'bots', () => message.guild.members.cache.filter(m => m.bot).size)
+                },
+                voice: {
+                    aliases: [],
+                    data: { name: 'counter add voice', description: 'Add a counter for members that are connected to a voice channel', usage: ',counter add voice <channeltype> [message]' },
+                    execute: async (message, args, client) => addCounter(message, args, client, 'voice', () => message.guild.channels.cache.filter(c => c.type === GuildChannelType.GuildVoice).reduce((sum, c) => sum + c.members.size, 0))
+                },
+                boosters: {
+                    aliases: [],
+                    data: { name: 'counter add boosters', description: 'Add a counter for boosters', usage: ',counter add boosters <channeltype> [message]' },
+                    execute: async (message, args, client) => addCounter(message, args, client, 'boosters', () => message.guild.members.cache.filter(m => m.premiumSince).size)
+                },
+                boosts: {
+                    aliases: [],
+                    data: { name: 'counter add boosts', description: 'Add a counter for boosts', usage: ',counter add boosts <channeltype> [message]' },
+                    execute: async (message, args, client) => addCounter(message, args, client, 'boosts', () => message.guild.premiumSubscriptionCount || 0)
+                },
+                role: {
+                    aliases: [],
+                    data: { name: 'counter add role', description: 'Add a counter for a specific role', usage: ',counter add role <channeltype> @role [message]' },
+                    execute: async (message, args, client) => {
+                        const role = message.mentions.roles.first() || message.guild.roles.cache.get(String(args[1] || '').replace(/[<@&>]/g, ''));
+                        if (!role) return warn(message, 'Usage: `counter add role <channeltype> @role [message]`');
+                        return addCounter(message, [args[0], role.toString(), ...args.slice(2)], client, 'role', () => role.members.size);
+                    }
+                }
+            }
+        },
+        remove: {
+            aliases: [],
+            data: { name: 'counter remove', description: 'Remove a counter from the server', usage: ',counter remove <type> [role]' },
+            execute: async (message, args) => {
+                if (!await needPerm(message, PermissionFlagsBits.ManageGuild)) return;
+                const countertype = args[0];
+                const valid = ['members', 'humans', 'bots', 'voice', 'boosters', 'boosts', 'role'];
+                if (!valid.includes(countertype)) return warn(message, 'Usage: `counter remove <members|humans|bots|voice|boosters|boosts|role> [role]`');
+                if (countertype === 'role') {
+                    const role = message.mentions.roles.first() || message.guild.roles.cache.get(String(args[1] || '').replace(/[<@&>]/g, ''));
+                    if (!role) return warn(message, 'Usage: `counter remove role @role`');
+                    const check = first('SELECT * FROM counters WHERE guild_id = ? AND module = ? AND role_id = ?', message.guild.id, 'role', role.id);
+                    if (!check) return warn(message, `There is no **role** counter for ${role.toString()} in this server`);
+                    const channel = message.guild.channels.cache.get(String(check.channel_id));
+                    if (channel) await channel.delete().catch(() => {});
+                    run('DELETE FROM counters WHERE guild_id = ? AND module = ? AND role_id = ?', message.guild.id, 'role', role.id);
+                    return approve(message, `Removed **role** counter for ${role.toString()}`);
+                }
+                const check = first('SELECT * FROM counters WHERE guild_id = ? AND module = ?', message.guild.id, countertype);
+                if (!check) return warn(message, `There is no **${countertype}** counter in this server`);
+                const channel = message.guild.channels.cache.get(String(check.channel_id));
+                if (channel) await channel.delete().catch(() => {});
+                run('DELETE FROM counters WHERE guild_id = ? AND module = ?', message.guild.id, countertype);
+                return approve(message, `Removed **${countertype}** counter`);
+            }
+        },
+        list: {
+            aliases: [],
+            data: { name: 'counter list', description: 'Returns a list of the active server counters', usage: ',counter list' },
+            execute: async (message) => {
+                const results = query('SELECT * FROM counters WHERE guild_id = ?', message.guild.id);
+                if (!results.length) return warn(message, 'There are no counters');
+                const lines = results.map(r => {
+                    const channel = message.guild.channels.cache.get(String(r.channel_id));
+                    return `${r.module} -> ${channel ? channel.toString() : r.channel_id}`;
+                });
+                return paginate(message, lines, 'Counters',
+                    { name: message.guild.name, icon_url: message.guild.iconURL({ size: 256 }) || undefined });
+            }
         }
     }
 };
-
-module.exports.COUNTER_TYPES = COUNTER_TYPES;

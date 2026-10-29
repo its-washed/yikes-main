@@ -1,6 +1,7 @@
 const { EmbedBuilder } = require('discord.js');
 const { Paginator } = require('./pagination');
 const { PRESERVE } = require('./embeds');
+const { COLORS, EMOJIS } = require('./styles');
 
 const ALIASES = {
     manageserver: 'manage_guild',
@@ -148,57 +149,59 @@ function tokensOf(usage) {
     return tokens;
 }
 
-function sampleFor(token) {
-    const t = String(token).toLowerCase().trim();
-    if (t.includes('|')) return t.split('|')[0].trim();
-    if (t.includes('channeltype') || t.includes('channel type')) return 'text';
-    if (t.includes('emoji')) return 'star';
-    if (t.includes('category')) return '#category';
-    if (t.includes('role')) return '@role';
-    if (t.includes('channel')) return '#channel';
-    if (/(^|[^a-z])(user|member|target|owner|victim)([^a-z]|$)/.test(t)) return '@user';
-    if (/(^|[^a-z])ids?([^a-z]|$)/.test(t)) return '123456789012345678';
-    if (/(amount|count|quantity|number|level|limit|threshold|multiplier|percent|pages?|position|index)/.test(t)) return '10';
-    if (/(seconds|minutes|hours|days|weeks|months)/.test(t)) return '10';
-    if (/(time|duration)/.test(t)) return '10m';
-    if (/(reason|text|message|name|title|content|word|description|url|link|code|query)/.test(t)) return 'text';
-    if (/(prefix)/.test(t)) return ',';
-    if (/(flags?|args?)/.test(t)) return '--flag value';
-    if (/(type|kind|mode|option)/.test(t)) return null;
-    return null;
+function titleCase(text) {
+    return String(text).split(/\s+/).map(word => (word ? word[0].toUpperCase() + word.slice(1) : word)).join(' ');
 }
 
-function exampleFor(usage) {
-    if (!usage) return null;
-    const out = [];
-    for (const part of usage.split(/\s+/)) {
-        const m = part.match(/^[<[]([^>\]]+)[>\]]$/);
-        if (m) {
-            const sample = sampleFor(m[1]);
-            if (sample === null) return null;
-            out.push(sample);
-        } else {
-            out.push(part);
+function paramList(cmd, usage, sub) {
+    const declared = cmd && cmd.data ? cmd.data.params : null;
+    const list = [];
+    if (Array.isArray(declared)) {
+        for (const entry of declared) {
+            const text = String(entry).trim();
+            if (!text) continue;
+            const optional = text.startsWith('[');
+            const name = text.replace(/^[<[]|[>\]]$/g, '');
+            if (name) list.push({ name, required: !optional });
         }
+        return list;
     }
-    const example = out.join(' ').trim();
-    return example === usage.trim() ? null : example;
+    const re = /[<[]([^>\]]+)[>\]]/g;
+    let m;
+    while ((m = re.exec(usage || ''))) {
+        if (m[1].includes('|') && sub !== null) continue;
+        list.push({ name: m[1], required: m[0][0] === '<' });
+    }
+    return list;
 }
 
-function cardPage(cmd, sub) {
+function cardPage(cmd, sub, botUser) {
     const usage = (sub && cmd.subUsages && cmd.subUsages[sub]) || cmd.data.usage || `,${cmd.data.name}`;
-    const parameters = tokensOf(usage).filter(t => !t.includes('|') || sub === null);
+    const params = paramList(cmd, usage, sub);
+    const flags = cmd.data.flags && Object.keys(cmd.data.flags).length ? cmd.data.flags : null;
     const aliasText = cmd.aliases && cmd.aliases.length ? cmd.aliases.join(', ') : 'N/A';
-    const parameterText = parameters.length ? parameters.join(', ') : 'N/A';
+    const names = params.map(p => p.name);
+    if (flags) names.push('flags');
+    const parameterText = names.length ? names.join(', ') : 'N/A';
     const permission = cmd.permissionKey;
-    const information = permission
-        ? `⚠️ ${displayName(permission)}`
-        : DISPLAY.everyone;
+    const brief = typeof cmd.permission === 'string' && cmd.permission.trim()
+        ? titleCase(cmd.permission.trim())
+        : permission
+            ? displayName(permission)
+            : null;
+    const information = [
+        cmd.cooldown ? `${EMOJIS.COOLDOWN} ${cmd.cooldown} seconds` : null,
+        brief ? `${EMOJIS.WARNING} ${brief}` : null
+    ].filter(Boolean).join('\n') || 'N/A';
 
-    const lines = [`Syntax: ${usage}`];
-    const example = exampleFor(usage);
+    const label = `${cmd.data.name}${sub ? ` ${sub}` : ''}`;
+    const syntaxParts = params.map(p => `[${p.name}]`);
+    if (flags) syntaxParts.push('[flags]');
+    const syntax = `,${label}${syntaxParts.length ? ` ${syntaxParts.join(' ')}` : ''}`;
+    const example = usage && !/[<[]/.test(usage) && usage.trim() !== `,${label}` ? usage.trim() : null;
+    const lines = [`Syntax: ${syntax}`];
     if (example) lines.push(`Example: ${example}`);
-    const usageBlock = ['```', ...lines, '```'].join('\n');
+    const usageBlock = ['```js', ...lines, '```'].join('\n');
 
     const description = cmd.data.description
         ? `${cmd.data.description}${sub ? `\n\nSubcommand: \`${sub}\`` : ''}`
@@ -206,32 +209,48 @@ function cardPage(cmd, sub) {
             ? `Subcommand: \`${sub}\``
             : '';
 
+    const fields = [
+        { name: 'Aliases', value: aliasText, inline: true },
+        { name: 'Parameters', value: parameterText, inline: true },
+        { name: 'Information', value: information, inline: true }
+    ];
+    if (flags) {
+        fields.push({
+            name: 'Optional Flags',
+            value: Object.entries(flags).map(([flag, desc]) => `\`--${flag}\`: ${desc}`).join('\n'),
+            inline: false
+        });
+    }
+    fields.push({ name: 'Usage', value: usageBlock, inline: false });
+
     return {
         [PRESERVE]: true,
         embeds: [{
-            color: 0x6c5ce7,
-            title: `Command: ${cmd.data.name}${sub ? ` ${sub}` : ''}`,
+            color: COLORS.NEUTRAL,
+            title: `Command: ${label}`,
             description,
-            fields: [
-                { name: 'Aliases', value: aliasText, inline: true },
-                { name: 'Parameters', value: parameterText, inline: true },
-                { name: 'Information', value: information, inline: true },
-                { name: 'Usage', value: usageBlock, inline: false }
-            ],
-            footer: { text: `Module: ${cmd.module || cmd.category || 'unknown'}` }
+            author: botUser ? {
+                name: botUser.username || String(botUser),
+                icon_url: botUser.displayAvatarURL ? botUser.displayAvatarURL({ size: 256 }) : undefined
+            } : undefined,
+            fields,
+            footer: { text: `Module: ${(cmd.category || 'unknown')}.py` }
         }]
     };
 }
 
 function buildCardPages(cmd, opts = {}) {
     const subs = Array.isArray(cmd.subcommands) ? cmd.subcommands : [];
-    if (!subs.length) return [cardPage(cmd, null)];
+    if (!subs.length) return [cardPage(cmd, null, opts.botUser)];
     const focus = opts.sub && subs.includes(opts.sub) ? [opts.sub] : subs;
-    return focus.map(sub => cardPage(cmd, sub));
+    return focus.map(sub => cardPage(cmd, sub, opts.botUser));
 }
 
 async function sendCard(message, cmd, opts = {}) {
-    const pages = buildCardPages(cmd, opts);
+    const pages = buildCardPages(cmd, {
+        ...opts,
+        botUser: (message.client && message.client.user) || (message.user && message.user.client && message.user.client.user)
+    });
     const paginator = new Paginator(pages, { userId: message.author.id });
     const embeds = paginator.buildEmbeds();
     const components = pages.length > 1 ? [paginator.buildRow()] : [];
@@ -242,4 +261,4 @@ async function sendCard(message, cmd, opts = {}) {
     return sent;
 }
 
-module.exports = { extractMetadata, buildCardPages, sendCard, toKey, displayName, cardPage };
+module.exports = { extractMetadata, buildCardPages, sendCard, toKey, displayName, cardPage, paramList };

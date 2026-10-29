@@ -1,39 +1,49 @@
-const { createEmbed, errorEmbed } = require('../../utils/embeds');
+const { warn } = require('../../utils/context');
+const { COLORS, EMOJIS } = require('../../utils/styles');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 module.exports = {
-    data: {
-        name: 'crypto',
-        description: 'Get cryptocurrency price',
-        usage: ',crypto [coin]'
-    },
-    aliases: ['coin', 'price'],
-    cooldown: 10,
+    data: { name: 'crypto', description: "Convert cryptocurrency to a specified currency", usage: ',crypto 125 eur ltc', params: ['amount', 'from', 'to'] },
+    aliases: ['convert', 'conv'],
+    cooldown: 5,
 
     async execute(message, args) {
-        const coin = (args[0] || 'bitcoin').toLowerCase();
+        const amount = parseFloat(args[0]);
+        const fromCurrency = args[1];
+        const toCurrency = args[2];
 
-        const prices = {
-            bitcoin: { symbol: 'BTC', price: '67,432.18', change: '+2.4%' },
-            ethereum: { symbol: 'ETH', price: '3,521.45', change: '+1.8%' },
-            solana: { symbol: 'SOL', price: '178.92', change: '-0.5%' },
-            dogecoin: { symbol: 'DOGE', price: '0.1523', change: '+5.2%' },
-            ripple: { symbol: 'XRP', price: '0.6234', change: '+0.3%' },
-            cardano: { symbol: 'ADA', price: '0.4821', change: '-1.2%' },
-            polkadot: { symbol: 'DOT', price: '7.89', change: '+3.1%' }
-        };
+        if (isNaN(amount) || !fromCurrency || !toCurrency) {
+            return warn(message, 'Usage: `crypto 125 eur ltc`');
+        }
 
-        const data = prices[coin] || { symbol: coin.toUpperCase(), price: 'N/A', change: 'N/A' };
+        let data;
+        try {
+            const res = await fetch(`https://api.evelina.bot/crypto?amount=${encodeURIComponent(amount)}&from=${encodeURIComponent(fromCurrency)}&to=${encodeURIComponent(toCurrency)}&key=X3pZmLq82VnHYTd6Cr9eAw`);
+            data = await res.json();
+        } catch (err) {
+            return warn(message, 'An error occurred while retrieving conversion data.');
+        }
+
+        if (!data || data.status !== 'success') {
+            return warn(message, 'Failed to retrieve conversion data. Please check the currency codes.');
+        }
+
+        const amountFrom = data[fromCurrency.toUpperCase()] ?? 'N/A';
+        const amountTo = data[toCurrency.toUpperCase()] ?? 'N/A';
+
+        const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId(`crypto_copy:${amountTo}`)
+                .setLabel('Copy Amount')
+                .setStyle(ButtonStyle.Primary)
+        );
 
         return message.reply({
-            embeds: [createEmbed({
-                color: 0x6c5ce7,
-                title: `${coin.charAt(0).toUpperCase() + coin.slice(1)} (${data.symbol})`,
-                fields: [
-                    { name: 'Price', value: `$${data.price}`, inline: true },
-                    { name: '24h Change', value: data.change, inline: true }
-                ],
-                footer: { text: 'Prices are simulated. Connect to CoinGecko API for live data.' }
-            })]
+            embeds: [{
+                color: COLORS.EXCHANGE,
+                description: `${EMOJIS.EXCHANGE} ${message.author}: ${amountFrom} **${fromCurrency.toUpperCase()}** is ${amountTo} **${toCurrency.toUpperCase()}**`
+            }],
+            components: [row]
         });
     }
 };

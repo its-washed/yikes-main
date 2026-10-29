@@ -30,7 +30,7 @@ async function execute(message, args, client) {
         if (fresh && typeof fresh.execute === 'function') return fresh.execute(message, args, client);
     }
 
-    const msg = await message.reply({ embeds: [createEmbed({ color: 0xfbbf24, description: 'Reloading commands...' })] });
+    const msg = await message.reply({ embeds: [createEmbed({ color: 0xffd600, description: 'Reloading commands...' })] });
 
     client.commands.clear();
     client.aliases.clear();
@@ -67,8 +67,9 @@ async function execute(message, args, client) {
 }
 
 module.exports = {
-    data: { name: 'reload', description: 'Reload all commands (Developer only)', usage: ',reload' },
-    aliases: [],
+    permission: "bot developer",
+    data: { name: 'reload', description: "Reload modules", usage: ',reload' },
+    aliases: ["rl"],
     cooldown: 0,
     execute
 };

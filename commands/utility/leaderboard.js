@@ -1,38 +1,37 @@
-const { PermissionFlagsBits } = require('discord.js');
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
-const { getAllLevelData, resetLevelData } = require('../../utils/levels');
+const { warn, paginate } = require('../../utils/context');
+const { first, query } = require('../../utils/database');
+const { isDeveloper } = require('../../utils/developer');
 
 module.exports = {
     data: {
         name: 'leaderboard',
-        description: 'Show server XP leaderboard',
+        description: "Global leaderboard for the economy",
         usage: ',leaderboard'
     },
-    aliases: ['top'],
+    aliases: ["lb"],
     cooldown: 10,
 
     async execute(message, args, client) {
-        const all = getAllLevelData(message.guild.id);
-        const sorted = Object.entries(all)
-            .sort((a, b) => (b[1].totalXp || 0) - (a[1].totalXp || 0))
-            .slice(0, 20);
+        const results = query('SELECT user_id, cash, card FROM economy ORDER BY cash + card DESC LIMIT 100');
+        if (!results.length) return warn(message, "No one has any cash yet.");
 
-        if (sorted.length === 0) {
-            return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Leaderboard', description: 'No data yet. Start chatting to earn XP!' })] });
+        const to_show = [];
+        for (const row of results) {
+            if (isDeveloper(row.user_id)) continue;
+            const user = await message.client.users.fetch(String(row.user_id)).catch(() => null);
+            const label = user ? `${user}` : `<@${row.user_id}>`;
+            const company = first('SELECT * FROM company WHERE members LIKE ?', `%${row.user_id}%`);
+            const companyTag = company && company.tag ? ` | ${company.tag}` : '';
+            to_show.push(
+                `**${label}${companyTag}** (\`${row.user_id}\`)\n` +
+                `> ${Number(row.cash).toLocaleString('en-US')} 💵 | ${Number(row.card).toLocaleString('en-US')} 💳`
+            );
         }
 
-        const medals = ['🥇', '🥈', '🥉'];
-        const entries = sorted.map(([userId, data], i) => {
-            const prefix = medals[i] || `**#${i + 1}**`;
-            return `${prefix} <@${userId}> — Level **${data.level}** (${data.totalXp} XP)`;
-        });
-
-        return message.reply({
-            embeds: [createEmbed({
-                color: 0xffd700,
-                title: `Leaderboard — ${message.guild.name}`,
-                description: entries.join('\n')
-            })]
+        if (!to_show.length) return warn(message, "No one has any cash yet.");
+        return paginate(message, to_show.slice(0, 100), "Global economy leaderboard", {
+            name: message.author.username,
+            icon_url: message.author.displayAvatarURL()
         });
     }
 };

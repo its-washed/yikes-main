@@ -4,7 +4,7 @@ const { PermissionFlagsBits } = require('discord.js');
 
 module.exports = {
     data: { name: 'stealemote', description: 'Steal an emoji from another server', usage: ',stealemote <emoji> [name]' },
-    aliases: ['steal'],
+    aliases: [],
     cooldown: 5,
     async execute(message, args) {
         if (!hasPermission(message.member, PermissionFlagsBits.ManageGuild)) {

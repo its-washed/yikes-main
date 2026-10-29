@@ -1,3 +1,0 @@
-const { createEmbed, errorEmbed, permissionDenied } = require('../../utils/embeds');
-const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
-module.exports = { data: { name: 'setlevel', description: 'Set level channel', usage: ',setlevel [#channel]' }, aliases: ['levelchannel'], cooldown: 10, async execute(message, args) { if (!hasPermission(message.member, 'ManageGuild')) return message.reply({ embeds: [permissionDenied(message, 'manage_guild')] }); const channel = message.mentions.channels.first(); if (!channel) return message.reply({ embeds: [errorEmbed('Missing Channel', 'Usage: ,setlevel [#channel]')] }); return message.reply({ embeds: [createEmbed({ color: 0x22c55e, description: `Level channel set to ${channel}.` })] }); } };

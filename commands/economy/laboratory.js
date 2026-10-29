@@ -1,300 +1,265 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
-const { getExperiments, startExperiment, collectExperiment, cancelExperiment, getLab, createLab, upgradeLab, getUpgradeCost } = require('../../utils/laboratory');
-const { getUser, updateWallet } = require('../../utils/economy');
+const { PermissionFlagsBits } = require('discord.js');
+const { sendCard } = require('../../utils/helpCard');
+const { warn, approve } = require('../../utils/context');
+const { run, first } = require('../../utils/database');
+const { confirm, needPerm } = require('../../utils/moderation');
+const { ensureEconomy } = require('../../utils/predicates');
+const { EMOJIS, COLORS } = require('../../utils/styles');
+const { createEmbed } = require('../../utils/embeds');
+const E = require('../../utils/econ');
 
-const LAB_COST = 10000000;
+const LAB_COST = 5000000;
 
-const RECIPES = [
-    { name: 'Mystic Brew', cost: 1000, rewardMin: 1125, rewardMax: 2250, duration: 3600000, tier: 1, levelReq: 1 },
-    { name: 'Potion of Speed', cost: 2500, rewardMin: 2625, rewardMax: 4500, duration: 7200000, tier: 1, levelReq: 1 },
-    { name: 'Herbal Tonic', cost: 1500, rewardMin: 1500, rewardMax: 3000, duration: 4800000, tier: 1, levelReq: 1 },
-    { name: 'Elixir of Wealth', cost: 8000, rewardMin: 7500, rewardMax: 13500, duration: 14400000, tier: 2, levelReq: 2 },
-    { name: 'Shadow Serum', cost: 6000, rewardMin: 6000, rewardMax: 10500, duration: 10800000, tier: 2, levelReq: 2 },
-    { name: 'Fire Water', cost: 10000, rewardMin: 9750, rewardMax: 16500, duration: 18000000, tier: 2, levelReq: 2 },
-    { name: 'Philosopher Stone', cost: 25000, rewardMin: 26250, rewardMax: 45000, duration: 28800000, tier: 3, levelReq: 3 },
-    { name: 'Frozen Essence', cost: 20000, rewardMin: 21000, rewardMax: 36000, duration: 21600000, tier: 3, levelReq: 3 },
-    { name: 'Toxic Extract', cost: 30000, rewardMin: 31500, rewardMax: 52500, duration: 36000000, tier: 3, levelReq: 3 },
-    { name: 'Dragon Elixir', cost: 75000, rewardMin: 75000, rewardMax: 135000, duration: 57600000, tier: 4, levelReq: 4 },
-    { name: 'Phoenix Ash', cost: 60000, rewardMin: 61500, rewardMax: 105000, duration: 43200000, tier: 4, levelReq: 4 },
-    { name: 'Void Liquid', cost: 90000, rewardMin: 93750, rewardMax: 157500, duration: 72000000, tier: 4, levelReq: 4 },
-    { name: 'Celestial Dew', cost: 200000, rewardMin: 210000, rewardMax: 360000, duration: 86400000, tier: 5, levelReq: 5 },
-    { name: 'Demon Blood', cost: 180000, rewardMin: 187500, rewardMax: 315000, duration: 72000000, tier: 5, levelReq: 5 },
-    { name: 'Ambrosia', cost: 250000, rewardMin: 262500, rewardMax: 450000, duration: 108000000, tier: 5, levelReq: 5 },
-    { name: 'Leviathan Ichor', cost: 500000, rewardMin: 525000, rewardMax: 900000, duration: 129600000, tier: 6, levelReq: 6 },
-    { name: 'Starlight Serum', cost: 450000, rewardMin: 465000, rewardMax: 787500, duration: 108000000, tier: 6, levelReq: 6 },
-    { name: 'Frozen Star', cost: 600000, rewardMin: 637500, rewardMax: 1050000, duration: 144000000, tier: 6, levelReq: 6 },
-    { name: 'World Ender', cost: 1200000, rewardMin: 1275000, rewardMax: 2100000, duration: 172800000, tier: 7, levelReq: 7 },
-    { name: 'God Serum', cost: 1000000, rewardMin: 1050000, rewardMax: 1800000, duration: 144000000, tier: 7, levelReq: 7 },
-    { name: 'Astral Essence', cost: 1500000, rewardMin: 1575000, rewardMax: 2625000, duration: 201600000, tier: 7, levelReq: 7 },
-    { name: 'Omega Potion', cost: 3000000, rewardMin: 3150000, rewardMax: 5250000, duration: 230400000, tier: 8, levelReq: 8 },
-    { name: 'Cosmic Brew', cost: 2500000, rewardMin: 2625000, rewardMax: 4350000, duration: 172800000, tier: 8, levelReq: 8 },
-    { name: 'Singularity Core', cost: 4000000, rewardMin: 4125000, rewardMax: 6750000, duration: 259200000, tier: 8, levelReq: 8 },
-    { name: 'Unobtainium', cost: 8000000, rewardMin: 8250000, rewardMax: 13500000, duration: 345600000, tier: 9, levelReq: 9 },
-    { name: 'Eternity Elixir', cost: 7000000, rewardMin: 7125000, rewardMax: 12000000, duration: 288000000, tier: 9, levelReq: 9 },
-    { name: 'Dark Matter', cost: 10000000, rewardMin: 10500000, rewardMax: 17250000, duration: 403200000, tier: 9, levelReq: 9 },
-    { name: 'Philosopher Universe', cost: 25000000, rewardMin: 26250000, rewardMax: 45000000, duration: 518400000, tier: 10, levelReq: 10 },
-    { name: 'Immortality Serum', cost: 20000000, rewardMin: 21000000, rewardMax: 36000000, duration: 432000000, tier: 10, levelReq: 10 },
-    { name: 'Genesis Stone', cost: 30000000, rewardMin: 31500000, rewardMax: 54000000, duration: 604800000, tier: 10, levelReq: 10 },
-];
-
-const TIER_NAMES = {
-    1: 'Apprentice', 2: 'Adept', 3: 'Expert', 4: 'Master', 5: 'Grandmaster',
-    6: 'Legend', 7: 'Mythic', 8: 'Transcendent', 9: 'Divine', 10: 'Celestial'
-};
-
-const TIER_COLORS = {
-    1: 0x95a5a6, 2: 0x3498db, 3: 0x2ecc71, 4: 0xe67e22, 5: 0xe74c3c,
-    6: 0x9b59b6, 7: 0xf1c40f, 8: 0x1abc9c, 9: 0x34495e, 10: 0xff6b6b
-};
+function cardFields(used, prefix) {
+    if (!used) return [];
+    const stars = '\u2b50'.repeat(used.stars);
+    return [
+        { name: prefix, value: `\`\`\`${used.name} | ${stars}\`\`\``, inline: true },
+        { name: 'Storage', value: `\`\`\`${used.storage}h\`\`\``, inline: true },
+        { name: 'Multiplier', value: `\`\`\`${used.multiplier}x\`\`\``, inline: true }
+    ];
+}
 
 module.exports = {
-    data: {
-        name: 'laboratory',
-        description: 'Run experiments for massive rewards',
-        usage: ',laboratory <subcommand> [args]'
-    },
-    aliases: ['lab'],
+    data: { name: 'lab', description: "Buy a laboratory business which generates money over time and needs to be maintained", usage: ',lab <subcommand>' },
+    aliases: [],
     cooldown: 5,
-
-    async execute(message, args) {
-        const sub = args[0]?.toLowerCase();
-        if (!sub) {
-            return message.reply({
-                embeds: [createEmbed({
-                    color: 0x6c5ce7,
-                    title: 'Laboratory',
-                    description: '**Subcommands:**\n`buy` — Purchase a lab ($10M)\n`upgrade` — Level up your lab\n`info` — View your lab status\n`recipes` — View available experiments\n`start <recipe>` — Start an experiment\n`collect` — Collect finished experiments\n`cancel` — Cancel last experiment\n`active` — View active experiments'
-                })]
-            });
-        }
-
-        if (sub === 'buy') {
-            const lab = getLab(message.author.id);
-            if (lab) return message.reply({ embeds: [errorEmbed('Already Owned', 'You already own a laboratory! Use `,lab upgrade` to level it up.')] });
-
-            const user = getUser(message.author.id);
-            if (user.wallet < LAB_COST) {
-                return message.reply({ embeds: [errorEmbed('Not Enough', `A lab costs **$${LAB_COST.toLocaleString()}**.\nYou have: **$${user.wallet.toLocaleString()}**`)] });
-            }
-
-            updateWallet(message.author.id, -LAB_COST);
-            createLab(message.author.id);
-
-            return message.reply({
-                embeds: [createEmbed({
-                    color: 0x22c55e,
-                    title: 'Lab Purchased!',
-                    description: `You bought a **Tier 1 ${TIER_NAMES[1]} Laboratory** for **$${LAB_COST.toLocaleString()}**!\n\nUse \`<lab recipes\` to see what you can experiment with.`
-                })]
-            });
-        }
-
-        if (sub === 'upgrade') {
-            const lab = getLab(message.author.id);
-            if (!lab) return message.reply({ embeds: [errorEmbed('No Lab', 'You don\'t own a lab. Use `,lab buy` to purchase one.')] });
-            if (lab.level >= 10) return message.reply({ embeds: [errorEmbed('Max Level', 'Your lab is already at maximum level!')] });
-
-            const nextLevel = lab.level + 1;
-            const cost = getUpgradeCost(nextLevel);
-            const user = getUser(message.author.id);
-
-            if (user.wallet < cost) {
-                return message.reply({ embeds: [errorEmbed('Not Enough', `Upgrade to Level ${nextLevel} costs **$${cost.toLocaleString()}**.\nYou have: **$${user.wallet.toLocaleString()}**`)] });
-            }
-
-            updateWallet(message.author.id, -cost);
-            upgradeLab(message.author.id);
-
-            return message.reply({
-                embeds: [createEmbed({
-                    color: TIER_COLORS[nextLevel],
-                    title: 'Lab Upgraded!',
-                    description: `Your lab is now **Level ${nextLevel} — ${TIER_NAMES[nextLevel]}**!\n\nNew recipes unlocked! Use \`<lab recipes\` to see them.`
-                })]
-            });
-        }
-
-        if (sub === 'info') {
-            const lab = getLab(message.author.id);
-            if (!lab) return message.reply({ embeds: [errorEmbed('No Lab', 'You don\'t own a lab. Use `,lab buy` to purchase one.')] });
-
-            const upgradeCost = lab.level < 10 ? getUpgradeCost(lab.level + 1) : null;
-            const exps = getExperiments(message.author.id);
-            const running = exps.filter(e => Date.now() < e.completesAt).length;
-            const ready = exps.filter(e => Date.now() >= e.completesAt).length;
-            const recipesAvailable = RECIPES.filter(r => r.levelReq <= lab.level).length;
-
-            return message.reply({
-                embeds: [createEmbed({
-                    color: TIER_COLORS[lab.level],
-                    title: 'Laboratory Info',
-                    fields: [
-                        { name: 'Level', value: `${lab.level} — ${TIER_NAMES[lab.level]}`, inline: true },
-                        { name: 'Recipes Unlocked', value: `${recipesAvailable}/${RECIPES.length}`, inline: true },
-                        { name: 'Running', value: `${running}`, inline: true },
-                        { name: 'Ready to Collect', value: `${ready}`, inline: true },
-                        { name: 'Upgrade Cost', value: upgradeCost ? `$${upgradeCost.toLocaleString()}` : 'MAX', inline: true }
-                    ]
-                })]
-            });
-        }
-
-        if (sub === 'recipes') {
-            const lab = getLab(message.author.id);
-            const labLevel = lab ? lab.level : 0;
-
-            const tiers = {};
-            for (const r of RECIPES) {
-                if (!tiers[r.tier]) tiers[r.tier] = [];
-                tiers[r.tier].push(r);
-            }
-
-            const pages = [];
-            for (const tier of Object.keys(tiers).sort((a, b) => a - b)) {
-                const t = parseInt(tier);
-                const locked = t > labLevel;
-                const list = tiers[t].map((r, i) => {
-                    const status = locked ? '🔒' : '✅';
-                    return `${status} **${r.name}**\nCost: $${r.cost.toLocaleString()} | Reward: $${r.rewardMin.toLocaleString()}-$${r.rewardMax.toLocaleString()} | Time: ${r.duration / 60000}m`;
-                }).join('\n\n');
-
-                pages.push({
-                    color: TIER_COLORS[t],
-                    title: `Tier ${t} — ${TIER_NAMES[t]}${locked ? ' 🔒' : ''}`,
-                    description: locked ? `Reach **Level ${t}** to unlock.\n\n${list}` : list,
-                    footer: { text: locked ? `Requires Lab Level ${t}` : `Use ,lab start <recipe number> to begin` }
-                });
-            }
-
-            if (labLevel === 0) {
-                return message.reply({
-                    embeds: [createEmbed({
-                        color: 0xff4757,
-                        title: 'No Lab',
-                        description: 'You don\'t own a lab! Use `,lab buy` to purchase one for **$10,000,000**.'
-                    })]
-                });
-            }
-
-            let page = 0;
-            const msg = await message.reply({ embeds: [pages[page]] });
-
-            await msg.react('⬅️');
-            await msg.react('➡️');
-
-            const filter = (reaction, user) => ['⬅️', '➡️'].includes(reaction.emoji.name) && user.id === message.author.id;
-            const collector = msg.createReactionCollector({ filter, time: 60000 });
-
-            collector.on('collect', (reaction) => {
-                reaction.users.remove(message.author);
-                if (reaction.emoji.name === '➡️' && page < pages.length - 1) page++;
-                if (reaction.emoji.name === '⬅️' && page > 0) page--;
-                msg.edit({ embeds: [pages[page]] });
-            });
-
-            collector.on('end', () => msg.reactions.removeAll().catch(() => {}));
-            return;
-        }
-
-        if (sub === 'start') {
-            const lab = getLab(message.author.id);
-            if (!lab) return message.reply({ embeds: [errorEmbed('No Lab', 'You don\'t own a lab. Use `,lab buy` to purchase one.')] });
-
-            const recipeIdx = parseInt(args[1]) - 1;
-            if (isNaN(recipeIdx) || recipeIdx < 0 || recipeIdx >= RECIPES.length) {
-                return message.reply({ embeds: [errorEmbed('Invalid Recipe', 'Use `,lab recipes` to see available experiments.')] });
-            }
-
-            const recipe = RECIPES[recipeIdx];
-
-            if (recipe.levelReq > lab.level) {
-                return message.reply({ embeds: [errorEmbed('Locked', `You need **Lab Level ${recipe.levelReq}** to run **${recipe.name}**.\nYour lab is Level ${lab.level}.`)] });
-            }
-
-            const running = getExperiments(message.author.id);
-            if (running.length >= 3) {
-                return message.reply({ embeds: [errorEmbed('Experiment Limit', 'Your lab can run at most **3** experiments at a time. Collect or cancel one first.')] });
-            }
-
-            const user = getUser(message.author.id);
-            if (user.wallet < recipe.cost) {
-                return message.reply({ embeds: [errorEmbed('Not Enough', `Need **$${recipe.cost.toLocaleString()}** to start this experiment.\nYou have: **$${user.wallet.toLocaleString()}**`)] });
-            }
-
-            updateWallet(message.author.id, -recipe.cost);
-            const exp = startExperiment(message.author.id, recipe);
-
-            return message.reply({
-                embeds: [createEmbed({
-                    color: TIER_COLORS[recipe.tier],
-                    title: 'Experiment Started',
-                    description: `**${recipe.name}** (Tier ${recipe.tier})\n\nCost: **$${recipe.cost.toLocaleString()}**\nReward: **$${recipe.rewardMin.toLocaleString()}-$${recipe.rewardMax.toLocaleString()}**\nTime: **${recipe.duration / 60000} minutes**`
-                })]
-            });
-        }
-
-        if (sub === 'collect') {
-            const exps = getExperiments(message.author.id);
-            if (!exps.length) return message.reply({ embeds: [errorEmbed('No Experiments', 'Start one with `,lab start <recipe>`')] });
-
-            let collected = 0;
-            let totalReward = 0;
-            for (const exp of [...exps]) {
-                const result = collectExperiment(message.author.id, exp.id);
-                if (result && result.ready) {
-                    collected++;
-                    totalReward += result.reward;
+    subcommands: ['buy', 'ampoules', 'sell', 'upgrade', 'info', 'collect', 'add', 'remove'],
+    subUsages: {
+        buy: ',lab buy',
+        ampoules: ',lab ampoules <amount|all>',
+        sell: ',lab sell',
+        upgrade: ',lab upgrade',
+        info: ',lab info [user]',
+        collect: ',lab collect',
+        add: ',lab add <user> <upgrade state>',
+        remove: ',lab remove <user>'
+    },
+    execute: async (message) => {
+        return sendCard(message, module.exports);
+    },
+    subs: {
+        buy: {
+            data: { name: 'lab buy', description: 'Buy a laboratory business', usage: ',lab buy' },
+            execute: async (message, args, client) => {
+                if (!await ensureEconomy(message, client)) return;
+                const userId = message.author.id;
+                if (first('SELECT 1 AS ok FROM economy_lab WHERE user_id = ?', userId)) {
+                    return warn(message, 'You **already own** a laboratory.');
                 }
+                const row = E.ensureAccount(userId);
+                if (row.cash < LAB_COST) {
+                    return warn(message, `You **do not** have enough cash to buy a laboratory\n> You need **${E.humanize(LAB_COST)}** \ud83d\udcb5`);
+                }
+                run('INSERT INTO economy_lab (user_id, ampoules, last_collected, upgrade_state) VALUES (?, 100, ?, 0)', userId, Math.floor(Date.now() / 1000));
+                run('UPDATE economy SET cash = cash - ? WHERE user_id = ?', LAB_COST, userId);
+                E.logging(userId, LAB_COST, 'buy', 'laboratory');
+                E.loggingLab(userId, client.user ? client.user.id : userId, LAB_COST, 'buy', 0);
+                return approve(message, "You've successfully **bought** a laboratory");
             }
+        },
+        ampoules: {
+            data: { name: 'lab ampoules', description: 'Buy ampoules for your laboratory', usage: ',lab ampoules <amount|all>' },
+            aliases: ['restock', 'ba'],
+            execute: async (message, args, client) => {
+                if (!await ensureEconomy(message, client)) return;
+                const userId = message.author.id;
+                const lab = first('SELECT * FROM economy_lab WHERE user_id = ?', userId);
+                if (!lab) return warn(message, "You **don't own** a laboratory.");
+                const amountArg = String(args[0] || '').toLowerCase();
+                if (!amountArg) return warn(message, 'You need to provide an amount.\n> **Usage:** `,lab ampoules <amount|all>`');
 
-            if (collected === 0) return message.reply({ embeds: [errorEmbed('Not Ready', 'None of your experiments are done yet. Use `,lab active` to check progress.')] });
+                const row = E.ensureAccount(userId);
+                const { earningsPerHour } = E.labEarnings(userId, lab.upgrade_state || 0);
+                const costFor100 = Math.trunc(earningsPerHour * 12 * 0.20);
+                const ampouleCost = costFor100 / 100;
+                const currentAmpoules = lab.ampoules || 0;
 
-            updateWallet(message.author.id, totalReward);
-            return message.reply({
-                embeds: [createEmbed({
-                    color: 0x22c55e,
-                    title: 'Experiments Collected',
-                    description: `Collected **${collected}** experiment(s) for **$${totalReward.toLocaleString()}**!`
-                })]
-            });
+                let amount;
+                if (amountArg === 'all') {
+                    const maxAffordable = Math.min(Math.floor(row.cash / ampouleCost), 100 - currentAmpoules);
+                    if (maxAffordable <= 0) return warn(message, "You either can't afford any ampoules or your laboratory is full");
+                    amount = maxAffordable;
+                } else {
+                    amount = parseInt(amountArg.replace(/,/g, ''), 10);
+                    if (!Number.isFinite(amount) || amount <= 0) return warn(message, "Please provide a valid number or 'all'");
+                }
+                if (currentAmpoules + amount > 100) {
+                    return warn(message, "You can't have more than **100** ampoules in your laboratory");
+                }
+                const totalCost = Math.trunc(ampouleCost * amount);
+                if (row.cash < totalCost) {
+                    return warn(message, `You **do not** have enough cash to buy **${amount}** ampoules\n> You need **${E.humanize(totalCost)}** \ud83d\udcb5`);
+                }
+                run('UPDATE economy SET cash = cash - ? WHERE user_id = ?', totalCost, userId);
+                run('UPDATE economy_lab SET ampoules = ampoules + ? WHERE user_id = ?', amount, userId);
+                E.logging(userId, totalCost, 'buy', 'ampoules');
+                return approve(message, `You've successfully bought **${amount}** ampoules for **${E.humanize(totalCost)}** \ud83d\udcb5`);
+            }
+        },
+        sell: {
+            data: { name: 'lab sell', description: 'Sell your laboratory business', usage: ',lab sell' },
+            execute: async (message, args, client) => {
+                if (!await ensureEconomy(message, client)) return;
+                const userId = message.author.id;
+                const lab = first('SELECT * FROM economy_lab WHERE user_id = ?', userId);
+                if (!lab) return warn(message, "You **don't own** a laboratory.");
+                const upgradeState = lab.upgrade_state || 0;
+                let totalUpgradeCost = 0;
+                for (let level = 1; level <= upgradeState; level++) {
+                    totalUpgradeCost += E.labEarnings(userId, level).nextUpgradeCost;
+                }
+                const refund = (LAB_COST * 0.1) + (totalUpgradeCost * 0.1);
+                return confirm(message,
+                    `${EMOJIS.QUESTION} ${message.author}: Are you sure you want to sell your lab for **${E.humanize(refund)}** \ud83d\udcb5?`,
+                    async (i) => {
+                        const stillOwned = first('SELECT 1 AS ok FROM economy_lab WHERE user_id = ?', userId);
+                        if (!stillOwned) {
+                            return i.update({ embeds: [{ color: COLORS.WARNING, description: `${EMOJIS.WARNING} ${i.user}: You **do not** own a laboratory` }], components: [] });
+                        }
+                        run('UPDATE economy SET cash = cash + ? WHERE user_id = ?', refund, userId);
+                        run('DELETE FROM economy_lab WHERE user_id = ?', userId);
+                        E.logging(userId, refund, 'sell', 'laboratory');
+                        E.loggingLab(userId, userId, refund, 'sell', upgradeState);
+                        const usedCard = first('SELECT card_id FROM economy_cards_used WHERE user_id = ? AND business = ?', userId, 'lab');
+                        if (usedCard) {
+                            run('UPDATE economy_cards_user SET active = 1 WHERE user_id = ? AND card_id = ?', userId, usedCard.card_id);
+                            run('DELETE FROM economy_cards_used WHERE user_id = ? AND card_id = ?', userId, usedCard.card_id);
+                        }
+                        await i.update({ embeds: [{ color: COLORS.SUCCESS, description: `${EMOJIS.APPROVE} ${i.user}: You've **successfully** sold your laboratory\n> Received: **${E.humanize(refund)}** \ud83d\udcb5` }], components: [] });
+                    },
+                    async (i) => {
+                        await i.update({ embeds: [{ color: COLORS.ERROR, description: `${EMOJIS.DENY} ${i.user}: Sale got canceled` }], components: [] });
+                    });
+            }
+        },
+        upgrade: {
+            data: { name: 'lab upgrade', description: "Upgrade your laboratory business by one level.", usage: ',lab upgrade' },
+            execute: async (message, args, client) => {
+                if (!await ensureEconomy(message, client)) return;
+                const userId = message.author.id;
+                const lab = first('SELECT * FROM economy_lab WHERE user_id = ?', userId);
+                if (!lab) return warn(message, "You **don't own** a laboratory.");
+                const upgradeState = lab.upgrade_state || 0;
+                if (upgradeState >= 50) return warn(message, "You've **maxed out** your lab");
+                const { nextUpgradeCost } = E.labEarnings(userId, upgradeState);
+                const row = E.ensureAccount(userId);
+                if (row.cash < nextUpgradeCost) {
+                    return warn(message, `You **do not** have enough cash to upgrade\n> You need **${E.humanize(nextUpgradeCost)}** \ud83d\udcb5`);
+                }
+                run('UPDATE economy SET cash = cash - ? WHERE user_id = ?', nextUpgradeCost, userId);
+                run('UPDATE economy_lab SET upgrade_state = upgrade_state + 1 WHERE user_id = ?', userId);
+                E.logging(userId, nextUpgradeCost, 'upgrade', 'laboratory');
+                E.loggingLab(userId, client.user ? client.user.id : userId, nextUpgradeCost, 'upgrade', upgradeState);
+                return approve(message, `You've successfully upgraded your lab to level **${upgradeState + 1}**\n> The total upgrade cost was **${E.humanize(nextUpgradeCost)}** \ud83d\udcb5`);
+            }
+        },
+        info: {
+            data: { name: 'lab info', description: "Check the status of your laboratory business", usage: ',lab info [user]' },
+            aliases: ['status'],
+            execute: async (message, args, client) => {
+                if (!await ensureEconomy(message, client)) return;
+                const target = (message.mentions && message.mentions.users && message.mentions.users.first()) || message.author;
+                const lab = first('SELECT * FROM economy_lab WHERE user_id = ?', target.id);
+                if (!lab) return warn(message, "You **don't own** a laboratory.");
+                const now = Math.floor(Date.now() / 1000);
+                const lastCollected = lab.last_collected || now;
+                const upgradeState = lab.upgrade_state || 0;
+                const { earningsPerHour, earningsCap, nextUpgradeCost } = E.labEarnings(target.id, upgradeState);
+                const timePassed = now - lastCollected;
+                const used = E.getUsedCard(target.id, 'lab');
+                const prefix = used ? (upgradeState >= 16 ? 'Scientist' : 'Manager') : null;
+
+                const embed = createEmbed({ color: COLORS.NEUTRAL, title: 'Laboratory Status' });
+                if (timePassed < 3600) {
+                    embed.addFields({ name: 'Next collection time', value: `<t:${Math.floor(lastCollected + 3600)}:R>`, inline: false });
+                    if (used) embed.addFields(...cardFields(used, prefix));
+                    embed.addFields(
+                        { name: 'Ampoules', value: `\`\`\`${lab.ampoules || 0}\`\`\``, inline: true },
+                        { name: 'Upgrade State', value: `\`\`\`${upgradeState}\`\`\``, inline: true },
+                        { name: 'Earnings per Hour', value: `\`\`\`${E.humanize(earningsPerHour)} \ud83d\udcb5\`\`\``, inline: true },
+                        { name: 'Next Upgrade Cost', value: upgradeState >= 50 ? '```Maxed Out```' : `\`\`\`${E.humanize(nextUpgradeCost)}\`\`\``, inline: true }
+                    );
+                    return message.reply({ embeds: [embed] });
+                }
+                const hoursPassed = Math.floor(timePassed / 3600);
+                let earnings = earningsPerHour * hoursPassed;
+                if (earnings > earningsCap) earnings = earningsCap;
+                if (used) embed.addFields(...cardFields(used, prefix));
+                embed.addFields(
+                    { name: 'Ampoules', value: `\`\`\`${lab.ampoules || 0}\`\`\``, inline: true },
+                    { name: 'Upgrade State', value: `\`\`\`${upgradeState}\`\`\``, inline: true },
+                    { name: 'Earnings per Hour', value: `\`\`\`${E.humanize(earningsPerHour)} \ud83d\udcb5\`\`\``, inline: true },
+                    { name: 'Next Upgrade Cost', value: upgradeState >= 50 ? '```Maxed Out```' : `\`\`\`${E.humanize(nextUpgradeCost)}\`\`\``, inline: true },
+                    { name: 'Earnings', value: `\`\`\`${E.humanize(earnings)} \ud83d\udcb5\`\`\``, inline: true },
+                    { name: earnings === earningsCap ? '\u26a0\ufe0f Storage' : 'Storage', value: `\`\`\`${E.humanize(earningsCap)} \ud83d\udcb5\`\`\``, inline: true }
+                );
+                return message.reply({ embeds: [embed] });
+            }
+        },
+        collect: {
+            data: { name: 'lab collect', description: "Collect your laboratory business earnings", usage: ',lab collect' },
+            execute: async (message, args, client) => {
+                if (!await ensureEconomy(message, client)) return;
+                const userId = message.author.id;
+                const lab = first('SELECT * FROM economy_lab WHERE user_id = ?', userId);
+                if (!lab) return warn(message, "You **don't own** a laboratory.");
+                const now = Math.floor(Date.now() / 1000);
+                const lastCollected = lab.last_collected || now;
+                const upgradeState = lab.upgrade_state || 0;
+                const ampoules = lab.ampoules || 0;
+                const timePassed = now - lastCollected;
+                if (timePassed < 3600) {
+                    return warn(message, `You can **only** collect your lab earnings **once** every hour\n> Next collection time: <t:${Math.floor(lastCollected + 3600)}:R>`);
+                }
+                const used = E.getUsedCard(userId, 'lab');
+                const storage = used && used.storage ? Number(used.storage) : 6;
+                const hoursPassed = Math.min(Math.floor(timePassed / 3600), Math.floor(storage));
+                const ampoulesNeeded = hoursPassed * 5;
+                if (ampoules < ampoulesNeeded) {
+                    return warn(message, 'You **do not** have enough ampoules to collect your earnings.');
+                }
+                const { earningsPerHour, earningsCap } = E.labEarnings(userId, upgradeState);
+                let earnings = earningsPerHour * hoursPassed;
+                if (earnings > earningsCap) earnings = earningsCap;
+
+                run('UPDATE economy SET cash = cash + ? WHERE user_id = ?', earnings, userId);
+                run('UPDATE economy_lab SET last_collected = ?, ampoules = ampoules - ? WHERE user_id = ?', now, ampoulesNeeded, userId);
+                E.addCollectMoney(userId, 'lab', earnings);
+                E.logging(userId, earnings, 'collect', 'laboratory');
+                E.loggingLab(userId, client.user ? client.user.id : userId, earnings, 'collect', upgradeState);
+                return approve(message, `You've collected **$${E.humanize(earnings)}** \ud83d\udcb5\n> Next collection available <t:${Math.floor(now + 3600)}:R>`);
+            }
+        },
+        add: {
+            data: { name: 'lab add', description: 'Add a laboratory to a user', usage: ',lab add <user> <upgrade state>' },
+            execute: async (message, args, client) => {
+                if (!await needPerm(message, PermissionFlagsBits.ManageGuild)) return;
+                const target = message.mentions && message.mentions.users ? message.mentions.users.first() : null;
+                const upgradeState = parseInt(args[1], 10);
+                if (!target || !Number.isFinite(upgradeState) || upgradeState < 0) {
+                    return warn(message, 'Invalid arguments.\n> **Usage:** `,lab add <user> <upgrade state>`');
+                }
+                if (first('SELECT 1 AS ok FROM economy_lab WHERE user_id = ?', target.id)) {
+                    return warn(message, `${target} already owns a laboratory.`);
+                }
+                run('INSERT INTO economy_lab (user_id, ampoules, last_collected, upgrade_state) VALUES (?, 100, ?, ?)', target.id, Math.floor(Date.now() / 1000), upgradeState);
+                E.loggingLab(target.id, message.author.id, 0, 'add', upgradeState);
+                return approve(message, `Successfully added a laboratory to ${target}.`);
+            }
+        },
+        remove: {
+            data: { name: 'lab remove', description: 'Remove a laboratory from a user', usage: ',lab remove <user>' },
+            execute: async (message, args, client) => {
+                if (!await needPerm(message, PermissionFlagsBits.ManageGuild)) return;
+                const target = message.mentions && message.mentions.users ? message.mentions.users.first() : null;
+                if (!target) return warn(message, 'You need to mention a user.\n> **Usage:** `,lab remove <user>`');
+                const lab = first('SELECT * FROM economy_lab WHERE user_id = ?', target.id);
+                if (!lab) return warn(message, `${target} doesn't own a laboratory.`);
+                run('DELETE FROM economy_lab WHERE user_id = ?', target.id);
+                E.loggingLab(target.id, message.author.id, 0, 'remove', lab.upgrade_state || 0);
+                return approve(message, `Successfully removed a laboratory from ${target}.`);
+            }
         }
-
-        if (sub === 'cancel') {
-            const exps = getExperiments(message.author.id);
-            if (!exps.length) return message.reply({ embeds: [errorEmbed('Nothing to Cancel', 'No active experiments.')] });
-            const last = exps[exps.length - 1];
-            cancelExperiment(message.author.id, last.id);
-            const refund = Math.floor(last.cost * 0.5);
-            updateWallet(message.author.id, refund);
-            return message.reply({
-                embeds: [createEmbed({
-                    color: 0xfbbf24,
-                    title: 'Experiment Cancelled',
-                    description: `Cancelled **${last.name}**. Refunded **$${refund.toLocaleString()}** (50%).`
-                })]
-            });
-        }
-
-        if (sub === 'active') {
-            const exps = getExperiments(message.author.id);
-            if (!exps.length) return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Active Experiments', description: 'None running.\nUse `,lab start <recipe>` to begin one.' })] });
-
-            const now = Date.now();
-            const list = exps.map(e => {
-                const remaining = Math.max(0, e.completesAt - now);
-                const status = remaining > 0 ? `⏳ ${Math.ceil(remaining / 60000)}m left` : '✅ Ready!';
-                return `**${e.name}** (Tier ${e.tier}) — ${status}\nReward: $${e.reward.toLocaleString()}`;
-            }).join('\n\n');
-
-            return message.reply({
-                embeds: [createEmbed({
-                    color: 0x6c5ce7,
-                    title: `Active Experiments (${exps.length})`,
-                    description: list
-                })]
-            });
-        }
-
-        return message.reply({ embeds: [errorEmbed('Invalid Subcommand', 'Valid: `buy`, `upgrade`, `info`, `recipes`, `start`, `collect`, `cancel`, `active`')] });
     }
 };

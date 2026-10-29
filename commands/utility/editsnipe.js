@@ -1,9 +1,10 @@
 const { createEmbed, errorEmbed, permissionDenied } = require('../../utils/embeds');
+const { warn } = require('../../utils/context');
 const { hasPermission } = require('../../utils/permissions');
 const { PermissionFlagsBits } = require('discord.js');
 
 module.exports = {
-    data: { name: 'editsnipe', description: 'Snipe the last edited message', usage: ',editsnipe [#channel]' },
+    data: { name: 'editsnipe', description: "Snipe the latest message that was edited", usage: ',editsnipe [#channel]' },
     aliases: ['es'],
     cooldown: 5,
     async execute(message, args, client) {
@@ -13,11 +14,11 @@ module.exports = {
 
         const channel = message.mentions.channels.first() || message.channel;
         const snipe = client.editSnipes?.get(channel.id);
-        if (!snipe) return message.reply({ embeds: [errorEmbed('Nothing', 'No edited messages found.')] });
+        if (!snipe) return warn(message, 'No edit snipes found in this channel');
 
         return message.reply({
             embeds: [createEmbed({
-                color: 0xfbbf24,
+                color: 0xffd600,
                 title: 'Edit Sniped',
                 author: { name: snipe.author?.tag || 'Unknown', icon_url: snipe.author?.displayAvatarURL() },
                 fields: [

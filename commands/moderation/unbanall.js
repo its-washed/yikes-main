@@ -1,51 +1,62 @@
-const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
-const { isOwner } = require('../../utils/permissions');
+const { PermissionFlagsBits } = require('discord.js');
+const { needBotPerm, prefix, confirm } = require('../../utils/moderation');
+const { warn } = require('../../utils/context');
+const { first } = require('../../utils/database');
+const { errorEmbed, successEmbed } = require('../../utils/embeds');
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 module.exports = {
-    data: { name: 'unbanall', description: 'Unban all banned members in the server', usage: ',unbanall' },
-    cooldown: 300,
-    async execute(message) {
-        if (!isOwner(message.member)) return message.reply({ embeds: [errorEmbed('Owner Only', 'Only the server owner can use this.')] });
+    permission: "ban members",
+    data: { name: 'unbanall', description: 'Unban all members from the server', usage: ',unbanall' },
+    aliases: [],
+    cooldown: 10,
 
-        const confirm = await message.reply({
-            embeds: [createEmbed({
-                color: 0xfbbf24,
-                title: 'Unban All Members',
-                description: `This will unban **everyone** banned in ${message.guild.name}.\nReact with ✅ to confirm.`
-            })]
-        });
+    async execute(message, args, client) {
+        if (!await needBotPerm(message, PermissionFlagsBits.BanMembers)) return;
 
-        await confirm.react('✅');
-        const filter = (r, u) => r.emoji.name === '✅' && u.id === message.author.id;
-        const collector = confirm.createReactionCollector({ filter, time: 15000, max: 1 });
+        const config = first('SELECT owner_id, admins FROM antinuke WHERE guild_id = ?', message.guild.id);
+        if (!config) {
+            return warn(message, `Antinuke is **not** configured\n> Use \`${prefix(message)}antinuke setup\` to configure it`);
+        }
+        const allowed = [String(config.owner_id || '')];
+        try {
+            const admins = JSON.parse(config.admins || '[]');
+            if (Array.isArray(admins)) allowed.push(...admins.map(String));
+        } catch (err) {
+            allowed.length = allowed.length;
+        }
+        if (!allowed.includes(message.author.id)) {
+            return warn(message, "You **can't** use this command, you need to be an Antinuke admin");
+        }
 
-        collector.on('collect', async () => {
-            await confirm.edit({ embeds: [createEmbed({ color: 0xfbbf24, title: 'Unbanning...', description: 'Fetching banned users.' })] });
+        const bans = await message.guild.bans.fetch().catch(() => null);
+        if (!bans || !bans.size) return warn(message, 'There are no members that are banned');
 
-            let count = 0;
-            let failed = 0;
-            const bans = await message.guild.bans.fetch();
-
-            for (const [, ban] of bans) {
-                try {
-                    await message.guild.members.unban(ban.user.id, `Unbanned by ${message.author.tag} via unbanall`);
-                    count++;
-                } catch {
-                    failed++;
+        return confirm(message, `${message.author}: Are you sure that you want to unban **${bans.size}** members?`,
+            async i => {
+                const list = await i.guild.bans.fetch().catch(() => null);
+                const entries = list ? [...list.values()] : [];
+                await i.update({
+                    embeds: [{ color: 0x729bb0, description: `${i.user}: Unbanning in progress... **0/${entries.length}** members unbanned` }],
+                    components: []
+                }).catch(() => {});
+                const progress = await i.fetchReply().catch(() => i.message);
+                for (let index = 0; index < entries.length; index++) {
+                    await i.guild.bans.remove(entries[index].user.id, `Unban all by ${i.user.tag}`).catch(() => {});
+                    await sleep(1000);
+                    if ((index + 1) % 10 === 0 && progress) {
+                        await progress.edit({
+                            embeds: [{ color: 0x729bb0, description: `${i.user}: Unbanning in progress... **${index + 1}/${entries.length}** members unbanned` }]
+                        }).catch(() => {});
+                    }
                 }
-            }
-
-            await confirm.edit({
-                embeds: [successEmbed('Unban All Complete', `Unbanned **${count}** member(s).${failed ? ` Failed: **${failed}**` : ''}`)]
+                if (progress) {
+                    await progress.edit({ embeds: [successEmbed(null, `${i.user}: Successfully unbanned **${entries.length}** members`)] }).catch(() => {});
+                }
+            },
+            async i => {
+                await i.update({ embeds: [errorEmbed(null, `${i.user}: Unban everyone got canceled`)], components: [] }).catch(() => {});
             });
-            await confirm.reactions.removeAll().catch(() => {});
-        });
-
-        collector.on('end', (collected) => {
-            if (collected.size === 0) {
-                confirm.edit({ embeds: [errorEmbed('Cancelled', 'Unban all cancelled.')] });
-                confirm.reactions.removeAll().catch(() => {});
-            }
-        });
     }
 };

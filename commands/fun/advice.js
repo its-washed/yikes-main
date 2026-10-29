@@ -19,10 +19,10 @@ const advice = [
 ];
 
 module.exports = {
-    data: { name: 'advice', description: 'Get random advice', usage: ',advice' },
+    data: { name: 'advice', description: "Get a random advice", usage: ',advice' },
     cooldown: 3,
     async execute(message) {
         const tip = advice[Math.floor(Math.random() * advice.length)];
-        return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Advice', description: tip })] });
+        return message.reply({ embeds: [createEmbed({ color: 0x729bb0, title: 'Advice', description: tip })] });
     }
 };

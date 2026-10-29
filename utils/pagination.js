@@ -1,4 +1,7 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
+const { first, run, query } = require('./database');
+const { COLORS, EMOJIS } = require('./styles');
+const { altConvert, scriptPayload } = require('./embedScript');
 const { PRESERVE, flattenEmbed } = require('./embeds');
 
 class Paginator {
@@ -7,7 +10,7 @@ class Paginator {
         this.currentPage = 0;
         this.timeout = opts.timeout || 120000;
         this.userId = opts.userId;
-        this.embedColor = opts.color || 0x6c5ce7;
+        this.embedColor = opts.color || 0x729bb0;
     }
 
     async start(channel, initialMsg) {
@@ -18,15 +21,31 @@ class Paginator {
         });
 
         const collector = msg.createMessageComponentCollector({
-            filter: (i) => !this.userId || i.user.id === this.userId,
+            filter: (i) => {
+                if (!this.userId || i.user.id === this.userId) return true;
+                i.reply({
+                    embeds: [{
+                        color: COLORS.WARNING,
+                        description: `${EMOJIS.WARNING} ${i.user}: You are not the **author** of this embed`
+                    }],
+                    ephemeral: true
+                }).catch(() => {});
+                return false;
+            },
             time: this.timeout
         });
 
         collector.on('collect', async (i) => {
-            if (i.customId === 'prev') this.currentPage = Math.max(0, this.currentPage - 1);
-            else if (i.customId === 'next') this.currentPage = Math.min(this.pages.length - 1, this.currentPage + 1);
-            else if (i.customId === 'first') this.currentPage = 0;
-            else if (i.customId === 'last') this.currentPage = this.pages.length - 1;
+            if (i.customId === 'prev') {
+                this.currentPage = this.currentPage === 0 ? this.pages.length - 1 : this.currentPage - 1;
+            } else if (i.customId === 'next') {
+                this.currentPage = this.currentPage === this.pages.length - 1 ? 0 : this.currentPage + 1;
+            } else if (i.customId === 'goto') {
+                return this.promptGoto(i);
+            } else if (i.customId === 'delete') {
+                collector.stop();
+                return i.message.delete().catch(() => {});
+            }
 
             await i.update({
                 embeds: this.buildEmbeds(),
@@ -54,8 +73,13 @@ class Paginator {
             }];
         }
 
-        const extra = page.footer?.text ? `${page.footer.text}` : '';
-        const text = extra ? `${footerText} | ${extra}` : footerText;
+        const extra = page.footer && page.footer.text ? `${page.footer.text}` : '';
+        const entriesMatch = /^\((\d+)\s+entries?\)$/.exec(extra);
+        const text = entriesMatch
+            ? `${footerText} (${entriesMatch[1]} entries)`
+            : extra
+                ? (extra.startsWith('(') ? `${footerText} ${extra}` : `${footerText} ・ ${extra}`)
+                : footerText;
 
         const keep = Boolean(page[PRESERVE]);
 
@@ -72,16 +96,63 @@ class Paginator {
         return keep ? built : built.map(flattenEmbed);
     }
 
+    async promptGoto(interaction) {
+        const id = `pgoto_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+        const modal = new ModalBuilder()
+            .setCustomId(id)
+            .setTitle('Go to')
+            .addComponents(new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('page')
+                    .setLabel('page')
+                    .setPlaceholder('page number')
+                    .setRequired(true)
+                    .setStyle(TextInputStyle.Short)
+            ));
+        gotoPrompts.set(id, this);
+        await interaction.showModal(modal).catch(() => gotoPrompts.delete(id));
+    }
+
     buildRow() {
         if (this.pages.length <= 1) return new ActionRowBuilder();
         return new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('first').setLabel('<<').setStyle(ButtonStyle.Secondary).setDisabled(this.currentPage === 0),
-            new ButtonBuilder().setCustomId('prev').setLabel('<').setStyle(ButtonStyle.Primary).setDisabled(this.currentPage === 0),
-            new ButtonBuilder().setCustomId('page').setLabel(`${this.currentPage + 1}/${this.pages.length}`).setStyle(ButtonStyle.Secondary).setDisabled(true),
-            new ButtonBuilder().setCustomId('next').setLabel('>').setStyle(ButtonStyle.Primary).setDisabled(this.currentPage === this.pages.length - 1),
-            new ButtonBuilder().setCustomId('last').setLabel('>>').setStyle(ButtonStyle.Secondary).setDisabled(this.currentPage === this.pages.length - 1)
+            new ButtonBuilder().setCustomId('prev').setEmoji(EMOJIS.LEFT).setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('next').setEmoji(EMOJIS.RIGHT).setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('goto').setEmoji(EMOJIS.GOTO).setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('delete').setEmoji(EMOJIS.CANCEL).setStyle(ButtonStyle.Danger)
         );
     }
+}
+
+const gotoPrompts = new Map();
+
+async function handleGotoSubmit(interaction) {
+    const paginator = gotoPrompts.get(interaction.customId);
+    if (!paginator) {
+        return interaction.reply({ content: 'This form has expired.', ephemeral: true }).catch(() => {});
+    }
+    gotoPrompts.delete(interaction.customId);
+
+    const raw = String(interaction.fields.getTextInputValue('page') || '').trim();
+    const num = Number(raw);
+    if (!raw || Number.isNaN(num)) {
+        return interaction.reply({
+            embeds: [{ color: COLORS.WARNING, description: `${EMOJIS.WARNING} ${interaction.user}: This is not a number` }],
+            ephemeral: true
+        }).catch(() => {});
+    }
+    if (!Number.isInteger(num) || num < 1 || num > paginator.pages.length) {
+        return interaction.reply({
+            embeds: [{ color: COLORS.WARNING, description: `${EMOJIS.WARNING} ${interaction.user}: Invalid Page` }],
+            ephemeral: true
+        }).catch(() => {});
+    }
+
+    paginator.currentPage = num - 1;
+    return interaction.update({
+        embeds: paginator.buildEmbeds(),
+        components: paginator.pages.length > 1 ? [paginator.buildRow()] : []
+    }).catch(() => {});
 }
 
 function paginateArray(arr, perPage) {
@@ -103,4 +174,66 @@ async function replyPaginated(message, pages, opts = {}) {
     return sent;
 }
 
-module.exports = { Paginator, paginateArray, replyPaginated };
+const lastInteraction = new Map();
+
+function paginationRows() {
+    return [new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('persistent:pagination_previous').setEmoji('◀️').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId('persistent:pagination_next').setEmoji('▶️').setStyle(ButtonStyle.Primary)
+    )];
+}
+
+function currentPage(messageId) {
+    const record = first('SELECT current_page FROM paginate_data WHERE message_id = ?', messageId);
+    return record ? record.current_page : 0;
+}
+
+function setCurrentPage(messageId, page) {
+    run('INSERT INTO paginate_data (message_id, current_page) VALUES (?, ?) ON CONFLICT (message_id) DO UPDATE SET current_page = ?',
+        messageId, page, page);
+}
+
+function fetchPageScript(guildId, channelId, messageId, page) {
+    const row = first('SELECT embed FROM paginate_embeds WHERE guild_id = ? AND channel_id = ? AND message_id = ? AND page = ?',
+        guildId, channelId, messageId, page);
+    return row ? row.embed : null;
+}
+
+async function handlePageChange(interaction, change) {
+    const userId = interaction.user.id;
+    const now = Date.now() / 1000;
+    const lastTime = lastInteraction.get(userId) || 0;
+    if (now - lastTime < 2) {
+        return interaction.reply({
+            embeds: [{ color: COLORS.WARNING, description: `${EMOJIS.WARNING} ${interaction.user.mention}: You are too fast, please wait a little bit...` }],
+            ephemeral: true
+        }).catch(() => {});
+    }
+    lastInteraction.set(userId, now);
+    const guildId = interaction.guild.id;
+    const channelId = interaction.channel.id;
+    const messageId = interaction.message.id;
+    const countRow = first('SELECT COUNT(*) AS total FROM paginate_embeds WHERE guild_id = ? AND channel_id = ? AND message_id = ?',
+        guildId, channelId, messageId);
+    const totalPages = countRow ? countRow.total : 0;
+    if (!totalPages) {
+        return interaction.reply({ content: 'This paginated message has no pages.', ephemeral: true }).catch(() => {});
+    }
+    let nextPage = currentPage(messageId) + change;
+    if (nextPage < 1) nextPage = totalPages;
+    else if (nextPage > totalPages) nextPage = 1;
+    const script = fetchPageScript(guildId, channelId, messageId, nextPage);
+    setCurrentPage(messageId, nextPage);
+    await interaction.deferUpdate().catch(() => {});
+    if (script === null || script === undefined) return;
+    let payload;
+    try {
+        payload = scriptPayload(altConvert(interaction.user, script));
+    } catch {
+        payload = { content: script };
+    }
+    payload.components = paginationRows();
+    await interaction.message.edit(payload).catch(() => {});
+}
+
+module.exports = { Paginator, paginateArray, replyPaginated, paginationRows, currentPage, setCurrentPage, fetchPageScript, handlePageChange, handleGotoSubmit };

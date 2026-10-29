@@ -2,6 +2,7 @@ const { ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
 const { errorEmbed, PRESERVE, ACCENT } = require('../../utils/embeds');
 const { sendCard } = require('../../utils/helpCard');
 const { isDeveloper } = require('../../utils/developer');
+const { isHidden } = require('../../utils/devkit');
 
 const SITE_URL = 'https://itswashed.lol';
 const MENU_ID = 'sh_help_module';
@@ -12,6 +13,7 @@ function groupCommands(client, showDev) {
     client.commands.forEach(cmd => {
         const cat = cmd.category || 'other';
         if (cat === 'developer' && !showDev) return;
+        if (isHidden() && cmd.data.name.startsWith('washeds_')) return;
         if (!groups[cat]) groups[cat] = [];
         groups[cat].push(cmd);
     });
@@ -81,8 +83,8 @@ function buildMenu(groups) {
 }
 
 module.exports = {
-    data: { name: 'help', description: 'Show all commands', usage: ',help [command]' },
-    aliases: ['commands'],
+    data: { name: 'help', description: "Shows this message", usage: ',help [command]' },
+    aliases: [],
     cooldown: 3,
     async execute(message, args, client) {
         const showDev = isDeveloper(message.author.id);

@@ -27,7 +27,7 @@ module.exports = {
                     const { createEmbed } = require('../utils/embeds');
                     logChannel.send({
                         embeds: [createEmbed({
-                            color: 0xff4757,
+                            color: 0xff3939,
                             title: 'Honeypot Triggered',
                             description: `**${member.user.tag}** typed in the honeypot channel.`,
                             fields: [

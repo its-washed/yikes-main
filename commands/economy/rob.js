@@ -1,48 +1,56 @@
-const { createEmbed, errorEmbed } = require('../../utils/embeds');
-const { getUser, updateWallet } = require('../../utils/economy');
+const { warn, approve } = require('../../utils/context');
+const { first, run } = require('../../utils/database');
+const { ensureEconomy } = require('../../utils/predicates');
+const { humanize, logging } = require('../../utils/econ');
+const { isDeveloper } = require('../../utils/developer');
+
+const CASH = '💵';
 
 module.exports = {
-    data: { name: 'rob', description: 'Rob another user', usage: ',rob [@user]' },
+    data: { name: 'rob', description: "Attempt to steal money from another player", usage: ',rob its_washed', params: ['member'] },
     aliases: [],
     cooldown: 300,
-    async execute(message, args) {
-        const target = message.mentions.users.first();
-        if (!target) return message.reply({ embeds: [errorEmbed('Missing User', 'Usage: ,rob [@user]')] });
-        if (target.id === message.author.id) return message.reply({ embeds: [errorEmbed('Invalid', 'You cannot rob yourself.')] });
-        if (target.bot) return message.reply({ embeds: [errorEmbed('Invalid', 'You cannot rob bots.')] });
 
-        const targetUser = getUser(target.id);
-        const robber = getUser(message.author.id);
+    async execute(message, args, client) {
+        if (!await ensureEconomy(message, client)) return;
 
-        if (targetUser.wallet < 50) return message.reply({ embeds: [errorEmbed('Too Poor', 'That user has less than $50 in their wallet.')] });
+        const member = message.mentions.members.first();
+        if (!member) return warn(message, 'You must mention a member\n> Usage: `rob its_washed`');
 
-        const chance = Math.random();
-        const stolenPercent = Math.floor(Math.random() * 30) + 10;
-        const stolenAmount = Math.floor(targetUser.wallet * (stolenPercent / 100));
+        if (isDeveloper(member.id)) return warn(message, "You can't steal money from a bot owner");
+        if (member.id === message.author.id) return warn(message, "You can't steal from yourself!");
 
-        if (chance < 0.4) {
-            const fine = Math.floor(robber.wallet * 0.2);
-            updateWallet(message.author.id, -fine);
-            updateWallet(target.id, 0);
+        const check = first('SELECT cash, card FROM economy WHERE user_id = ?', message.author.id);
+        const targetBalance = Number(first('SELECT cash FROM economy WHERE user_id = ?', member.id)?.cash || 0);
+        if (!targetBalance || targetBalance < 10) return warn(message, `**${member.user.username}** has no money to steal.`);
+        if (!check) return warn(message, `**${member.user.username}** has no money to steal.`);
+        if (Number(check.card) < 50000) return warn(message, `You need at least **50,000** ${CASH} on your card to rob someone.`);
 
-            return message.reply({
-                embeds: [createEmbed({
-                    color: 0xff4757,
-                    title: 'Robbery Failed!',
-                    description: `You got caught and were fined **$${fine.toLocaleString()}**!`
-                })]
-            });
+        let robChance = 1.0;
+        const cardUsed = first('SELECT * FROM economy_cards_used WHERE user_id = ? AND business = ?', member.id, 'personal');
+        if (cardUsed) {
+            const cardUser = first('SELECT * FROM economy_cards_user WHERE user_id = ? AND card_id = ?', member.id, cardUsed.card_id);
+            if (cardUser) {
+                const cardInfo = first('SELECT * FROM economy_cards WHERE id = ?', cardUser.card_id);
+                if (cardInfo) robChance = (100 - Number(cardUser.storage)) / 100;
+            }
         }
 
-        updateWallet(message.author.id, stolenAmount);
-        updateWallet(target.id, -stolenAmount);
+        if (Math.random() < robChance) {
+            const stolenAmount = Math.round(targetBalance * 0.1 * 100) / 100;
+            const realStolenAmount = stolenAmount > 1000000 ? 1000000 : stolenAmount;
+            run('UPDATE economy SET cash = cash - ? WHERE user_id = ?', stolenAmount, member.id);
+            run('UPDATE economy SET cash = cash + ? WHERE user_id = ?', realStolenAmount, message.author.id);
+            run('UPDATE economy SET rob = ? WHERE user_id = ?', Math.floor((Date.now() + 3 * 3600000) / 1000), message.author.id);
+            logging(message.author.id, realStolenAmount, 'rob', `<@${member.id}>`);
+            logging(member.id, stolenAmount, 'robbed', `<@${message.author.id}>`);
+            return approve(message, `You stole **${humanize(realStolenAmount)}** ${CASH} from **${member.user.username}**`);
+        }
 
-        return message.reply({
-            embeds: [createEmbed({
-                color: 0x22c55e,
-                title: 'Robbery Successful!',
-                description: `You stole **$${stolenAmount.toLocaleString()}** from ${target}!`
-            })]
-        });
+        const penalty = Math.round(Number(check.card) * 0.05 * 100) / 100;
+        run('UPDATE economy SET card = card - ? WHERE user_id = ?', penalty, message.author.id);
+        run('UPDATE economy SET rob = ? WHERE user_id = ?', Math.floor((Date.now() + 3 * 3600000) / 1000), message.author.id);
+        logging(message.author.id, penalty, 'catched', `<@${member.id}>`);
+        return warn(message, `Caught! You failed to steal from **${member}** and lost **5%** (\`${humanize(penalty)}\`) of your **card** balance.`);
     }
 };

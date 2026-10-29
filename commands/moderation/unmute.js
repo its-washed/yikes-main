@@ -1,54 +1,59 @@
 const { PermissionFlagsBits } = require('discord.js');
-const { parseMember } = require('../../utils/helpers');
-const { modLogEmbed, errorEmbed, successEmbed, permissionDenied } = require('../../utils/embeds');
-const { hasPermission, isAdmin, isOwner } = require('../../utils/permissions');
+const { needPerm, needBotPerm, noStaff, invokeDm, invokeMessage, insertCase, sendModLog, splitReason, caseId } = require('../../utils/moderation');
+const { approve, warn } = require('../../utils/context');
 
 module.exports = {
-    data: {
-        name: 'unmute',
-        description: 'Remove timeout from a member',
-        usage: ',unmute @user'
-    },
+    permission: "moderate members",
+    data: { name: 'unmute', description: 'Remove the timeout from a member', usage: ',unmute its_washed rassist --s', params: ['member', '[reason]'], flags: { s: 'Punish a user silently' } },
     aliases: ['untimeout'],
-    cooldown: 5,
+    cooldown: 3,
 
-    async execute(message, args, client, config) {
-        if (!hasPermission(message.member, PermissionFlagsBits.ModerateMembers)) {
-            return message.reply({ embeds: [permissionDenied(message, 'moderate_members')] });
+    async execute(message, args, client) {
+        if (!await needPerm(message, PermissionFlagsBits.ModerateMembers)) return;
+        if (!await needBotPerm(message, PermissionFlagsBits.ModerateMembers)) return;
+
+        const member = await noStaff(message, args[0], 'unmute');
+        if (!member) return;
+
+        if (!member.isTimedOut()) {
+            return warn(message, `${member} is **not** muted`);
         }
 
-        if (!message.guild.members.me.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-            return message.reply({ embeds: [permissionDenied(message, 'moderate_members', { bot: true })] });
-        }
+        const parsed = splitReason(args, 1);
+        const reason = parsed.reason;
+        const silent = parsed.silent;
+        const discordReason = `${reason} | ${message.author.username} (${message.author.id})`;
 
-        if (!args[0]) {
-            return message.reply({ embeds: [errorEmbed('Missing Target', 'Please mention a user or provide their ID.')] });
-        }
+        await member.timeout(null, discordReason).catch(() => null);
 
-        const target = parseMember(message, args[0]);
-        if (!target) {
-            return message.reply({ embeds: [errorEmbed('User Not Found', 'Could not find that user in this server.')] });
-        }
-
-        if (!target.isCommunicationDisabled()) {
-            return message.reply({ embeds: [errorEmbed('Not Muted', 'That user is not currently timed out.')] });
-        }
-
-        try {
-            await target.timeout(null, `Unmuted by ${message.author.tag}`);
-
-            const logChannel = message.guild.channels.cache.get(config.logChannel);
-            if (logChannel) {
-                logChannel.send({
-                    embeds: [modLogEmbed('Unmute', message.author, target, 'Removed timeout', 0x00d26a)]
-                });
+        if (!silent) {
+            const sent = await invokeDm(member, message.guild.id, 'unmute', { reason, duration: null })
+                .catch(() => false);
+            if (!sent) {
+                await member.send({
+                    embeds: [{
+                        color: 0x39ffb8,
+                        description: `You have been unmuted on **${message.guild.name}** by ${message.author} for the following reason: **${reason}**`
+                    }]
+                }).catch(() => {});
             }
-
-            return message.reply({
-                embeds: [successEmbed('Member Unmuted', `**${target.user.tag}** has been unmuted.`)]
-            });
-        } catch (error) {
-            return message.reply({ embeds: [errorEmbed('Error', `Failed to unmute: ${error.message}`)] });
         }
+
+        const historyId = insertCase(message, member, 'Unmute', 'None', reason, Date.now() / 1000, null);
+
+        await sendModLog(message.guild, {
+            user: member,
+            moderator: message.author,
+            reason,
+            description: 'unmuted',
+            punishment: 'Unmute',
+            historyId
+        });
+
+        const invoked = await invokeMessage(message, 'unmute', member, { reason, duration: null, historyId }).catch(() => false);
+        if (!invoked) {
+            return approve(message, `Unmuted ${member} (\`#${historyId}\`) - ${reason}`);
+        }
+        return null;
     }
 };

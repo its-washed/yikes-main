@@ -1,12 +1,21 @@
 const { EmbedBuilder } = require('discord.js');
+const { COLORS: PY, EMOJIS } = require('./styles');
+
 
 const COLORS = {
-    primary: 0x6c5ce7,
-    success: 0x00d26a,
-    error: 0xff4757,
-    warning: 0xffa502,
-    info: 0x74b9ff,
-    neutral: 0x2f3542
+    NEUTRAL: PY.NEUTRAL,
+    SUCCESS: PY.SUCCESS,
+    ERROR: PY.ERROR,
+    WARNING: PY.WARNING,
+    LOADING: PY.LOADING,
+    SPOTIFY: PY.SPOTIFY,
+    LASTFM: PY.LASTFM,
+    primary: PY.NEUTRAL,
+    success: PY.SUCCESS,
+    error: PY.ERROR,
+    warning: PY.WARNING,
+    info: PY.NEUTRAL,
+    neutral: PY.NEUTRAL
 };
 
 function createEmbed(opts = {}) {
@@ -20,17 +29,25 @@ function createEmbed(opts = {}) {
     if (opts.thumbnail) embed.setThumbnail(typeof opts.thumbnail === 'string' ? opts.thumbnail : opts.thumbnail.url);
     if (opts.image) embed.setImage(typeof opts.image === 'string' ? opts.image : opts.image.url);
     if (opts.fields) embed.addFields(opts.fields);
-    if (opts.timestamp !== false) embed.setTimestamp();
+    if (opts.timestamp) {
+        const stamp = opts.timestamp;
+        if (stamp instanceof Date) embed.setTimestamp(stamp);
+        else if (typeof stamp === 'number') embed.setTimestamp(stamp);
+        else if (typeof stamp === 'string') {
+            const parsed = new Date(stamp);
+            if (!Number.isNaN(parsed.getTime())) embed.setTimestamp(parsed);
+        } else embed.setTimestamp();
+    }
 
     return embed;
 }
 
 function successEmbed(title, desc) {
-    return createEmbed({ color: COLORS.success, title: title || 'Success', description: desc || '' });
+    return createEmbed({ color: COLORS.success, title: title || undefined, description: desc || '' });
 }
 
 function errorEmbed(title, desc) {
-    const embed = createEmbed({ color: COLORS.error, title: title || 'Error', description: desc || '' });
+    const embed = createEmbed({ color: COLORS.error, title: title || undefined, description: desc || '' });
     embed.data[ALERT] = true;
     return embed;
 }
@@ -42,24 +59,26 @@ function roleInputError(error, query, usage) {
 }
 
 function warningEmbed(title, desc) {
-    const embed = createEmbed({ color: COLORS.warning, title: title || 'Warning', description: desc || '' });
+    const embed = createEmbed({ color: COLORS.warning, title: title || undefined, description: desc || '' });
     embed.data[ALERT] = true;
     return embed;
 }
 
 function infoEmbed(title, desc) {
-    return createEmbed({ color: COLORS.info, title: title || 'Info', description: desc || '' });
+    return createEmbed({ color: COLORS.info, title: title || undefined, description: desc || '' });
 }
 
 function permissionDenied(message, permission, opts = {}) {
     const who = message.author ? `${message.author}` : `${message.user || ''}`.trim();
     const pretty = String(permission || '').split('_').filter(Boolean)
         .map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || String(permission || '');
-    const need = opts.bot ? 'I need' : 'you need';
-    const lead = who ? `${who}, ` : '';
-    const embed = new EmbedBuilder()
-        .setColor(COLORS.warning)
-        .setDescription(`${lead}${need} the **${pretty}** permission to do that.`);
+    const lead = who ? `${who}: ` : '';
+    const need = opts.bot ? `I am **missing** the following permission: \`${pretty}\``
+        : `You are **missing** the following permission: \`${pretty}\``;
+    const embed = createEmbed({
+        color: COLORS.warning,
+        description: `${EMOJIS.WARNING} ${lead}${need}`
+    });
     embed.data[ALERT] = true;
     return embed;
 }
@@ -78,7 +97,7 @@ function modLogEmbed(action, mod, target, reason, color) {
 
 const PRESERVE = Symbol('preserveEmbed');
 const ALERT = Symbol('alertEmbed');
-const ACCENT = 0xfbbf24;
+const ACCENT = 0xffd600;
 
 function toPlain(embed) {
     if (!embed) return {};
@@ -118,44 +137,52 @@ function tidyGrammar(text) {
 }
 
 function flattenEmbed(embed) {
+
     const data = toPlain(embed);
+    const out = {};
 
-    const alreadyFlattened = data.color === ACCENT && !data.title && !data.fields &&
-        typeof data.description === 'string' && Boolean(data.description);
-    if (alreadyFlattened) return data;
-
-    const alert = Boolean(data[ALERT]);
-
-    const parts = [];
-    if (data.title) parts.push(`**${data.title}**`);
-    if (data.description) parts.push(String(data.description).replace(/^\n+/, ''));
-
-    const fieldLines = [];
-    for (const field of data.fields || []) {
-        if (!field || !field.name) continue;
-        fieldLines.push(`**${field.name}** — ${monoValue(field.value)}`);
+    if (typeof data.color === 'number') out.color = data.color;
+    if (typeof data.title === 'string') out.title = data.title.slice(0, 256);
+    if (typeof data.description === 'string') {
+        out.description = data.description.length > 4096
+            ? `${data.description.slice(0, 4093)}...`
+            : data.description;
     }
-    if (fieldLines.length) parts.push(fieldLines.join('\n'));
+    if (typeof data.url === 'string') out.url = data.url;
 
-    const out = { color: ACCENT };
-    if (parts.length) {
-        let description = tidyGrammar(parts.join('\n\n'));
-        if (alert) description = `⚠ ${description}`;
-        if (description.length > 4096) description = `${description.slice(0, 4093)}...`;
-        out.description = description;
+    if (data.author) {
+        if (typeof data.author === 'string') out.author = { name: data.author.slice(0, 256) };
+        else if (data.author.name) out.author = { ...data.author, name: String(data.author.name).slice(0, 256) };
     }
-    if (alert) out[ALERT] = true;
-    if (data.author && data.author.name) out.author = data.author;
-    if (data.timestamp) {
-        out.timestamp = data.timestamp instanceof Date
-            ? data.timestamp.toISOString()
-            : typeof data.timestamp === 'boolean'
-                ? new Date().toISOString()
-                : data.timestamp;
+
+    if (Array.isArray(data.fields)) {
+        const fields = data.fields
+            .filter(field => field && field.name)
+            .slice(0, 25)
+            .map(field => ({
+                name: String(field.name).slice(0, 256),
+                value: String(field.value ?? '').slice(0, 1024),
+                inline: Boolean(field.inline)
+            }));
+        if (fields.length) out.fields = fields;
     }
-    if (data.thumbnail && data.thumbnail.url) out.thumbnail = data.thumbnail;
-    if (data.image && data.image.url) out.image = data.image;
-    if (data.footer && data.footer.text) out.footer = data.footer;
+
+    for (const key of ['image', 'thumbnail']) {
+        const value = data[key];
+        if (!value) continue;
+        if (typeof value === 'string' && /^https?:\/\//.test(value)) out[key] = { url: value };
+        else if (value.url) out[key] = { url: value.url };
+    }
+
+    if (data.footer) {
+        if (typeof data.footer === 'string') out.footer = { text: data.footer.slice(0, 2048) };
+        else if (data.footer.text) out.footer = { ...data.footer, text: String(data.footer.text).slice(0, 2048) };
+    }
+
+    const stamp = data.timestamp;
+    if (typeof stamp === 'number') out.timestamp = stamp;
+    else if (typeof stamp === 'string' && !Number.isNaN(new Date(stamp).getTime())) out.timestamp = stamp;
+
     return out;
 }
 

@@ -8,8 +8,8 @@ const ROULETTE_NUMBERS = {
 };
 
 module.exports = {
-    data: { name: 'roulette', description: 'Play roulette', usage: ',roulette [bet type] [amount/all/half/%]' },
-    aliases: ['roul'],
+    data: { name: 'roulette', description: "Play a roulette game", usage: ',roulette [bet type] [amount/all/half/%]' },
+    aliases: ["ro"],
     cooldown: 5,
     async execute(message, args) {
         const betType = (args[0] || '').toLowerCase();
@@ -46,7 +46,7 @@ module.exports = {
 
         return message.reply({
             embeds: [createEmbed({
-                color: won ? 0x22c55e : 0xff4757,
+                color: won ? 0x39ffb8 : 0xff3939,
                 title: 'Roulette',
                 description: `The wheel lands on **${rolled}** ${colorEmoji}\n\n**${won ? `You won $${winnings.toLocaleString()}!` : 'You lost!'}**`,
                 fields: [

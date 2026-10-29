@@ -9,7 +9,7 @@ module.exports = {
             const data = await res.json();
             return message.reply({
                 embeds: [createEmbed({
-                    color: 0x6c5ce7,
+                    color: 0x729bb0,
                     title: data.title || 'Meme',
                     image: { url: data.url },
                     footer: { text: `👍 ${data.ups || 0}` }

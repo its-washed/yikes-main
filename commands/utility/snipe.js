@@ -1,9 +1,10 @@
 const { createEmbed, errorEmbed } = require('../../utils/embeds');
+const { warn } = require('../../utils/context');
 
 module.exports = {
     data: {
         name: 'snipe',
-        description: 'Snipe the last deleted message',
+        description: "Snipe the latest message that was deleted",
         usage: ',snipe'
     },
     aliases: ['s'],
@@ -14,14 +15,14 @@ module.exports = {
         const snipes = message.client.snipes || {};
 
         if (!snipes[channel.id]) {
-            return message.reply({ embeds: [errorEmbed('Nothing to Snipe', 'No deleted messages found.')] });
+            return warn(message, 'No snipes found in this channel');
         }
 
         const snipe = snipes[channel.id];
 
         return message.reply({
             embeds: [createEmbed({
-                color: 0x6c5ce7,
+                color: 0x729bb0,
                 title: 'Sniped Message',
                 author: { name: snipe.author, iconURL: snipe.avatar },
                 description: snipe.content || '*No text content*',

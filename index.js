@@ -98,12 +98,14 @@ const fs = require('fs');
 const path = require('path');
 const { Client, Collection, GatewayIntentBits, Partials, Events, ActivityType } = require('discord.js');
 const { getGuildConfig } = require('./utils/config');
-const { initDatabase, closeDatabase } = require('./utils/database');
+const { resolveSubcommand } = require('./utils/helpers');
+const { initDatabase, closeDatabase, run, first } = require('./utils/database');
 const { logger } = require('./utils/logger');
 const { isBlacklisted, isDeveloper, isServerBlacklisted, isCommandDisabled } = require('./utils/developer');
 const { isPremium, isPremiumCommand } = require('./utils/premium');
-const { sendCard, extractMetadata } = require('./utils/helpCard');
+const { sendCard, extractMetadata, paramList } = require('./utils/helpCard');
 const { normalizePayload, wrapReply, ALERT } = require('./utils/embeds');
+const { COLORS, EMOJIS } = require('./utils/styles');
 
 const client = new Client({
     intents: [
@@ -134,15 +136,20 @@ const client = new Client({
 client.commands = new Collection();
 client.cooldowns = new Collection();
 client.snipes = new Map();
+client.reactionSnipes = new Map();
 client.editSnipes = new Map();
 client.aliases = new Collection();
 
 function loadCommands() {
-    const categories = ['moderation', 'server', 'utility', 'fun', 'developer', 'economy', 'music'];
+    const root = path.join(__dirname, 'commands');
+    const categories = fs.readdirSync(root, { withFileTypes: true })
+        .filter(entry => entry.isDirectory())
+        .map(entry => entry.name)
+        .sort();
     let total = 0;
 
     for (const cat of categories) {
-        const dir = path.join(__dirname, 'commands', cat);
+        const dir = path.join(root, cat);
         if (!fs.existsSync(dir)) continue;
 
         const files = fs.readdirSync(dir).filter(f => f.endsWith('.js'));
@@ -251,7 +258,12 @@ client.on(Events.MessageCreate, async (message) => {
     if (client.maintenanceMode && !isDeveloper(message.author.id)) return;
 
     const cfg = getGuildConfig(message.guild.id);
-    const prefix = cfg.prefix || ',';
+    let prefix = cfg.prefix || ',';
+    try {
+        const selfPrefixRow = first('SELECT prefix FROM selfprefix WHERE user_id = ?', message.author.id);
+        if (selfPrefixRow && selfPrefixRow.prefix) prefix = selfPrefixRow.prefix;
+    } catch {
+    }
 
     if (!message.content.startsWith(prefix)) return;
 
@@ -260,6 +272,37 @@ client.on(Events.MessageCreate, async (message) => {
 
     const cmd = client.commands.get(cmdName) || client.commands.get(client.aliases.get(cmdName));
     if (!cmd) {
+        let selfAlias = null;
+        try {
+            selfAlias = first('SELECT command, args FROM selfaliases WHERE user_id = ? AND alias = ?', message.author.id, cmdName);
+        } catch {
+        }
+        if (selfAlias) {
+            const userArgs = [cmdName, ...args];
+            const substitute = text => {
+                if (!text) return text || '';
+                let out = text;
+                for (let i = 0; i < userArgs.length; i++) {
+                    out = out.replace(new RegExp(`\\{${i}\\}`, 'g'), userArgs[i] || '');
+                }
+                return out;
+            };
+            const finalArgs = `${substitute(selfAlias.command)} ${substitute(selfAlias.args)}`.trim().split(/ +/).filter(Boolean);
+            const selfCmdName = finalArgs.shift();
+            const resolvedSelf = client.commands.get(selfCmdName) || client.commands.get(client.aliases.get(selfCmdName));
+            if (resolvedSelf) {
+                const unwrapSelf = wrapReply(message);
+                try {
+                    await resolvedSelf.execute(message, finalArgs, client, cfg);
+                    logger.command(`${message.author.tag} > ${prefix}${cmdName} (selfalias) in ${message.guild.name}`);
+                } catch (err) {
+                    logger.error(`selfalias ${cmdName} error: ${err.message}`);
+                } finally {
+                    unwrapSelf();
+                }
+                return;
+            }
+        }
         const customAliases = cfg.customAliases || [];
         const alias = customAliases.find(a => a.name === cmdName);
         if (!alias) return;
@@ -287,8 +330,8 @@ client.on(Events.MessageCreate, async (message) => {
         const msg = await message.reply(normalizePayload({
             embeds: [{
                 [ALERT]: true,
-                color: 0xff6b6b,
-                description: `\`${cmd.data.name}\` is disabled in this server.`
+                color: COLORS.WARNING,
+                description: `${EMOJIS.WARNING} ${message.author}: \`${cmd.data.name}\` is disabled in this server.`
             }]
         }));
         setTimeout(() => msg.delete().catch(() => {}), 5000);
@@ -296,22 +339,34 @@ client.on(Events.MessageCreate, async (message) => {
     }
 
     if (isPremiumCommand(cmd.data.name) && !isPremium(message.author.id) && !isDeveloper(message.author.id)) {
-        const msg = await message.reply({
-            embeds: [{
-                color: 0xffd700,
-                description: `\`${cmd.data.name}\` is premium only.`
-            }]
+        const msg = await message.reply({                embeds: [{
+                    color: COLORS.WARNING,
+                    description: `${EMOJIS.WARNING} ${message.author}: \`${cmd.data.name}\` is premium only.`
+                }]
         });
         setTimeout(() => msg.delete().catch(() => {}), 5000);
         return;
     }
 
-    if (Array.isArray(cmd.subcommands) && cmd.subcommands.length > 0) {
-        const sub = args[0];
-        if (!sub || !cmd.subcommands.includes(sub)) {
-            await sendCard(message, cmd).catch(err => logger.error(`card ${cmd.data.name} error: ${err.message}`));
+    let handler = cmd;
+    let rest = args;
+    if (cmd.subs && Object.keys(cmd.subs).length > 0) {
+        const resolved = resolveSubcommand(cmd, args);
+        if (!resolved.handler || typeof resolved.handler.execute !== 'function') {
+            const focus = args[0] && cmd.subcommands.includes(args[0]) ? { sub: args[0] } : {};
+            await sendCard(message, cmd, focus).catch(err => logger.error(`card ${cmd.data.name} error: ${err.message}`));
             return;
         }
+        handler = resolved.handler;
+        rest = resolved.rest;
+    }
+
+    const focus = args[0] && cmd.subcommands && cmd.subcommands.includes(args[0]) ? { sub: args[0] } : {};
+    const handlerUsage = (handler !== cmd && handler.data && handler.data.usage) || cmd.data.usage || '';
+    const requiredParams = paramList(handler, handlerUsage, focus.sub || null).filter(p => p.required && p.name !== 'flags');
+    if (rest.length < requiredParams.length) {
+        await sendCard(message, cmd, focus).catch(err => logger.error(`card ${cmd.data.name} error: ${err.message}`));
+        return;
     }
 
     const dev = isDeveloper(message.author.id);
@@ -331,8 +386,8 @@ client.on(Events.MessageCreate, async (message) => {
                 const left = (exp - now) / 1000;
                 const msg = await message.reply({
                     embeds: [{
-                        color: 0xff6b6b,
-                        description: `Slow down! Wait ${left.toFixed(1)}s before using \`${cmd.data.name}\`.`
+                        color: COLORS.COOLDOWN,
+                        description: `${EMOJIS.COOLDOWN_WARN} ${message.author}: Wait **${left.toFixed(1)}s** before using \`${cmd.data.name}\` again`
                     }]
                 });
                 setTimeout(() => msg.delete().catch(() => {}), 5000);
@@ -347,17 +402,30 @@ client.on(Events.MessageCreate, async (message) => {
     const unwrapReply = wrapReply(message);
 
     try {
-        await cmd.execute(message, args, client, cfg);
+        run('INSERT INTO command_history (command, arguments, server_id, user_id, channel_id, timestamp) VALUES (?, ?, ?, ?, ?, ?)',
+            handler.data.name, rest.join(' '), message.guild.id, message.author.id, message.channel.id, Date.now() / 1000);
+    } catch (err) {
+        logger.error(`history ${cmd.data.name} error: ${err.message}`);
+    }
+
+    const commandStartedAt = Date.now();
+    try {
+        await handler.execute(message, rest, client, cfg);
         logger.command(`${message.author.tag} > ${prefix}${cmd.data.name} in ${message.guild.name}`);
     } catch (err) {
         logger.error(`cmd ${cmd.data.name} error: ${err.message}`);
         await message.reply({
             embeds: [{
-                color: 0xff4757,
+                color: 0xff3939,
                 description: 'Something went wrong running that command.'
             }]
         }).catch(() => {});
     } finally {
+        try {
+            run('INSERT INTO command_stats (command, user_id, guild_id, channel_id, execution_time, timestamp) VALUES (?, ?, ?, ?, ?, ?)',
+                handler.data.name, message.author.id, message.guild.id, message.channel.id,
+                Date.now() - commandStartedAt, Date.now() / 1000);
+        } catch (err) {}
         unwrapReply();
     }
 });
@@ -394,6 +462,7 @@ process.on('SIGINT', () => {
     process.exit(0);
 });
 
+initDatabase();
 loadCommands();
 loadEvents();
 

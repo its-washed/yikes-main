@@ -50,4 +50,12 @@ function removePremiumCommand(name) {
     savePremium(d);
 }
 
-module.exports = { loadPremium, savePremium, isPremium, addPremium, removePremium, isPremiumCommand, addPremiumCommand, removePremiumCommand };
+async function needPremium(message) {
+    const { first } = require('./database');
+    const { warn } = require('./context');
+    if (first('SELECT 1 AS ok FROM premium WHERE guild_id = ?', message.guild.id)) return true;
+    await warn(message, 'You need to have **premium** to use this command');
+    return false;
+}
+
+module.exports = { loadPremium, savePremium, isPremium, addPremium, removePremium, isPremiumCommand, addPremiumCommand, removePremiumCommand, needPremium };

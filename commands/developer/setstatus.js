@@ -4,7 +4,7 @@ const { ActivityType } = require('discord.js');
 
 module.exports = {
     data: { name: 'setstatus', description: 'Set bot status (Developer only)', usage: ',setstatus <online|idle|dnd|invisible>' },
-    aliases: ['status'],
+    aliases: [],
     cooldown: 0,
     async execute(message, args, client) {
         if (!isDeveloper(message.author.id)) return message.reply({ embeds: [permissionDenied(message, 'bot_developer')] });

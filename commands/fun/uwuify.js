@@ -3,7 +3,7 @@ const { createEmbed, errorEmbed } = require('../../utils/embeds');
 module.exports = {
     data: {
         name: 'uwuify',
-        description: 'UwU-ify text',
+        description: "Convert a message to the uwu format",
         usage: ',uwuify [text]'
     },
     aliases: ['uwu'],

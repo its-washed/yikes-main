@@ -1,119 +1,122 @@
 const { Events } = require('discord.js');
-const { getGuildConfig } = require('../utils/config');
-const { parseEmbed } = require('../utils/variables');
 const { logger } = require('../utils/logger');
+const { first } = require('../utils/database');
+const { getPrompt, buildModal } = require('../utils/modal');
+const { altConvert, scriptPayload } = require('../utils/embedScript');
+
+async function handleButtonMessage(interaction, buttonId) {
+    const row = first('SELECT embed FROM button_message WHERE guild_id = ? AND message_id = ? AND button_id = ?',
+        interaction.guild.id, interaction.message.id, buttonId);
+    if (!row) return false;
+    const replyError = async (err) => {
+        const content = `Failed to send the embed response\n\`\`\`${err.message}\`\`\``;
+        try {
+            if (interaction.replied || interaction.deferred) await interaction.followup.send({ content, ephemeral: true });
+            else await interaction.reply({ content, ephemeral: true });
+        } catch (err2) {}
+    };
+    try {
+        const payload = scriptPayload(altConvert(interaction.member, row.embed));
+        if (!payload.content && !payload.embeds) return true;
+        if (interaction.replied || interaction.deferred) await interaction.followup.send({ ...payload, ephemeral: true });
+        else await interaction.reply({ ...payload, ephemeral: true });
+    } catch (err) {
+        await replyError(err);
+    }
+    return true;
+}
 
 module.exports = {
     name: Events.InteractionCreate,
     once: false,
 
     async execute(interaction) {
-        if (!interaction.isButton()) return;
-        if (!interaction.guild) return;
+        if (!interaction.isButton() && !interaction.isStringSelectMenu()) return;
 
-        const config = getGuildConfig(interaction.guild.id);
-        const bmConfig = config.buttonMessages || [];
+        if (interaction.isButton()) {
+            const appeals = require('../utils/appeals');
+            if (appeals.isAppealButton(interaction.customId)) {
 
-        if (interaction.customId.startsWith('bm_')) {
-            const btnId = interaction.customId.replace('bm_', '');
-            const btn = bmConfig.find(b => b.id === btnId);
-            if (!btn || !btn.response) return interaction.reply({ content: 'No response configured.', ephemeral: true });
-
-            const ctx = { member: interaction.member, user: interaction.user, guild: interaction.guild };
-            const parsed = parseEmbed(btn.response, ctx);
-            if (parsed) {
-                const { EmbedBuilder } = require('discord.js');
-                const embed = new EmbedBuilder();
-                if (parsed.color) embed.setColor(parsed.color);
-                if (parsed.title) embed.setTitle(parsed.title);
-                if (parsed.description) embed.setDescription(parsed.description);
-                if (parsed.fields) embed.addFields(parsed.fields);
-                if (parsed.thumbnail) embed.setThumbnail(parsed.thumbnail.url);
-                if (parsed.image) embed.setImage(parsed.image.url);
-                return interaction.reply({ embeds: [embed], ephemeral: true });
-            } else {
-                const { resolve } = require('../utils/variables');
-                return interaction.reply({ content: resolve(btn.response, ctx), ephemeral: true });
+                return appeals.handleAppealButton(interaction).catch(err => logger.error(`appeal button: ${err.message}`));
             }
         }
 
-        if (interaction.customId.startsWith('br_')) {
-            const roleId = interaction.customId.replace('br_', '');
-            const brConfig = config.buttonRoles || [];
-            const entry = brConfig.find(b => b.messageId === interaction.message.id);
-            if (!entry) return interaction.reply({ content: 'This button role is no longer configured.', ephemeral: true });
+        if (!interaction.guild) return;
 
-            const btn = entry.buttons.find(b => b.roleId === roleId);
-            if (!btn) return interaction.reply({ content: 'Button not found.', ephemeral: true });
+        if (interaction.customId.startsWith('snapcode_')) {
+            const snapchat = require('../commands/server/snapchat');
+            const snapcode = snapchat.snapData && snapchat.snapData.get(interaction.customId.replace('snapcode_', ''));
+            if (!snapcode) return interaction.reply({ content: 'This button has expired.', ephemeral: true }).catch(() => {});
+            return interaction.reply({ embeds: [{ color: 0xFFFF00, image: { url: snapcode } }], ephemeral: true }).catch(() => {});
+        }
 
-            const role = interaction.guild.roles.cache.get(roleId);
-            if (!role) return interaction.reply({ content: 'Role no longer exists.', ephemeral: true });
-
-            const member = interaction.member;
-            const hasRole = member.roles.cache.has(roleId);
-
-            try {
-                if (hasRole) {
-                    await member.roles.remove(roleId, 'Button role toggle');
-                    return interaction.reply({ content: `Removed **${role.name}**.`, ephemeral: true });
-                } else {
-                    await member.roles.add(roleId, 'Button role toggle');
-                    return interaction.reply({ content: `Added **${role.name}**.`, ephemeral: true });
-                }
-            } catch {
-                return interaction.reply({ content: 'Failed to update role. Check my permissions.', ephemeral: true });
+        if (interaction.customId.startsWith('persistent:')) {
+            const suggestion = require('../utils/suggestion');
+            if (interaction.customId === 'persistent:upvote_suggestion') return suggestion.handleVote(interaction, 'upvote');
+            if (interaction.customId === 'persistent:downvote_suggestion') return suggestion.handleVote(interaction, 'downvote');
+            if (interaction.customId === 'persistent:create_suggestion') return suggestion.openCreateModal(interaction);
+            const confessions = require('../utils/confessions');
+            if (interaction.customId === 'persistent:submit_confession') {
+                return interaction.showModal(confessions.buildModal('confess_modal', 'Submit a Confession')).catch(() => {});
             }
+            if (interaction.customId === 'persistent:reply_confession' || interaction.customId === 'persistent:submit_reply') {
+                return interaction.showModal(confessions.buildReplyModal()).catch(() => {});
+            }
+            if (interaction.customId === 'persistent:pagination_previous' || interaction.customId === 'persistent:pagination_next') {
+                const { handlePageChange } = require('../utils/pagination');
+                return handlePageChange(interaction, interaction.customId.endsWith('previous') ? -1 : 1);
+            }
+        }
+
+        if (interaction.customId.startsWith('persistent:app_')) {
+            return require('../commands/server/apply').handleModeration(interaction);
+        }
+        if (interaction.customId.startsWith('persistent:giveaway_enter')) {
+            return require('../commands/server/giveaway').handleEnter(interaction);
+        }
+        if (interaction.customId.startsWith('modal_')) {
+            const opts = getPrompt(interaction.customId);
+            if (!opts) return interaction.reply({ content: 'This form has expired.', ephemeral: true }).catch(() => {});
+            const modal = buildModal(interaction.customId, opts);
+            return interaction.showModal(modal).catch(() => {
+                interaction.reply({ content: 'Could not open the form.', ephemeral: true }).catch(() => {});
+            });
+        }
+
+        if (interaction.customId.startsWith('checkout_select_')) {
+            const method = interaction.customId.replace('checkout_select_', '');
+            const checkout = first('SELECT amount FROM checkout WHERE message = ?', interaction.message.id);
+            if (!checkout) return interaction.reply({ content: 'Checkout message is **not** valid', ephemeral: true });
+            const receiver = first('SELECT receiver FROM payment_methods WHERE method = ? AND guild_id = ?', method, interaction.guild.id);
+            if (!receiver) return interaction.reply({ content: `Receiver for ${method} not found`, ephemeral: true });
+            let target = receiver.receiver;
+            if (method === 'paysafecard' || method === 'amazon') {
+                target = `Click on the button below to pay with ${method}`;
+            }
+            return interaction.reply({ content: `**${method}** - \`${checkout.amount}\`\n**Receiver:** ${target}`, ephemeral: true });
+        }
+
+        if (interaction.customId.startsWith('bm_')) {
+            const handled = await handleButtonMessage(interaction, interaction.customId.replace('bm_', ''));
+            if (handled) return;
+        }
+
+        if (interaction.customId.startsWith('crypto_copy:')) {
+            return interaction.reply({ content: interaction.customId.replace('crypto_copy:', ''), ephemeral: true });
+        }
+
+        const buttonRole = first('SELECT role_id FROM button_role WHERE guild_id = ? AND message_id = ? AND button_id = ?', 
+            interaction.guild.id, interaction.message.id, interaction.customId);
+        if (buttonRole) {
+            const { toggleButtonRole } = require('../commands/server/buttonrole');
+            return toggleButtonRole(interaction, buttonRole.role_id);
         }
 
         if (interaction.customId.startsWith('vm_')) {
-            const { PermissionFlagsBits } = require('discord.js');
-            const member = interaction.member;
-            const voiceChannel = member.voice.channel;
-
-            if (!voiceChannel) {
-                return interaction.reply({ content: 'Join a voice channel first.', ephemeral: true });
-            }
-
-            const { tempChannels } = require('../events/voiceMaster');
-            const tcData = tempChannels.get(voiceChannel.id);
-
-            if (!tcData || tcData.ownerId !== member.id) {
-                return interaction.reply({ content: 'You don\'t own this channel.', ephemeral: true });
-            }
-
-            const action = interaction.customId.replace('vm_', '');
-
-            if (action === 'lock') {
-                await voiceChannel.permissionOverwrites.edit(interaction.guild.id, { Connect: false });
-                return interaction.reply({ content: 'Channel locked.', ephemeral: true });
-            }
-            if (action === 'unlock') {
-                await voiceChannel.permissionOverwrites.edit(interaction.guild.id, { Connect: true });
-                return interaction.reply({ content: 'Channel unlocked.', ephemeral: true });
-            }
-            if (action === 'hide') {
-                await voiceChannel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: false });
-                return interaction.reply({ content: 'Channel hidden.', ephemeral: true });
-            }
-            if (action === 'reveal') {
-                await voiceChannel.permissionOverwrites.edit(interaction.guild.id, { ViewChannel: true });
-                return interaction.reply({ content: 'Channel revealed.', ephemeral: true });
-            }
-            if (action === 'limit') {
-                const newLimit = voiceChannel.userLimit >= 99 ? 0 : voiceChannel.userLimit + 1;
-                await voiceChannel.setUserLimit(newLimit);
-                return interaction.reply({ content: `Limit set to ${newLimit || 'unlimited'}.`, ephemeral: true });
-            }
-            if (action === 'rename') {
-                return interaction.reply({ content: 'Use `,voice rename <name>` to rename.', ephemeral: true });
-            }
-            if (action === 'claim') {
-                tcData.ownerId = member.id;
-                return interaction.reply({ content: 'You are now the owner.', ephemeral: true });
-            }
-            if (action === 'transfer') {
-                return interaction.reply({ content: 'Use `,voice transfer @user` to transfer.', ephemeral: true });
-            }
+            const { handleVmInteraction } = require('../utils/voiceMasterButtons');
+            return handleVmInteraction(interaction);
         }
+
+        await handleButtonMessage(interaction, interaction.customId);
     }
 };

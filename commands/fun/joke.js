@@ -20,10 +20,10 @@ const jokes = [
 
 module.exports = {
     data: { name: 'joke', description: 'Tell a random joke', usage: ',joke' },
-    aliases: ['dadjoke'],
+    aliases: [],
     cooldown: 3,
     async execute(message) {
         const joke = jokes[Math.floor(Math.random() * jokes.length)];
-        return message.reply({ embeds: [createEmbed({ color: 0xfbbf24, title: 'Joke', description: joke })] });
+        return message.reply({ embeds: [createEmbed({ color: 0xffd600, title: 'Joke', description: joke })] });
     }
 };

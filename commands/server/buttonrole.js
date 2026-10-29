@@ -1,174 +1,301 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { updateGuildConfig } = require('../../utils/config');
-const { errorEmbed, successEmbed, createEmbed, permissionDenied } = require('../../utils/embeds');
-const { isAdmin } = require('../../utils/permissions');
+const { PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, parseEmoji } = require('discord.js');
+const { warn, approve, paginate } = require('../../utils/context');
+const { needPerm, confirm } = require('../../utils/moderation');
+const { sendCard } = require('../../utils/helpCard');
+const { query, first, run } = require('../../utils/database');
+const { successEmbed, errorEmbed } = require('../../utils/embeds');
+const { EMOJIS } = require('../../utils/styles');
+const { dangerousRole } = require('../../utils/roleGuard');
+const crypto = require('crypto');
 
-const STYLE_MAP = {
-    blue: ButtonStyle.Primary,
-    blurple: ButtonStyle.Primary,
-    green: ButtonStyle.Success,
-    grey: ButtonStyle.Secondary,
-    gray: ButtonStyle.Secondary,
-    red: ButtonStyle.Danger
-};
+function guildAuthor(message) {
+    return { name: message.guild.name, icon_url: message.guild.iconURL() || undefined };
+}
+
+function styleFromColor(color) {
+    switch (String(color || '').toLowerCase()) {
+        case 'green': return ButtonStyle.Success;
+        case 'red': return ButtonStyle.Danger;
+        case 'grey': return ButtonStyle.Secondary;
+        case 'blue': return ButtonStyle.Primary;
+        default: return ButtonStyle.Secondary;
+    }
+}
+
+function rowToBuilder(row) {
+    return ActionRowBuilder.from(typeof row.toJSON === 'function' ? row.toJSON() : row);
+}
+
+async function resolveTargetMessage(message, input) {
+    const link = /(?:https?:\/\/)?(?:ptb\.|canary\.)?discord\.com\/channels\/(\d+)\/(\d+)\/(\d+)/.exec(input || '');
+    try {
+        if (link) {
+            if (link[1] !== message.guild.id) return { error: 'That message is in another server.' };
+            const channel = message.guild.channels.cache.get(link[2]);
+            if (!channel || !channel.messages) return { error: 'Could not find this message. I do not have access to this channel.' };
+            return { msg: await channel.messages.fetch(link[3]) };
+        }
+        if (/^\d+$/.test(input)) {
+            return { msg: await message.channel.messages.fetch(input) };
+        }
+    } catch (err) {
+        return { error: 'Could not find this message. It might be invalid or the message could have been deleted' };
+    }
+    return { error: 'This is **not** a message id or a message link' };
+}
+
+async function addButtonToMessage(msg, customId, label, emoji, color) {
+    const rows = msg.components.map(rowToBuilder);
+    let target = rows.find(row => row.components.length < 5);
+    if (!target) {
+        target = new ActionRowBuilder();
+        rows.push(target);
+    }
+    const button = new ButtonBuilder().setCustomId(customId).setStyle(styleFromColor(color));
+    button.setLabel(label === 'none' ? '​' : label);
+    if (emoji && emoji !== 'none') button.setEmoji(emoji);
+    target.addComponents(button);
+    await msg.edit({ components: rows });
+}
 
 module.exports = {
     data: {
         name: 'buttonrole',
-        description: 'Add role buttons to bot messages',
-        usage: ',buttonrole <add|remove|list> [args]'
+        description: 'Buttonrole commands',
+        usage: ',buttonrole <add|remove|clear|list|unique>'
     },
-    aliases: ['br'],
+    subcommands: ['add', 'remove', 'clear', 'list', 'unique'],
     cooldown: 5,
 
-    async execute(message, args, client, config) {
-        if (!isAdmin(message.member)) {
-            return message.reply({ embeds: [permissionDenied(message, 'administrator')] });
-        }
-
-        const sub = args[0]?.toLowerCase();
-        if (!sub) return message.reply({ embeds: [errorEmbed('Subcommands', 'Valid: `add`, `remove`, `list`')] });
-
-        if (sub === 'add') return this.handleAdd(message, args.slice(1), config);
-        if (sub === 'remove') return this.handleRemove(message, args.slice(1), config);
-        if (sub === 'list') return this.handleList(message, config);
-
-        return message.reply({ embeds: [errorEmbed('Invalid', 'Valid subcommands: `add`, `remove`, `list`')] });
+    async execute(message) {
+        return sendCard(message, module.exports);
     },
 
-    async handleAdd(message, args, config) {
-        const msgId = args[0];
-        const roleId = args[1];
-        const label = args.slice(2, -1).join(' ') || args[2];
-        const styleArg = args[args.length - 1];
+    subs: {
+        add: {
+            aliases: [],
+            data: { name: 'buttonrole add', description: "Add a button to a message\n> If you don't want to use an emoji/label, just type `none`", usage: ',buttonrole add .../channels/... member Verify ✅ green' },
+            async execute(message, args, client, config) {
+                if (!await needPerm(message, PermissionFlagsBits.ManageRoles)) return;
+                const resolved = await resolveTargetMessage(message, args[0]);
+                if (resolved.error) return warn(message, resolved.error);
+                const target = resolved.msg;
+                const roleText = args[1];
+                const label = args[2];
+                const emoji = args[3] || 'none';
+                const color = args[4] || 'grey';
+                if (!roleText || !label) {
+                    return warn(message, 'Usage: `buttonrole add <message> <role> <label> [emoji] [color]`\n**Important:** If you don\'t want to use an emoji or label, just type `none`');
+                }
 
-        if (!msgId || !roleId || !label) {
-            return message.reply({ embeds: [errorEmbed('Usage', ',buttonrole add <messageId> <roleId> <label> [style]')] });
-        }
+                const guard = await dangerousRole(message, roleText, config);
+                if (guard.error) return warn(message, guard.error);
+                const role = guard.role;
 
-        let targetMsg;
-        try {
-            targetMsg = await message.channel.messages.fetch(msgId);
-        } catch {
-            return message.reply({ embeds: [errorEmbed('Not Found', 'Could not fetch that message from this channel.')] });
-        }
+                if (target.author.id !== client.user.id) return warn(message, "I can't add buttons to messages that I didn't send");
 
-        if (!targetMsg.author.bot) {
-            return message.reply({ embeds: [errorEmbed('Bot Only', 'Button roles can only be added to messages sent by the bot.')] });
-        }
+                const customId = crypto.randomBytes(6).toString('base64url').slice(0, 8);
+                try {
+                    await addButtonToMessage(target, customId, label, emoji, color);
+                } catch (err) {
+                    return warn(message, 'Failed to create the button\n**Important:** If you don\'t want to use an emoji, just type `none`');
+                }
 
-        const role = message.guild.roles.cache.get(roleId);
-        if (!role) {
-            return message.reply({ embeds: [errorEmbed('Invalid Role', 'Role not found.')] });
-        }
-
-        if (role.position >= message.guild.members.me.roles.highest.position) {
-            return message.reply({ embeds: [errorEmbed('Role Hierarchy', 'I can\'t assign a role equal to or higher than my highest role.')] });
-        }
-
-        if (role.managed) {
-            return message.reply({ embeds: [errorEmbed('Managed Role', 'I can\'t assign managed roles (created by integrations).')] });
-        }
-
-        const brConfig = config.buttonRoles || [];
-        const existing = brConfig.find(b => b.messageId === msgId);
-
-        if (existing) {
-            if (existing.buttons.find(b => b.roleId === roleId)) {
-                return message.reply({ embeds: [errorEmbed('Duplicate', 'A button for that role already exists on this message.')] });
+                run('INSERT INTO button_role (guild_id, channel_id, message_id, button_id, role_id, label, emoji) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    message.guild.id, target.channel.id, target.id, customId, role.id, label === 'none' ? '​' : label, emoji);
+                return approve(message, `Added button with role ${role} [**here**](${target.url})`);
             }
-            if (existing.buttons.length >= 5) {
-                return message.reply({ embeds: [errorEmbed('Limit Reached', 'A message can have at most 5 buttons (Discord limit).')] });
+        },
+
+        remove: {
+            aliases: [],
+            data: { name: 'buttonrole remove', description: 'Remove a specific button from a message by its custom_id', usage: ',buttonrole remove KbJNGwwY' },
+            async execute(message, args) {
+                if (!await needPerm(message, PermissionFlagsBits.ManageGuild)) return;
+                const buttonId = args[0];
+                if (!buttonId) return warn(message, 'Usage: `buttonrole remove <buttonId>`');
+                const row = first('SELECT * FROM button_role WHERE guild_id = ? AND button_id = ?', message.guild.id, buttonId);
+                if (!row) return warn(message, `Button **${buttonId}** couldn't be found`);
+
+                const channel = message.guild.channels.cache.get(row.channel_id);
+                const removeRow = () => run('DELETE FROM button_role WHERE guild_id = ? AND button_id = ?', message.guild.id, buttonId);
+
+                if (!channel || !channel.messages) {
+                    return confirm(message,
+                        `${EMOJIS.QUESTION} ${message.author}: Message couldn't be found. However, message still exist in the database.\n> Do you want to remove them?`,
+                        async i => {
+                            removeRow();
+                            return i.update({
+                                embeds: [successEmbed(null, `${i.user}: Removed button (\`${buttonId}\`) from this [**message**](https://discord.com/channels/${row.guild_id}/${row.channel_id}/${row.message_id})`)],
+                                components: []
+                            }).catch(() => {});
+                        },
+                        async i => {
+                            return i.update({
+                                embeds: [errorEmbed(null, `${i.user}: Button roles deletion got canceled.`)],
+                                components: []
+                            }).catch(() => {});
+                        });
+                }
+
+                let target;
+                try {
+                    target = await channel.messages.fetch(row.message_id);
+                } catch (err) {
+                    return warn(message, 'Could not find this message. It might be invalid or the message could have been deleted');
+                }
+                if (!target.components.length) return warn(message, "This message doesn't have any buttons");
+
+                try {
+                    const rows = target.components
+                        .map(rowToBuilder)
+                        .map(r => r.setComponents(r.components.filter(c => c.data.custom_id !== buttonId)))
+                        .filter(r => r.components.length > 0);
+                    await target.edit({ components: rows });
+                    removeRow();
+                    return approve(message, `Button **${buttonId}** has been removed from this [**message**](${target.url})`);
+                } catch (err) {
+                    return warn(message, 'An error occurred while removing the button\n```' + err.message + '```');
+                }
             }
-            existing.buttons.push({ roleId, label, style: styleArg || 'blue' });
-        } else {
-            brConfig.push({
-                messageId: msgId,
-                channelId: message.channel.id,
-                buttons: [{ roleId, label, style: styleArg || 'blue' }]
-            });
-        }
+        },
 
-        updateGuildConfig(message.guild.id, { buttonRoles: brConfig });
+        clear: {
+            aliases: [],
+            data: { name: 'buttonrole clear', description: 'Remove all buttons from a message', usage: ',buttonrole clear .../channels/...' },
+            async execute(message, args) {
+                if (!await needPerm(message, PermissionFlagsBits.ManageRoles)) return;
+                const resolved = await resolveTargetMessage(message, args[0]);
+                if (resolved.error) return warn(message, resolved.error);
+                const target = resolved.msg;
 
-        await this.rebuildButtons(message.channel, msgId, brConfig);
-        return message.reply({ embeds: [successEmbed('Button Added', `Added **${label}** → ${role} on message \`${msgId}\``)] });
-    },
+                const check = first('SELECT 1 AS ok FROM button_role WHERE guild_id = ? AND channel_id = ? AND message_id = ?',
+                    message.guild.id, target.channel.id, target.id);
+                if (!check) return warn(message, 'There are no buttons in this message.');
 
-    async handleRemove(message, args, config) {
-        const msgId = args[0];
-        const roleId = args[1];
-
-        if (!msgId || !roleId) {
-            return message.reply({ embeds: [errorEmbed('Usage', ',buttonrole remove <messageId> <roleId>')] });
-        }
-
-        const brConfig = config.buttonRoles || [];
-        const entry = brConfig.find(b => b.messageId === msgId);
-        if (!entry) {
-            return message.reply({ embeds: [errorEmbed('Not Found', 'No button roles configured for that message.')] });
-        }
-
-        const idx = entry.buttons.findIndex(b => b.roleId === roleId);
-        if (idx === -1) {
-            return message.reply({ embeds: [errorEmbed('Not Found', 'No button for that role on this message.')] });
-        }
-
-        entry.buttons.splice(idx, 1);
-        if (entry.buttons.length === 0) {
-            const i = brConfig.indexOf(entry);
-            brConfig.splice(i, 1);
-        }
-
-        updateGuildConfig(message.guild.id, { buttonRoles: brConfig });
-
-        try {
-            const channel = message.guild.channels.cache.get(entry.channelId) || message.channel;
-            await this.rebuildButtons(channel, msgId, brConfig);
-        } catch {}
-
-        return message.reply({ embeds: [successEmbed('Removed', `Button for role \`${roleId}\` removed from message \`${msgId}\`.`)] });
-    },
-
-    async handleList(message, config) {
-        const brConfig = config.buttonRoles || [];
-        if (!brConfig.length) {
-            return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Button Roles', description: 'No button roles configured.\nUse `,buttonrole add` to create one.' })] });
-        }
-
-        const lines = brConfig.map((entry, i) => {
-            const btns = entry.buttons.map(b => {
-                const role = message.guild.roles.cache.get(b.roleId);
-                return role ? `${role}` : `\`${b.roleId}\``;
-            }).join(', ');
-            return `**${i + 1}.** Message \`${entry.messageId}\` — ${btns}`;
-        });
-
-        return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: `Button Roles (${brConfig.length} messages)`, description: lines.join('\n') })] });
-    },
-
-    async rebuildButtons(channel, msgId, brConfig) {
-        try {
-            const msg = await channel.messages.fetch(msgId);
-            const entry = brConfig.find(b => b.messageId === msgId);
-
-            if (!entry || !entry.buttons.length) {
-                await msg.edit({ components: [] });
-                return;
+                return confirm(message,
+                    `${EMOJIS.QUESTION} ${message.author}: Are you sure you want to clear **all** button roles from this [**message**](${target.url})?`,
+                    async i => {
+                        try { await target.edit({ components: [] }); } catch (err) {}
+                        run('DELETE FROM button_role WHERE guild_id = ? AND channel_id = ? AND message_id = ?',
+                            message.guild.id, target.channel.id, target.id);
+                        run('DELETE FROM button_settings WHERE guild_id = ? AND message_id = ?', message.guild.id, target.id);
+                        return i.update({
+                            embeds: [successEmbed(null, `${i.user}: Removed all buttons from this [**message**](${target.url})`)],
+                            components: []
+                        }).catch(() => {});
+                    },
+                    async i => {
+                        return i.update({
+                            embeds: [errorEmbed(null, `${i.user}: Button roles deletion got canceled.`)],
+                            components: []
+                        }).catch(() => {});
+                    });
             }
+        },
 
-            const row = new ActionRowBuilder();
-            for (const btn of entry.buttons.slice(0, 5)) {
-                const style = STYLE_MAP[btn.style] || ButtonStyle.Primary;
-                row.addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(`br_${btn.roleId}`)
-                        .setLabel(btn.label)
-                        .setStyle(style)
-                );
+        list: {
+            aliases: [],
+            data: { name: 'buttonrole list', description: 'View a list of every button role', usage: ',buttonrole list' },
+            async execute(message) {
+                const rows = query('SELECT * FROM button_role WHERE guild_id = ?', message.guild.id);
+                if (!rows.length) return warn(message, 'No button roles available for this server');
+                const lines = rows.map(row => {
+                    const emojiPart = row.emoji && row.emoji !== 'none' ? `${row.emoji} ` : '';
+                    return `${emojiPart}**${row.label}** <@&${row.role_id}> (\`${row.button_id}\`) [**here**](https://discord.com/channels/${message.guild.id}/${row.channel_id}/${row.message_id})`;
+                });
+                return paginate(message, lines, 'Button Roles', guildAuthor(message));
             }
+        },
 
-            await msg.edit({ components: [row] });
-        } catch {}
+        unique: {
+            aliases: [],
+            data: { name: 'buttonrole unique', description: 'Set whether the roles on a message are unique (only one role allowed).', usage: ',buttonrole unique .../channels/... true/false' },
+            async execute(message, args) {
+                if (!await needPerm(message, PermissionFlagsBits.ManageRoles)) return;
+                const resolved = await resolveTargetMessage(message, args[0]);
+                if (resolved.error) return warn(message, resolved.error);
+                const target = resolved.msg;
+
+                const option = String(args[1] || '').toLowerCase();
+                if (!['true', 'false', 'on', 'off', 'yes', 'no'].includes(option)) {
+                    return warn(message, 'Usage: `buttonrole unique <message> <true|false>`');
+                }
+                const unique = ['true', 'on', 'yes'].includes(option);
+
+                const check = first('SELECT 1 AS ok FROM button_role WHERE guild_id = ? AND message_id = ?',
+                    message.guild.id, target.id);
+                if (!check) return warn(message, `No buttons are assigned to [this message](${target.url})`);
+
+                run('DELETE FROM button_settings WHERE guild_id = ? AND message_id = ?', message.guild.id, target.id);
+                run('INSERT INTO button_settings (guild_id, channel_id, message_id, "unique") VALUES (?, ?, ?, ?)',
+                    message.guild.id, target.channel.id, target.id, unique);
+                const state = unique ? 'enabled' : 'disabled';
+                return approve(message, `Unique role behavior for [this message](${target.url}) has been ${state}`);
+            }
+        }
     }
 };
+
+async function toggleButtonRole(interaction, roleId) {
+    await interaction.deferReply({ ephemeral: true }).catch(() => {});
+    const guild = interaction.guild;
+    const role = guild.roles.cache.get(String(roleId));
+    if (!role) {
+        return interaction.followup({
+            embeds: [{ color: 0xffd600, description: `${EMOJIS.WARNING} ${interaction.user}: Role couldn't be found on this guild` }],
+            ephemeral: true
+        }).catch(() => {});
+    }
+
+    const member = interaction.member;
+    const botMember = guild.members.me;
+    if (botMember && role.position >= botMember.roles.highest.position) {
+        return interaction.followup({
+            embeds: [{ color: 0xffd600, description: `${EMOJIS.WARNING} ${interaction.user}: Bot is **missing** the following permission: \`manage_roles\`` }],
+            ephemeral: true
+        }).catch(() => {});
+    }
+
+    try {
+        const uniqueSetting = first('SELECT "unique" FROM button_settings WHERE guild_id = ? AND message_id = ?',
+            guild.id, interaction.message.id);
+        if (uniqueSetting && uniqueSetting.unique) {
+            const rows = query('SELECT role_id FROM button_role WHERE guild_id = ? AND message_id = ?',
+                guild.id, interaction.message.id);
+            const memberRoleIds = new Set(member.roles.cache.map(r => String(r.id)));
+            const toRemove = rows
+                .map(row => String(row.role_id))
+                .filter(id => memberRoleIds.has(id) && id !== String(role.id))
+                .map(id => guild.roles.cache.get(id))
+                .filter(Boolean);
+            if (toRemove.length) await member.roles.remove(toRemove, 'Unique button role');
+        }
+    } catch (err) {
+        return interaction.followup({
+            embeds: [{ color: 0xffd600, description: `${EMOJIS.WARNING} ${interaction.user}: An error occurred while processing roles` }],
+            ephemeral: true
+        }).catch(() => {});
+    }
+
+    let color;
+    let emoji;
+    let text;
+    if (member.roles.cache.has(role.id)) {
+        await member.roles.remove(role, 'Button role toggle').catch(() => {});
+        color = 0xff3939;
+        emoji = EMOJIS.DENY;
+        text = `Removed role ${role}`;
+    } else {
+        await member.roles.add(role, 'Button role toggle').catch(() => {});
+        color = 0x39ffb8;
+        emoji = EMOJIS.APPROVE;
+        text = `Added role ${role}`;
+    }
+    return interaction.followup({
+        embeds: [{ color, description: `${emoji} ${interaction.user}: ${text}` }],
+        ephemeral: true
+    }).catch(() => {});
+}
+
+module.exports.toggleButtonRole = toggleButtonRole;

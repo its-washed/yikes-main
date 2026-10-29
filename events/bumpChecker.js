@@ -28,7 +28,7 @@ module.exports = {
 
                             await channel.send({
                                 embeds: [createEmbed({
-                                    color: 0x6c5ce7,
+                                    color: 0x729bb0,
                                     title: 'Bump Reminder!',
                                     description: content,
                                     fields: [{ name: 'Command', value: '`/bump` on Disboard', inline: true }]

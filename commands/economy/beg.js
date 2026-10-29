@@ -1,39 +1,48 @@
 const { createEmbed } = require('../../utils/embeds');
-const { updateWallet } = require('../../utils/economy');
+const { COLORS } = require('../../utils/styles');
+const { warn } = require('../../utils/context');
+const { run, first } = require('../../utils/database');
+const { ensureEconomy } = require('../../utils/predicates');
+const E = require('../../utils/econ');
+
+function money(value) {
+    const n = Number(value) || 0;
+    const ip = Math.trunc(n).toLocaleString('en-US');
+    if (ip.replace(/,/g, '').length <= 10) {
+        return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    const omitted = ip.replace(/,/g, '').length - 10;
+    return `${ip.slice(0, 10)}... (+${omitted})`;
+}
 
 module.exports = {
     data: { name: 'beg', description: 'Beg for money', usage: ',beg' },
     aliases: [],
-    cooldown: 30,
-    async execute(message) {
-        const outcomes = [
-            { text: 'A kind stranger gave you some coins.', min: 1, max: 100, chance: 0.4 },
-            { text: 'Someone felt bad for you.', min: 50, max: 250, chance: 0.25 },
-            { text: 'You found some coins on the ground.', min: 10, max: 75, chance: 0.5 },
-            { text: 'A rich person tossed you some change.', min: 100, max: 500, chance: 0.15 },
-            { text: 'You begged but got nothing.', min: 0, max: 0, chance: 0.35 },
-            { text: 'A homeless person gave YOU money out of pity.', min: 1, max: 50, chance: 0.1 },
-            { text: 'You got hit instead of getting money.', min: 0, max: 0, chance: 0.15 },
-            { text: 'Elon Musk laughed at you.', min: 0, max: 0, chance: 0.1 },
-        ];
+    cooldown: 5,
+    async execute(message, args, client) {
+        if (!await ensureEconomy(message, client)) return;
 
-        const roll = Math.random();
-        let cumulative = 0;
-        let outcome = outcomes[outcomes.length - 1];
-
-        for (const o of outcomes) {
-            cumulative += o.chance;
-            if (roll < cumulative) { outcome = o; break; }
+        const row = E.ensureAccount(message.author.id);
+        const now = Date.now() / 1000;
+        if (row.beg && row.beg > now) {
+            return warn(message, `This command is on cooldown\n> Available <t:${Math.floor(row.beg)}:R>`);
+        }
+        if ((Number(row.cash) || 0) + (Number(row.card) || 0) > 100000) {
+            return warn(message, `You can't beg if you have more than **100.000** 💵`);
         }
 
-        const earned = Math.floor(Math.random() * (outcome.max - outcome.min + 1)) + outcome.min;
-        if (earned > 0) updateWallet(message.author.id, earned);
+        const config = first('SELECT beg_min, beg_max FROM economy_config WHERE active = 1')
+            || { beg_min: 100, beg_max: 500 };
+        const received = config.beg_min + Math.random() * (config.beg_max - config.beg_min);
+
+        E.addCollectMoney(message.author.id, 'beg', received);
+        run('UPDATE economy SET beg = ?, cash = cash + ? WHERE user_id = ?', Math.floor(now + 60), received, message.author.id);
+        E.logging(message.author.id, received, 'collect', 'beg');
 
         return message.reply({
             embeds: [createEmbed({
-                color: earned > 0 ? 0x22c55e : 0xff4757,
-                title: 'Begging',
-                description: `${outcome.text}\n${earned > 0 ? `You received **$${earned.toLocaleString()}**.` : 'You received nothing.'}`
+                color: COLORS.NEUTRAL,
+                description: `🙏 ${message.author}: You begged and received **${money(received)}** 💵`
             })]
         });
     }

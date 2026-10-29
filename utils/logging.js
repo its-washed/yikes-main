@@ -1,5 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
 const { getGuildConfig } = require('./config');
+const { COLORS, EMOJIS } = require('./styles');
 
 function getLogChannel(guild) {
     const config = getGuildConfig(guild.id);
@@ -13,106 +14,173 @@ function sendLog(guild, embed) {
     channel.send({ embeds: [embed] }).catch(() => {});
 }
 
+function guildIcon(guild) {
+    return guild && guild.iconURL ? guild.iconURL({ size: 256 }) : null;
+}
+
+function avatarOf(user) {
+    return user && user.avatarURL ? user.avatarURL({ size: 256 }) : null;
+}
+
+function stamp(ms) {
+    return `<t:${Math.floor(ms / 1000)}:f>`;
+}
+
+function stampRelative(ms) {
+    return `<t:${Math.floor(ms / 1000)}:R>`;
+}
+
+async function auditActor(guild, actionType) {
+    try {
+        const logs = await guild.fetchAuditLogs({ type: actionType, limit: 1 });
+        const entry = logs.entries.first();
+        return entry && entry.executor ? entry.executor : null;
+    } catch (err) {
+        return null;
+    }
+}
+
 function logChannelCreate(channel) {
     if (!channel.guild) return;
+    const guild = channel.guild;
     const embed = new EmbedBuilder()
-        .setColor(0x22c55e)
-        .setTitle('Channel Created')
-        .addFields(
-            { name: 'Name', value: `${channel}`, inline: true },
-            { name: 'Type', value: channel.type.toString(), inline: true },
-            { name: 'ID', value: channel.id, inline: true }
-        )
+        .setColor(COLORS.NEUTRAL)
+        .setTitle('Channel Create')
+        .setDescription(`<#${channel.id}> got created`)
+        .setAuthor({ name: guild.name, iconURL: guildIcon(guild) || undefined })
+        .addFields({ name: 'Channel', value: `**${channel.name || 'unknown'}** (\`${channel.id}\`)`, inline: false })
+        .setFooter({ text: `ID: ${channel.id}` })
         .setTimestamp();
-    sendLog(channel.guild, embed);
+    auditActor(guild, 10).then(actor => {
+        if (actor) embed.addFields({ name: 'Created by', value: `**${actor}** (\`${actor.id}\`)`, inline: false });
+        sendLog(guild, embed);
+    });
 }
 
 function logChannelDelete(channel) {
     if (!channel.guild) return;
+    const guild = channel.guild;
     const embed = new EmbedBuilder()
-        .setColor(0xff4757)
-        .setTitle('Channel Deleted')
-        .addFields(
-            { name: 'Name', value: channel.name, inline: true },
-            { name: 'Type', value: channel.type.toString(), inline: true },
-            { name: 'ID', value: channel.id, inline: true }
-        )
+        .setColor(COLORS.NEUTRAL)
+        .setTitle('Channel Delete')
+        .setDescription(`<#${channel.id}> got deleted`)
+        .setAuthor({ name: guild.name, iconURL: guildIcon(guild) || undefined })
+        .addFields({ name: 'Channel', value: `**${channel.name || 'unknown'}** (\`${channel.id}\`)`, inline: false })
+        .setFooter({ text: `ID: ${channel.id}` })
         .setTimestamp();
-    sendLog(channel.guild, embed);
+    auditActor(guild, 12).then(actor => {
+        if (actor) embed.addFields({ name: 'Deleted by', value: `**${actor}** (\`${actor.id}\`)`, inline: false });
+        sendLog(guild, embed);
+    });
 }
 
 function logChannelUpdate(oldChannel, newChannel) {
     if (!oldChannel.guild) return;
-    const changes = [];
-    if (oldChannel.name !== newChannel.name) changes.push(`Name: \`${oldChannel.name}\` → \`${newChannel.name}\``);
-    if (oldChannel.topic !== newChannel.topic) changes.push(`Topic updated`);
-    if (oldChannel.nsfw !== newChannel.nsfw) changes.push(`NSFW: ${oldChannel.nsfw} → ${newChannel.nsfw}`);
-    if (!changes.length) return;
     const embed = new EmbedBuilder()
-        .setColor(0xfbbf24)
-        .setTitle('Channel Updated')
-        .setDescription(changes.join('\n'))
+        .setColor(COLORS.NEUTRAL)
+        .setTitle('Channel Update')
+        .setFooter({ text: `ID: ${newChannel.id}` })
         .setTimestamp();
-    sendLog(newChannel.guild, embed);
+
+    if (oldChannel.name !== newChannel.name) {
+        embed.setDescription(`<#${newChannel.id}> got a different name`)
+            .addFields(
+                { name: 'Before', value: oldChannel.name, inline: true },
+                { name: 'After', value: newChannel.name, inline: true }
+            );
+    } else if (oldChannel.topic !== newChannel.topic) {
+        embed.setDescription(`<#${newChannel.id}> got a different topic`)
+            .addFields(
+                { name: 'Before', value: oldChannel.topic || '*none*', inline: false },
+                { name: 'After', value: newChannel.topic || '*none*', inline: false }
+            );
+    } else if (oldChannel.nsfw !== newChannel.nsfw) {
+        embed.setDescription(`<#${newChannel.id}> ${newChannel.nsfw ? 'is now **NSFW**' : 'is **not NSFW** anymore'}`);
+    } else if (oldChannel.type !== newChannel.type) {
+        embed.setDescription(`<#${newChannel.id}> got a different type`)
+            .addFields(
+                { name: 'Before', value: oldChannel.type.toString(), inline: true },
+                { name: 'After', value: newChannel.type.toString(), inline: true }
+            );
+    } else {
+        return;
+    }
+
+    auditActor(newChannel.guild, 11).then(actor => {
+        if (actor) embed.addFields({ name: 'Moderator', value: `**${actor}** (\`${actor.id}\`)`, inline: false });
+        sendLog(newChannel.guild, embed);
+    });
 }
 
 function logMessageDelete(message) {
-    if (!message.guild || message.author?.bot) return;
+    if (!message.guild || !message.author || message.author.bot) return;
     const embed = new EmbedBuilder()
-        .setColor(0xff4757)
+        .setColor(COLORS.NEUTRAL)
         .setTitle('Message Deleted')
-        .addFields(
-            { name: 'Author', value: `${message.author} (${message.author.id})`, inline: true },
-            { name: 'Channel', value: `${message.channel}`, inline: true },
-            { name: 'Content', value: message.content?.slice(0, 1024) || '*No text content*' }
-        )
+        .setDescription(message.content || 'No Content')
+        .setAuthor({ name: `${message.author}`, iconURL: avatarOf(message.author) || undefined })
+        .addFields({ name: 'Channel', value: `<#${message.channel.id}> (\`${message.channel.id}\`)`, inline: false })
+        .setFooter({ text: `ID: ${message.id}` })
         .setTimestamp();
-    if (message.attachments.size) {
-        embed.addFields({ name: 'Attachments', value: message.attachments.size.toString(), inline: true });
+
+    const attachment = message.attachments && message.attachments.first ? message.attachments.first() : null;
+    if (attachment) {
+        if (/\.(png|jpe?g|gif|webp)$/i.test(attachment.name || attachment.url || '')) {
+            embed.setImage(attachment.url);
+        } else {
+            embed.addFields({ name: 'Attachment', value: `[${attachment.name || 'file'}](${attachment.url})`, inline: false });
+        }
     }
     sendLog(message.guild, embed);
 }
 
 function logMessageUpdate(oldMessage, newMessage) {
-    if (!oldMessage.guild || oldMessage.author?.bot) return;
+    if (!oldMessage.guild || !oldMessage.author || oldMessage.author.bot) return;
     if (oldMessage.content === newMessage.content) return;
+    const before = oldMessage.content || '';
+    const after = newMessage.content || '';
     const embed = new EmbedBuilder()
-        .setColor(0xfbbf24)
-        .setTitle('Message Edited')
+        .setColor(COLORS.NEUTRAL)
+        .setTitle('Message Edit')
+        .setDescription(`${oldMessage.author} edited a message`)
+        .setAuthor({ name: `${newMessage.author}`, iconURL: avatarOf(newMessage.author) || undefined })
         .addFields(
-            { name: 'Author', value: `${oldMessage.author}`, inline: true },
-            { name: 'Channel', value: `${oldMessage.channel}`, inline: true },
-            { name: 'Before', value: oldMessage.content?.slice(0, 512) || '*empty*', inline: false },
-            { name: 'After', value: newMessage.content?.slice(0, 512) || '*empty*', inline: false }
+            { name: 'Before', value: before.slice(0, 1024) || 'No Content', inline: false },
+            { name: 'After', value: after.slice(0, 1024) || 'No Content', inline: false },
+            { name: 'Channel', value: `<#${newMessage.channel.id}> (\`${newMessage.channel.id}\`)`, inline: false }
         )
+        .setFooter({ text: `ID: ${newMessage.id}` })
         .setTimestamp();
     sendLog(oldMessage.guild, embed);
 }
 
 function logMemberJoin(member) {
+    const young = Date.now() - member.user.createdTimestamp < 7 * 86400000;
     const embed = new EmbedBuilder()
-        .setColor(0x22c55e)
-        .setTitle('Member Joined')
+        .setColor(young ? COLORS.WARNING : COLORS.SUCCESS)
+        .setTitle('Member Join')
+        .setDescription(`<@${member.id}> joined the server${young ? `\n${EMOJIS.WARNING} Account is younger than **7 days**` : ''}`)
+        .setAuthor({ name: `${member}`, iconURL: avatarOf(member.user) || undefined })
         .addFields(
-            { name: 'User', value: `${member} (${member.id})`, inline: true },
-            { name: 'Account Created', value: `<t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`, inline: true },
-            { name: 'Member Count', value: member.guild.memberCount.toString(), inline: true }
+            { name: 'Created', value: `${stamp(member.user.createdTimestamp)}\n${stampRelative(member.user.createdTimestamp)}`, inline: false },
+            { name: 'Joined', value: `${stamp(member.joinedTimestamp || Date.now())}\n${stampRelative(member.joinedTimestamp || Date.now())}`, inline: false }
         )
-        .setThumbnail(member.user.displayAvatarURL({ size: 128 }))
-        .setTimestamp();
+        .setFooter({ text: `Members: ${member.guild.memberCount} | ID: ${member.id}` })
+        .setTimestamp(member.joinedTimestamp || Date.now());
     sendLog(member.guild, embed);
 }
 
 function logMemberRemove(member) {
     const embed = new EmbedBuilder()
-        .setColor(0xff4757)
+        .setColor(COLORS.ERROR)
         .setTitle('Member Left')
+        .setDescription(`<@${member.id}> left the server`)
+        .setAuthor({ name: `${member}`, iconURL: avatarOf(member.user) || undefined })
         .addFields(
-            { name: 'User', value: `${member} (${member.id})`, inline: true },
-            { name: 'Roles', value: member.roles.cache.filter(r => r.id !== member.guild.id).map(r => r).join(', ') || 'None', inline: true },
-            { name: 'Member Count', value: member.guild.memberCount.toString(), inline: true }
+            { name: 'Created', value: `${stamp(member.user.createdTimestamp)}\n${stampRelative(member.user.createdTimestamp)}`, inline: false },
+            { name: 'Joined', value: `${stamp(member.joinedTimestamp || member.user.createdTimestamp)}\n${stampRelative(member.joinedTimestamp || member.user.createdTimestamp)}`, inline: false }
         )
-        .setThumbnail(member.user.displayAvatarURL({ size: 128 }))
+        .setFooter({ text: `Members: ${member.guild.memberCount} | ID: ${member.id}` })
         .setTimestamp();
     sendLog(member.guild, embed);
 }
@@ -120,64 +188,114 @@ function logMemberRemove(member) {
 function logRoleCreate(role) {
     if (!role.guild) return;
     const embed = new EmbedBuilder()
-        .setColor(0x22c55e)
-        .setTitle('Role Created')
-        .addFields(
-            { name: 'Name', value: `${role}`, inline: true },
-            { name: 'Color', value: role.hexColor, inline: true },
-            { name: 'ID', value: role.id, inline: true }
-        )
+        .setColor(COLORS.NEUTRAL)
+        .setTitle('Role Create')
+        .addFields({ name: 'Role', value: `**${role.name}** (\`${role.id}\`)`, inline: false })
+        .setFooter({ text: `ID: ${role.id}` })
         .setTimestamp();
-    sendLog(role.guild, embed);
+    auditActor(role.guild, 30).then(actor => {
+        if (actor) embed.addFields({ name: 'Created by', value: `**${actor}** (\`${actor.id}\`)`, inline: false });
+        sendLog(role.guild, embed);
+    });
 }
 
 function logRoleDelete(role) {
     if (!role.guild) return;
     const embed = new EmbedBuilder()
-        .setColor(0xff4757)
-        .setTitle('Role Deleted')
-        .addFields(
-            { name: 'Name', value: role.name, inline: true },
-            { name: 'Color', value: role.hexColor, inline: true },
-            { name: 'ID', value: role.id, inline: true }
-        )
+        .setColor(COLORS.NEUTRAL)
+        .setTitle('Role Delete')
+        .addFields({ name: 'Role', value: `**${role.name}** (\`${role.id}\`)`, inline: false })
+        .setFooter({ text: `ID: ${role.id}` })
         .setTimestamp();
-    sendLog(role.guild, embed);
+    auditActor(role.guild, 32).then(actor => {
+        if (actor) embed.addFields({ name: 'Deleted by', value: `**${actor}** (\`${actor.id}\`)`, inline: false });
+        sendLog(role.guild, embed);
+    });
 }
 
 function logRoleUpdate(oldRole, newRole) {
     if (!oldRole.guild) return;
-    const changes = [];
-    if (oldRole.name !== newRole.name) changes.push(`Name: \`${oldRole.name}\` → \`${newRole.name}\``);
-    if (oldRole.color !== newRole.color) changes.push(`Color: ${oldRole.hexColor} → ${newRole.hexColor}`);
-    if (oldRole.hoist !== newRole.hoist) changes.push(`Hoist: ${oldRole.hoist} → ${newRole.hoist}`);
-    if (oldRole.mentionable !== newRole.mentionable) changes.push(`Mentionable: ${oldRole.mentionable} → ${newRole.mentionable}`);
-    if (!changes.length) return;
     const embed = new EmbedBuilder()
-        .setColor(0xfbbf24)
-        .setTitle('Role Updated')
-        .setDescription(changes.join('\n'))
+        .setColor(COLORS.NEUTRAL)
+        .setTitle('Role Update')
+        .setFooter({ text: `ID: ${newRole.id}` })
         .setTimestamp();
-    sendLog(newRole.guild, embed);
+
+    if (oldRole.name !== newRole.name) {
+        embed.setDescription(`<@&${newRole.id}>'s name got updated`)
+            .addFields(
+                { name: 'Before', value: oldRole.name, inline: true },
+                { name: 'After', value: newRole.name, inline: true }
+            );
+    } else if (oldRole.hoist !== newRole.hoist) {
+        embed.setDescription(`<@&${newRole.id}> ${newRole.hoist ? 'is **hoisted**' : 'is **not** hoisted anymore'}`);
+    } else if (oldRole.mentionable !== newRole.mentionable) {
+        embed.setDescription(`<@&${newRole.id}> ${newRole.mentionable ? 'is **mentionable**' : 'is **not** mentionable anymore'}`);
+    } else if (oldRole.color !== newRole.color) {
+        embed.setDescription(`<@&${newRole.id}>'s color got updated`)
+            .addFields(
+                { name: 'Before', value: oldRole.hexColor, inline: true },
+                { name: 'After', value: newRole.hexColor, inline: true }
+            );
+    } else {
+        return;
+    }
+
+    auditActor(newRole.guild, 31).then(actor => {
+        if (actor) embed.addFields({ name: 'Moderator', value: `**${actor}** (\`${actor.id}\`)`, inline: false });
+        sendLog(newRole.guild, embed);
+    });
 }
 
 function logVoiceStateUpdate(oldState, newState) {
     const member = newState.member;
     if (!member || member.user.bot) return;
+
+    const beforeId = oldState.channel ? oldState.channel.id : null;
+    const afterId = newState.channel ? newState.channel.id : null;
+
+    if (beforeId !== afterId) {
+        const embed = new EmbedBuilder()
+            .setColor(COLORS.NEUTRAL)
+            .setAuthor({ name: `${member}`, iconURL: avatarOf(member.user) || undefined })
+            .setTimestamp();
+
+        if (!oldState.channel && newState.channel) {
+            embed.setTitle('Voice Channel Join')
+                .setDescription(`<@${member.id}> joined voice channel`)
+                .addFields({ name: 'Channel', value: `<#${newState.channel.id}>`, inline: false })
+                .setFooter({ text: `ID: ${newState.channel.id}` });
+        } else if (oldState.channel && !newState.channel) {
+            embed.setTitle('Voice Channel Leave')
+                .setDescription(`<@${member.id}> left voice channel`)
+                .addFields({ name: 'Channel', value: `<#${oldState.channel.id}>`, inline: false })
+                .setFooter({ text: `ID: ${oldState.channel.id}` });
+        } else {
+            embed.setTitle('Voice Channel Switch')
+                .setDescription(`<@${member.id}> switched voice channel`)
+                .addFields(
+                    { name: 'Before', value: `<#${oldState.channel.id}>`, inline: true },
+                    { name: 'After', value: `<#${newState.channel.id}>`, inline: true }
+                )
+                .setFooter({ text: `ID: ${newState.channel.id}` });
+        }
+
+        sendLog(newState.guild, embed);
+        return;
+    }
+
     const changes = [];
-    if (!oldState.channel && newState.channel) changes.push(`Joined **${newState.channel.name}**`);
-    else if (oldState.channel && !newState.channel) changes.push(`Left **${oldState.channel.name}**`);
-    else if (oldState.channel && newState.channel && oldState.channel.id !== newState.channel.id) changes.push(`Moved from **${oldState.channel.name}** → **${newState.channel.name}**`);
     if (oldState.mute !== newState.mute) changes.push(`Mute: ${newState.mute ? 'ON' : 'OFF'}`);
     if (oldState.deaf !== newState.deaf) changes.push(`Deaf: ${newState.deaf ? 'ON' : 'OFF'}`);
     if (!changes.length) return;
+
     const embed = new EmbedBuilder()
-        .setColor(0x6c5ce7)
+        .setColor(COLORS.NEUTRAL)
         .setTitle('Voice Update')
-        .addFields(
-            { name: 'User', value: `${member}`, inline: true },
-            { name: 'Changes', value: changes.join('\n'), inline: false }
-        )
+        .setDescription(`<@${member.id}>`)
+        .setAuthor({ name: `${member}`, iconURL: avatarOf(member.user) || undefined })
+        .addFields({ name: 'Changes', value: changes.join('\n'), inline: false })
+        .setFooter({ text: `ID: ${newState.channel ? newState.channel.id : member.id}` })
         .setTimestamp();
     sendLog(newState.guild, embed);
 }

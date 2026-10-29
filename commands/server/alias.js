@@ -3,9 +3,10 @@ const { errorEmbed, successEmbed, createEmbed } = require('../../utils/embeds');
 const { Paginator } = require('../../utils/pagination');
 
 module.exports = {
+    permission: "manage guild",
     data: {
         name: 'alias',
-        description: 'Create custom command aliases with argument support',
+        description: "Create your own shortcuts for commands",
         usage: ',alias <add|remove|list> [args]'
     },
     cooldown: 5,
@@ -20,6 +21,25 @@ module.exports = {
 
         return message.reply({ embeds: [errorEmbed('Invalid', 'Valid: `add`, `remove`, `list`')] });
     },
+
+    subs: {
+        add: {
+            aliases: [],
+            data: { name: 'alias add', description: 'Create or update an alias for command', usage: ',alias add byebye ban' },
+            execute: (message, args, client, config) => module.exports.handleAdd(message, args.slice(1), config)
+        },
+        remove: {
+            aliases: [],
+            data: { name: 'alias remove', description: 'Remove an alias for command', usage: ',alias remove byebye' },
+            execute: (message, args, client, config) => module.exports.handleRemove(message, args.slice(1), config)
+        },
+        list: {
+            aliases: [],
+            data: { name: 'alias list', description: 'List every alias for all commands', usage: ',alias list' },
+            execute: (message, args, client, config) => module.exports.handleList(message, config)
+        }
+    },
+
 
     async handleAdd(message, args, config) {
         const aliasName = args[0]?.toLowerCase();
@@ -67,14 +87,14 @@ module.exports = {
     async handleList(message, config) {
         const aliases = config.customAliases || [];
         if (!aliases.length) {
-            return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Custom Aliases', description: 'No aliases configured.\nUse `,alias add <name> <command> [args]` to create one.' })] });
+            return message.reply({ embeds: [createEmbed({ color: 0x729bb0, title: 'Custom Aliases', description: 'No aliases configured.\nUse `,alias add <name> <command> [args]` to create one.' })] });
         }
 
         const pages = [];
         for (let i = 0; i < aliases.length; i += 10) {
             const chunk = aliases.slice(i, i + 10);
             pages.push({
-                color: 0x6c5ce7,
+                color: 0x729bb0,
                 title: `Custom Aliases (${aliases.length})`,
                 description: chunk.map((a, j) => `**${i + j + 1}.** \`,${a.name}\` → \`,${a.command} ${a.args}\``).join('\n')
             });

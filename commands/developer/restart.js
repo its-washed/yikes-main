@@ -5,15 +5,33 @@ const path = require('path');
 const { spawn } = require('child_process');
 
 module.exports = {
-    data: { name: 'restart', description: 'Restart the bot process (Developer only)', usage: ',restart' },
-    aliases: ['reboot'],
+    permission: "bot developer",
+    data: { name: 'restart', description: '', usage: ',restart' },
+    aliases: [],
     cooldown: 0,
     async execute(message, args, client) {
         if (!isDeveloper(message.author.id)) return message.reply({ embeds: [permissionDenied(message, 'bot_developer')] });
 
+        if (String(args[0] || '').toLowerCase() === '--pull') {
+            try {
+                const { execSync } = require('child_process');
+                const root = path.join(__dirname, '..', '..');
+                const oldCommit = execSync('git rev-parse HEAD', { cwd: root }).toString().trim();
+                execSync('git pull', { cwd: root, stdio: 'ignore' });
+                const newCommit = execSync('git rev-parse HEAD', { cwd: root }).toString().trim();
+                if (oldCommit === newCommit) {
+                    return message.reply({ embeds: [successEmbed('No update found. Aborting...')] });
+                }
+                const commitLink = 'https://github.com/evelinabot/evelina/commit/' + newCommit;
+                return message.reply({ embeds: [successEmbed('Restarting the bot with commit **[`' + newCommit + '`](' + commitLink + ')**')] });
+            } catch (err) {
+                return message.reply({ embeds: [errorEmbed('Pull Failed', 'Could not pull the latest changes (' + err.message + ')')] });
+            }
+        }
+
         const confirm = await message.reply({
             embeds: [createEmbed({
-                color: 0xfbbf24,
+                color: 0xffd600,
                 title: 'Restart Bot',
                 description: 'React with ✅ to confirm restart.'
             })]
@@ -24,6 +42,13 @@ module.exports = {
         const collector = confirm.createReactionCollector({ filter, time: 15000, max: 1 });
 
         collector.on('collect', async () => {
+            if (process.env.NODE_APP_INSTANCE !== undefined || process.env.PM2_HOME) {
+                try {
+                    const { execSync } = require('child_process');
+                    execSync('pm2 restart 0', { stdio: 'ignore' });
+                } catch (err) {}
+            }
+
             const supervised = Boolean(client.shard) || typeof process.send === 'function';
             if (!supervised) {
                 try {
@@ -50,7 +75,7 @@ module.exports = {
                     return confirm.edit({ embeds: [errorEmbed('Restart Failed', `Could not start a replacement process (${err.message}). The bot was left running.`)] }).catch(() => {});
                 }
             }
-            await confirm.edit({ embeds: [createEmbed({ color: 0xfbbf24, description: 'Restarting...' })] }).catch(() => {});
+            await confirm.edit({ embeds: [createEmbed({ color: 0xffd600, description: 'Restarting...' })] }).catch(() => {});
             process.exit(0);
         });
 

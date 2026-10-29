@@ -1,127 +1,204 @@
-const { updateGuildConfig } = require('../../utils/config');
-const { errorEmbed, successEmbed, createEmbed, permissionDenied } = require('../../utils/embeds');
-const { isAdmin } = require('../../utils/permissions');
-const { Paginator } = require('../../utils/pagination');
+const { PermissionFlagsBits, parseEmoji } = require('discord.js');
+const { warn, approve, paginate } = require('../../utils/context');
+const { needPerm, confirm } = require('../../utils/moderation');
+const { sendCard } = require('../../utils/helpCard');
+const { query, first, run } = require('../../utils/database');
+const { successEmbed, errorEmbed } = require('../../utils/embeds');
+const { EMOJIS } = require('../../utils/styles');
+
+function guildAuthor(message) {
+    return { name: message.guild.name, icon_url: message.guild.iconURL() || undefined };
+}
+
+function parseReactions(value) {
+    try {
+        const parsed = JSON.parse(value || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (err) {
+        return [];
+    }
+}
+
+function resolveReaction(guild, token) {
+    if (!token) return null;
+    const custom = parseEmoji(token);
+    if (custom && custom.id) {
+        const found = guild.emojis.cache.get(custom.id) || guild.emojis.cache.find(e => e.name === custom.name);
+        if (!found) return null;
+        return `<:${found.name}:${found.id}>`;
+    }
+    const bare = token.replace(/^:+|:+$/g, '');
+    const guildEmoji = guild.emojis.cache.find(e => e.name === bare);
+    if (guildEmoji) return `<:${guildEmoji.name}:${guildEmoji.id}>`;
+    if (token.includes(':')) return null;
+    return token;
+}
+
+function resolveReactions(guild, input) {
+    const out = [];
+    for (const token of input.split(/\s+/).filter(Boolean)) {
+        const resolved = resolveReaction(guild, token);
+        if (!resolved) continue;
+        out.push(resolved);
+    }
+    return out;
+}
 
 module.exports = {
     data: {
         name: 'autoreact',
-        description: 'Manage automatic reactions on messages',
-        usage: ',autoreact <add|remove|list|channel|reset> [args]'
+        description: 'Add a reaction(s) to a message',
+        usage: ',autoreact <add|remove|list|reset|channel>'
     },
+    subcommands: ['add', 'remove', 'list', 'reset', 'channel'],
     cooldown: 5,
 
-    async execute(message, args, client, config) {
-        if (!isAdmin(message.member)) {
-            return message.reply({ embeds: [permissionDenied(message, 'administrator')] });
-        }
-
-        const sub = args[0]?.toLowerCase();
-        if (!sub) return message.reply({ embeds: [errorEmbed('Subcommands', 'Valid: `add`, `remove`, `list`, `channel`, `reset`')] });
-
-        if (sub === 'add') return this.handleAdd(message, args.slice(1), config);
-        if (sub === 'remove') return this.handleRemove(message, args.slice(1), config);
-        if (sub === 'list') return this.handleList(message, config);
-        if (sub === 'channel') return this.handleChannel(message, args.slice(1), config);
-        if (sub === 'reset') return this.handleReset(message, config);
-
-        return message.reply({ embeds: [errorEmbed('Invalid', 'Valid: `add`, `remove`, `list`, `channel`, `reset`')] });
+    async execute(message) {
+        return sendCard(message, module.exports);
     },
 
-    async handleAdd(message, args, config) {
-        const parts = args.join(' ').split(',').map(s => s.trim());
-        if (parts.length < 2) {
-            return message.reply({ embeds: [errorEmbed('Usage', ',autoreact add <trigger>, <emoji1> [emoji2] ...')] });
-        }
+    subs: {
+        add: {
+            aliases: [],
+            data: { name: 'autoreact add', description: 'Adds a reaction trigger to guild', usage: ',autoreact add panda, :f_thumbsup:' },
+            async execute(message, args) {
+                if (!await needPerm(message, PermissionFlagsBits.ManageGuild)) return;
+                const content = args.join(' ').trim();
+                const parts = content.split(', ');
+                if (parts.length === 1) return warn(message, 'No reactions found. Make sure to use a `,` to split the trigger from the reactions');
+                const trigger = parts[0].trim();
+                if (!trigger) return warn(message, 'No valid trigger found');
+                const reactions = resolveReactions(message.guild, parts.slice(1).join(' '));
+                if (!reactions.length) return warn(message, "Emojis are not **available** on this server or it's not a **valid** emoji");
 
-        const trigger = parts[0];
-        const emojis = parts.slice(1).filter(e => e);
-
-        if (!trigger || !emojis.length) {
-            return message.reply({ embeds: [errorEmbed('Usage', ',autoreact add <trigger>, <emoji1> [emoji2] ...')] });
-        }
-
-        const triggers = config.autoReactTriggers || [];
-        const existing = triggers.find(t => t.trigger.toLowerCase() === trigger.toLowerCase());
-        if (existing) {
-            return message.reply({ embeds: [errorEmbed('Exists', `Trigger \`${trigger}\` already exists. Remove it first.`)] });
-        }
-
-        triggers.push({ trigger, emojis, createdBy: message.author.id });
-        updateGuildConfig(message.guild.id, { autoReactTriggers: triggers });
-        return message.reply({ embeds: [successEmbed('Trigger Added', `When someone says **${trigger}**, bot reacts with ${emojis.join(' ')}`)] });
-    },
-
-    async handleRemove(message, args, config) {
-        const trigger = args.join(' ');
-        if (!trigger) return message.reply({ embeds: [errorEmbed('Usage', ',autoreact remove <trigger>')] });
-
-        const triggers = config.autoReactTriggers || [];
-        const idx = triggers.findIndex(t => t.trigger.toLowerCase() === trigger.toLowerCase());
-        if (idx === -1) return message.reply({ embeds: [errorEmbed('Not Found', 'No trigger with that text.')] });
-
-        triggers.splice(idx, 1);
-        updateGuildConfig(message.guild.id, { autoReactTriggers: triggers });
-        return message.reply({ embeds: [successEmbed('Removed', `Trigger \`${trigger}\` deleted.`)] });
-    },
-
-    async handleList(message, config) {
-        const triggers = config.autoReactTriggers || [];
-        if (!triggers.length) {
-            return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Reaction Triggers', description: 'No triggers configured.\nUse `,autoreact add <trigger>, <emoji>` to create one.' })] });
-        }
-
-        const pages = [];
-        for (let i = 0; i < triggers.length; i += 8) {
-            const chunk = triggers.slice(i, i + 8);
-            pages.push({
-                color: 0x6c5ce7,
-                title: `Reaction Triggers (${triggers.length})`,
-                description: chunk.map((t, j) => `**${i + j + 1}.** \`${t.trigger}\` → ${t.emojis.join(' ')}`).join('\n')
-            });
-        }
-
-        return new Paginator(pages, { userId: message.author.id }).start(message.channel);
-    },
-
-    async handleChannel(message, args, config) {
-        const action = args[0]?.toLowerCase();
-        const channel = message.mentions.channels.first();
-
-        if (action === 'add') {
-            if (!channel) return message.reply({ embeds: [errorEmbed('No Channel', 'Mention a channel.')] });
-            const emojis = args.slice(1).filter(e => e && e !== channel.toString());
-            if (!emojis.length) return message.reply({ embeds: [errorEmbed('No Emojis', 'Provide emojis to react with.')] });
-
-            const channelReacts = config.autoReactChannels || {};
-            channelReacts[channel.id] = emojis;
-            updateGuildConfig(message.guild.id, { autoReactChannels: channelReacts });
-            return message.reply({ embeds: [successEmbed('Channel Added', `${channel} will get reactions: ${emojis.join(' ')}`)] });
-        }
-
-        if (action === 'remove') {
-            if (!channel) return message.reply({ embeds: [errorEmbed('No Channel', 'Mention a channel.')] });
-            const channelReacts = config.autoReactChannels || {};
-            delete channelReacts[channel.id];
-            updateGuildConfig(message.guild.id, { autoReactChannels: channelReacts });
-            return message.reply({ embeds: [successEmbed('Channel Removed', `${channel} no longer gets auto reactions.`)] });
-        }
-
-        if (action === 'list') {
-            const channelReacts = config.autoReactChannels || {};
-            const entries = Object.entries(channelReacts);
-            if (!entries.length) {
-                return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Channel Reactions', description: 'No channels configured.' })] });
+                const check = first('SELECT * FROM autoreact WHERE guild_id = ? AND "trigger" = ?', message.guild.id, trigger);
+                if (!check) {
+                    run('INSERT INTO autoreact (guild_id, "trigger", reactions) VALUES (?, ?, ?)', message.guild.id, trigger, JSON.stringify(reactions));
+                } else {
+                    run('UPDATE autoreact SET reactions = ? WHERE guild_id = ? AND "trigger" = ?', JSON.stringify(reactions), message.guild.id, trigger);
+                }
+                return approve(message, `Your autoreact for **${trigger}** has been created with the reactions ${reactions.join(' ')}`);
             }
-            const list = entries.map(([id, emojis]) => `<#${id}> → ${emojis.join(' ')}`).join('\n');
-            return message.reply({ embeds: [createEmbed({ color: 0x6c5ce7, title: 'Channel Reactions', description: list })] });
+        },
+
+        remove: {
+            aliases: [],
+            data: { name: 'autoreact remove', description: 'Removes a reaction trigger in guild', usage: ',autoreact remove skull' },
+            async execute(message, args) {
+                if (!await needPerm(message, PermissionFlagsBits.ManageGuild)) return;
+                const trigger = args.join(' ').trim();
+                if (!trigger) return warn(message, 'No valid trigger provided');
+                const check = first('SELECT * FROM autoreact WHERE guild_id = ? AND "trigger" = ?', message.guild.id, trigger);
+                if (!check) return warn(message, 'There is no **autoreact** with this trigger');
+                run('DELETE FROM autoreact WHERE guild_id = ? AND "trigger" = ?', message.guild.id, trigger);
+                return approve(message, `Removed **${trigger}** from autoreact`);
+            }
+        },
+
+        list: {
+            aliases: [],
+            data: { name: 'autoreact list', description: 'View a list of every reaction trigger in guild', usage: ',autoreact list' },
+            async execute(message) {
+                const rows = query('SELECT * FROM autoreact WHERE guild_id = ?', message.guild.id);
+                if (!rows.length) return warn(message, 'There are no autoreactions available in this server');
+                const lines = rows.map(row => `${row.trigger} - ${parseReactions(row.reactions).join(' ')}`);
+                return paginate(message, lines, 'Autoreactions', guildAuthor(message));
+            }
+        },
+
+        reset: {
+            aliases: [],
+            data: { name: 'autoreact reset', description: 'Reset all reaction triggers in guild', usage: ',autoreact reset' },
+            async execute(message) {
+                if (!await needPerm(message, PermissionFlagsBits.ManageGuild)) return;
+                const rows = query('SELECT * FROM autoreact WHERE guild_id = ?', message.guild.id);
+                if (!rows.length) return warn(message, 'There are no autoreactions available in this server');
+                return confirm(message,
+                    `${EMOJIS.QUESTION} ${message.author}: Are you sure you want to **RESET** all autoreactions in this server?`,
+                    async i => {
+                        run('DELETE FROM autoreact WHERE guild_id = ?', message.guild.id);
+                        return i.update({ embeds: [successEmbed(null, `${i.user}: Deleted all autoreactions in this server`)], components: [] }).catch(() => {});
+                    },
+                    async i => {
+                        return i.update({ embeds: [errorEmbed(null, `${i.user}: Autoreactions deletion got canceled`)], components: [] }).catch(() => {});
+                    });
+            }
+        },
+
+        channel: {
+            aliases: [],
+            data: { name: 'autoreact channel', description: 'Set up autoreact channel', usage: ',autoreact channel <add|remove|list|reset>' },
+            subcommands: ['add', 'remove', 'list', 'reset'],
+            async execute(message) {
+                return sendCard(message, module.exports.subs.channel);
+            },
+            subs: {
+                add: {
+                    aliases: [],
+                    data: { name: 'autoreact channel add', description: 'Add a channel to autoreact', usage: ',autoreact channel add #general :f_thumbsup:' },
+                    async execute(message, args) {
+                        if (!await needPerm(message, PermissionFlagsBits.ManageGuild)) return;
+                        const channel = message.mentions.channels.first();
+                        const rest = args.filter(a => !a.startsWith('<#'));
+                        if (!channel) return warn(message, 'You must mention a channel');
+                        if (!channel.rateLimitPerUser) return warn(message, `You need to set a **slowmode** to ${channel} to use this feature.`);
+                        const reactions = resolveReactions(message.guild, rest.join(' '));
+                        if (!reactions.length) return warn(message, "Emojis are not **available** on this server or it's not a **valid** emoji");
+
+                        const check = first('SELECT * FROM autoreact_channel WHERE guild_id = ? AND channel_id = ?', message.guild.id, channel.id);
+                        if (!check) {
+                            run('INSERT INTO autoreact_channel (guild_id, channel_id, reactions) VALUES (?, ?, ?)', message.guild.id, channel.id, JSON.stringify(reactions));
+                        } else {
+                            run('UPDATE autoreact_channel SET reactions = ? WHERE guild_id = ? AND channel_id = ?', JSON.stringify(reactions), message.guild.id, channel.id);
+                        }
+                        return approve(message, `Set ${reactions.join(' ')} as **auto reactions** for **${channel}**`);
+                    }
+                },
+
+                remove: {
+                    aliases: [],
+                    data: { name: 'autoreact channel remove', description: 'Remove a channel from autoreact', usage: ',autoreact channel remove #general' },
+                    async execute(message, args) {
+                        if (!await needPerm(message, PermissionFlagsBits.ManageGuild)) return;
+                        const channel = message.mentions.channels.first();
+                        if (!channel) return warn(message, 'You must mention a channel');
+                        const check = first('SELECT * FROM autoreact_channel WHERE guild_id = ? AND channel_id = ?', message.guild.id, channel.id);
+                        if (!check) return warn(message, 'There is no **autoreact** with this channel');
+                        run('DELETE FROM autoreact_channel WHERE guild_id = ? AND channel_id = ?', message.guild.id, channel.id);
+                        return approve(message, `Removed **auto reactions** from ${channel}`);
+                    }
+                },
+
+                list: {
+                    aliases: [],
+                    data: { name: 'autoreact channel list', description: 'View a list of every channel in autoreact', usage: ',autoreact channel list' },
+                    async execute(message) {
+                        const rows = query('SELECT * FROM autoreact_channel WHERE guild_id = ?', message.guild.id);
+                        if (!rows.length) return warn(message, 'There are no autoreactions available in this server');
+                        const lines = rows.map(row => `<#${row.channel_id}> - ${parseReactions(row.reactions).join(' ')}`);
+                        return paginate(message, lines, 'Autoreactions', guildAuthor(message));
+                    }
+                },
+
+                reset: {
+                    aliases: [],
+                    data: { name: 'autoreact channel reset', description: 'Reset all autoreact channels in guild', usage: ',autoreact channel reset' },
+                    async execute(message) {
+                        if (!await needPerm(message, PermissionFlagsBits.ManageGuild)) return;
+                        const rows = query('SELECT * FROM autoreact_channel WHERE guild_id = ?', message.guild.id);
+                        if (!rows.length) return warn(message, 'There are no autoreactions available in this server');
+                return confirm(message,
+                    `${EMOJIS.QUESTION} ${message.author}: Are you sure you want to **RESET** all autoreactions in this server?`,
+                    async i => {
+                        run('DELETE FROM autoreact_channel WHERE guild_id = ?', message.guild.id);
+                        return i.update({ embeds: [successEmbed(null, `${i.user}: Deleted all autoreactions in this server`)], components: [] }).catch(() => {});
+                    },
+                    async i => {
+                        return i.update({ embeds: [errorEmbed(null, `${i.user}: Autoreactions deletion got canceled`)], components: [] }).catch(() => {});
+                    });
+                    }
+                }
+            }
         }
-
-        return message.reply({ embeds: [errorEmbed('Usage', ',autoreact channel <add|remove|list> #channel [emojis]')] });
-    },
-
-    async handleReset(message, config) {
-        updateGuildConfig(message.guild.id, { autoReactTriggers: [], autoReactChannels: {} });
-        return message.reply({ embeds: [successEmbed('Reset', 'All reaction triggers cleared.')] });
     }
 };

@@ -1,8 +1,8 @@
 const { createEmbed, errorEmbed } = require('../../utils/embeds');
 
 module.exports = {
-    data: { name: 'roles', description: 'List server roles', usage: ',roles' },
-    aliases: ['rolelist', 'rolecount', 'rc', 'rl'],
+    data: { name: 'roles', description: "View all roles in the server", usage: ',roles' },
+    aliases: [],
     cooldown: 5,
     async execute(message) {
         const g = message.guild;
@@ -17,7 +17,7 @@ module.exports = {
 
         return message.reply({
             embeds: [createEmbed({
-                color: 0x6c5ce7,
+                color: 0x729bb0,
                 title: `Roles — ${g.name} (${roles.length})`,
                 description: roles.join('\n').slice(0, 4000)
             })]

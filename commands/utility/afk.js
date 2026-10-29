@@ -1,6 +1,7 @@
 const { EmbedBuilder } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+const { warn } = require('../../utils/context');
 
 const DATA_FILE = path.join(__dirname, '../../data/afk.json');
 
@@ -18,14 +19,17 @@ function saveData(data) {
 module.exports = {
     data: {
         name: 'afk',
-        description: 'Set your AFK status',
+        description: "Set an AFK status for when you are mentioned",
         usage: ',afk [reason]'
     },
-    aliases: ['setafk'],
+    aliases: [],
     cooldown: 10,
 
     async execute(message, args) {
         const reason = args.join(' ') || 'AFK';
+        if (reason.length > 100) {
+            return warn(message, 'Reason for being AFK cannot exceed **100** characters');
+        }
         const data = loadData();
         const guildId = message.guild.id;
 
@@ -40,8 +44,8 @@ module.exports = {
 
         return message.reply({
             embeds: [new EmbedBuilder()
-                .setColor(0xfbbf24)
-                .setDescription(`😴 <@${message.author.id}>: You're now AFK with the status: ${reason}`)
+                .setColor(0xffd600)
+                .setDescription(`😴 <@${message.author.id}>: You're now AFK with the status: **${reason}**`)
             ]
         });
     }
