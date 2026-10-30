@@ -52,10 +52,10 @@ module.exports = {
                 if (parsed.error) return warn(message, parsed.error);
                 const { role, module } = parsed;
                 if (!MODULES.includes(module)) return warn(message, `Invalid module\n> Valid: ${MODULES.map((entry) => `\`${entry}\``).join(', ')}`);
-                if (first('SELECT 1 AS ok FROM restrictmodule WHERE guild_id = ? AND command = ? AND role_id = ?', message.guild.id, module, role.id)) {
+                if (first('SELECT 1 AS ok FROM restrictmodule WHERE guild_id = ? AND module = ? AND role_id = ?', message.guild.id, module, role.id)) {
                     return warn(message, `\`${module}\` is **already** restricted to ${role}`);
                 }
-                run('INSERT INTO restrictmodule (guild_id, command, role_id) VALUES (?, ?, ?)', message.guild.id, module, role.id);
+                run('INSERT INTO restrictmodule (guild_id, module, role_id) VALUES (?, ?, ?)', message.guild.id, module, role.id);
                 return approve(message, `Restricting \`${module}\` to members with ${role}`);
             }
         },
@@ -67,10 +67,10 @@ module.exports = {
                 const parsed = splitRoleModule(message, args);
                 if (parsed.error) return warn(message, parsed.error);
                 const { role, module } = parsed;
-                if (!first('SELECT 1 AS ok FROM restrictmodule WHERE guild_id = ? AND command = ? AND role_id = ?', message.guild.id, module, role.id)) {
+                if (!first('SELECT 1 AS ok FROM restrictmodule WHERE guild_id = ? AND module = ? AND role_id = ?', message.guild.id, module, role.id)) {
                     return warn(message, `\`${module}\` is **not** restricted to ${role}`);
                 }
-                run('DELETE FROM restrictmodule WHERE guild_id = ? AND command = ? AND role_id = ?', message.guild.id, module, role.id);
+                run('DELETE FROM restrictmodule WHERE guild_id = ? AND module = ? AND role_id = ?', message.guild.id, module, role.id);
                 return approve(message, `Removing \`${module}\` restriction from ${role}`);
             }
         },
@@ -83,7 +83,7 @@ module.exports = {
                 if (!results.length) return warn(message, 'There are **no** restricted modules');
                 const entries = results.map((result) => {
                     const role = message.guild.roles.cache.get(String(result.role_id));
-                    return `**${result.command}**: ${role ? `${role}` : `\`${result.role_id}\``}`;
+                    return `**${result.module}**: ${role ? `${role}` : `\`${result.role_id}\``}`;
                 });
                 return paginate(message, entries, 'Restricted Modules', {
                     name: message.guild.name,

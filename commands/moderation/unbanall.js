@@ -24,7 +24,6 @@ module.exports = {
             const admins = JSON.parse(config.admins || '[]');
             if (Array.isArray(admins)) allowed.push(...admins.map(String));
         } catch (err) {
-            allowed.length = allowed.length;
         }
         if (!allowed.includes(message.author.id)) {
             return warn(message, "You **can't** use this command, you need to be an Antinuke admin");

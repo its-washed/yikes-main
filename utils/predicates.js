@@ -60,7 +60,6 @@ function ensureEconomy(message, client) {
                     await i.update({ embeds: [{ color: COLORS.ERROR, description: `${EMOJIS.DENY} ${i.user.mention}: You rejected, you can't use the economy system` }], components: [] });
                     done(false);
                 });
-            return;
         }
         if (check.terms === 0 || check.terms === false) {
             confirm(message, `${EMOJIS.QUESTION} ${message.author.mention}: You need to accept the [**rules**](https://evelina.bot/economy) to use the economy system`,

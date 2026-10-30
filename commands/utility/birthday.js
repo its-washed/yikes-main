@@ -196,7 +196,8 @@ module.exports = {
                         const raw = String(args.join(' ') || '').replace(/[<@&>]/g, '');
                         const target = role || (raw && /^\d{17,20}$/.test(raw) ? message.guild.roles.cache.get(raw) : null);
                         if (!target) return warn(message, 'You must mention a role\n> Usage: `,birthday reward set birthdayrole`');
-                        run('INSERT INTO birthday_reward (guild_id, role_id) VALUES (?, ?) ON CONFLICT (guild_id) DO UPDATE SET role_id = excluded.role_id',
+                        run('DELETE FROM birthday_reward WHERE guild_id = ?', message.guild.id);
+                        run('INSERT INTO birthday_reward (guild_id, role_id) VALUES (?, ?)',
                             message.guild.id, target.id);
                         return approve(message, `Set **${target.name}** as your birthday reward`);
                     }

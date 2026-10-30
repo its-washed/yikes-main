@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS guild_disabled_commands (
     PRIMARY KEY (guild_id,cmd)
 );
 CREATE TABLE IF NOT EXISTS guild_disabled_module (guild_id BIGINT PRIMARY KEY,module TEXT);
+CREATE TABLE IF NOT EXISTS channel_disabled_module (guild_id BIGINT NOT NULL,channel_id BIGINT NOT NULL,module TEXT NOT NULL,PRIMARY KEY (channel_id,module));
 CREATE TABLE IF NOT EXISTS channel_disabled_commands (guild_id BIGINT NOT NULL,channel_id BIGINT NOT NULL,cmd TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS restrictcommand (guild_id BIGINT NOT NULL,command TEXT NOT NULL,role_id BIGINT);
 CREATE TABLE IF NOT EXISTS restrictmodule (guild_id BIGINT NOT NULL,module TEXT NOT NULL,role_id BIGINT);
@@ -299,6 +300,7 @@ CREATE TABLE IF NOT EXISTS economy (
     quest INT DEFAULT 0,
     item_case INT DEFAULT 0,
     item_case_blackice INT DEFAULT 0,
+    item_booster INT DEFAULT 0,
     terms BOOLEAN DEFAULT FALSE,
     married_to BIGINT
 );
@@ -497,14 +499,14 @@ CREATE TABLE IF NOT EXISTS confess (guild_id BIGINT PRIMARY KEY,channel_id BIGIN
 CREATE TABLE IF NOT EXISTS confess_members (
     guild_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
-    member_id INT NOT NULL,
-    PRIMARY KEY (guild_id,user_id)
+    confession INT NOT NULL,
+    PRIMARY KEY (guild_id,confession)
 );
 CREATE TABLE IF NOT EXISTS confess_mute (
     guild_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
-    member_id INT NOT NULL,
-    PRIMARY KEY (guild_id,user_id)
+    confession INT NOT NULL,
+    PRIMARY KEY (guild_id,confession)
 );
 CREATE TABLE IF NOT EXISTS confess_blacklist (
     guild_id BIGINT NOT NULL,

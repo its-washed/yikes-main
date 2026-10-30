@@ -26,13 +26,13 @@ module.exports = {
                 const length = args[0] ? parseInt(args[0], 10) : null;
                 let results;
                 if (length !== null && !Number.isNaN(length)) {
-                    results = query('SELECT user_name, time FROM usernames WHERE LENGTH(user_name) = ? ORDER BY time DESC', length);
+                    results = query('SELECT username, timestamp FROM usernames WHERE LENGTH(username) = ? ORDER BY timestamp DESC', length);
                 } else {
                     const threshold = Math.floor(Date.now() / 1000) - 21 * 24 * 60 * 60;
-                    results = query('SELECT user_name, time FROM usernames WHERE time > ? ORDER BY time DESC LIMIT 10000', threshold);
+                    results = query('SELECT username, timestamp FROM usernames WHERE timestamp > ? ORDER BY timestamp DESC LIMIT 10000', threshold);
                 }
                 if (!results.length) return warn(message, length !== null && !Number.isNaN(length) ? `No usernames found with ${length} characters` : 'No usernames found');
-                const output = results.map(r => `${r.user_name} - <t:${Math.floor(r.time)}:R>`);
+                const output = results.map(r => `${r.username} - <t:${Math.floor(r.timestamp)}:R>`);
                 return paginate(message, output, 'Pomelo Usernames');
             }
         },

@@ -429,7 +429,16 @@ function ensureColumns() {
         ['ticket_modals', 'description', 'TEXT'],
         ['ticket_modals', 'code', 'TEXT'],
         ['ticket_statuses', 'category_id', 'BIGINT'],
-        ['ticket_transcripts_access', 'users', 'TEXT']
+        ['ticket_transcripts_access', 'users', 'TEXT'],
+        ['economy', 'item_booster', 'INT DEFAULT 0'],
+        ['counters', 'role_id', 'BIGINT'],
+        ['suggestions_module', 'threads', 'BOOLEAN DEFAULT FALSE'],
+        ['vanity', 'roles', "TEXT DEFAULT '[]'"],
+        ['voicetrack_settings', 'mute_track', 'BOOLEAN DEFAULT FALSE'],
+        ['store_orders', 'serial_code', 'TEXT'],
+        ['store_orders', 'product_id', 'INT'],
+        ['store_orders', 'claimed', 'BOOLEAN DEFAULT FALSE'],
+        ['store_orders', 'claimed_by', 'BIGINT']
     ];
     for (const [table, column, type] of upgrades) {
         try {
@@ -496,6 +505,44 @@ function fixPaymentTables() {
     try { query('SELECT owner_id FROM instance LIMIT 1'); } catch (err) {
         try { exec('CREATE TABLE IF NOT EXISTS instance (user_id BIGINT PRIMARY KEY, owner_id BIGINT NOT NULL, status TEXT)'); } catch (renameErr) { }
     }
+}
+
+function fixConfessTables() {
+    for (const table of ['confess_members', 'confess_mute']) {
+        try {
+            query('SELECT confession FROM ' + table + ' LIMIT 1');
+        } catch (err) {
+            try {
+                exec(`ALTER TABLE ${table} RENAME TO ${table}_old`);
+                exec(`CREATE TABLE IF NOT EXISTS ${table} (guild_id BIGINT NOT NULL,user_id BIGINT NOT NULL,confession INT NOT NULL,PRIMARY KEY (guild_id,confession))`);
+                exec(`INSERT OR IGNORE INTO ${table} (guild_id, user_id, confession) SELECT guild_id, user_id, member_id FROM ${table}_old`);
+                exec(`DROP TABLE IF EXISTS ${table}_old`);
+            } catch (renameErr) {
+                try {
+                    exec(`DROP TABLE IF EXISTS ${table}`);
+                    exec(`ALTER TABLE ${table}_old RENAME TO ${table}`);
+                } catch (restoreErr) { }
+            }
+        }
+    }
+}
+
+function fixSpotifyTables() {
+    try {
+        const info = query("SELECT name FROM pragma_index_list('spotify_devices') WHERE origin = 'pk'");
+        if (info.length) return;
+        try {
+            exec('ALTER TABLE spotify_devices RENAME TO spotify_devices_old');
+            exec('CREATE TABLE IF NOT EXISTS spotify_devices (discord_id BIGINT PRIMARY KEY,device_id TEXT NOT NULL)');
+            exec('INSERT OR IGNORE INTO spotify_devices (discord_id, device_id) SELECT discord_id, device_id FROM spotify_devices_old');
+            exec('DROP TABLE IF EXISTS spotify_devices_old');
+        } catch (err2) {
+            try {
+                exec('DROP TABLE IF EXISTS spotify_devices');
+                exec('ALTER TABLE spotify_devices_old RENAME TO spotify_devices');
+            } catch (err3) { }
+        }
+    } catch (err) { }
 }
 
 function fixConfigTables() {
@@ -688,6 +735,8 @@ function initDatabase() {
     fixWarnTables();
     fixPaymentTables();
     fixConfigTables();
+    fixConfessTables();
+    fixSpotifyTables();
     fixEconomyTables();
     try { seedEconomyData(); } catch (err) { console.error('economy seed failed:', err.message); }
     if (fresh) seedLegacyData();

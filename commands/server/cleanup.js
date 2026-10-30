@@ -22,6 +22,11 @@ const CHANNEL_TABLES = [
     'autopost_twitch'
 ];
 
+const ROLE_COLUMN = {
+    mute_images: 'channel_id',
+    mute_reactions: 'channel_id'
+};
+
 async function cleanupTable(message, table, column, id, deleted) {
     try {
         const entries = query(`SELECT 1 FROM ${table} WHERE ${column} = ? LIMIT 1`, id);
@@ -60,7 +65,7 @@ module.exports = {
                 }
                 const deleted = [];
                 for (const table of ROLE_TABLES) {
-                    await cleanupTable(message, table, 'role_id', id, deleted);
+                    await cleanupTable(message, table, ROLE_COLUMN[table] || 'role_id', id, deleted);
                 }
                 if (deleted.length) {
                     return approve(message, `Role **${id}** was deleted from the following features:\n\`\`\`${deleted.join(', ')}\`\`\``);
