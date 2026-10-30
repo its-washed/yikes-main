@@ -1,23 +1,23 @@
-const fs = require('fs');
-const path = require('path');
 const { COLORS } = require('../../utils/styles');
+const { query } = require('../../utils/database');
+
+const LABELS = { females: 'Females', males: 'Males', animes: 'Animes', banners: 'Banners' };
 
 let cached = null;
 
 function loadCounts() {
     if (cached) return cached;
+    const counts = { Females: 0, Males: 0, Animes: 0, Banners: 0 };
     try {
-        const raw = fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'pfps.json'), 'utf8');
-        const data = JSON.parse(raw);
-        cached = {
-            Females: (data.females || []).length,
-            Males: (data.males || []).length,
-            Animes: (data.animes || []).length,
-            Banners: (data.banners || []).length
-        };
+        for (const row of query('SELECT category, COUNT(*) AS total FROM image_pool GROUP BY category')) {
+            const label = LABELS[String(row.category).toLowerCase()];
+            if (label) counts[label] = Number(row.total) || 0;
+        }
     } catch {
         cached = { Females: 0, Males: 0, Animes: 0, Banners: 0 };
+        return cached;
     }
+    cached = counts;
     return cached;
 }
 

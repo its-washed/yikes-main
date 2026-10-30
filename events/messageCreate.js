@@ -5,18 +5,9 @@ const { resolve } = require('../utils/variables');
 const { createEmbed } = require('../utils/embeds');
 const { isCommandDisabled, isDeveloper } = require('../utils/developer');
 const { first } = require('../utils/database');
-const { run } = require('../utils/database');
-const fs = require('fs');
-const path = require('path');
+const { run, query } = require('../utils/database');
 
-const AFK_FILE = path.join(__dirname, '../data/afk.json');
-const BOOST_FILE = path.join(__dirname, '../data/boosters.json');
 const DISBOARD_ID = '302050872383846401';
-
-function loadJSON(file) {
-    if (!fs.existsSync(file)) return {};
-    return JSON.parse(fs.readFileSync(file, 'utf8'));
-}
 
 function formatDuration(ms) {
     const s = Math.max(0, Math.floor(ms / 1000));
@@ -93,19 +84,16 @@ module.exports = {
             }
         }
 
-        const afkData = loadJSON(AFK_FILE);
-        const guildAfk = afkData[message.guild.id];
+        const guildAfk = {};
+        for (const row of query('SELECT user_id, reason, timestamp FROM afk_state WHERE guild_id = ?', message.guild.id)) {
+            guildAfk[String(row.user_id)] = { reason: row.reason, timestamp: Number(row.timestamp) || 0 };
+        }
         const isCommand = message.content.startsWith(config.prefix || ',');
-        if (!isCommand && guildAfk && guildAfk[message.author.id]) {
+        if (isCommand === false && guildAfk[message.author.id]) {
             const afkEntry = guildAfk[message.author.id];
             const goneFor = Date.now() - afkEntry.timestamp;
             delete guildAfk[message.author.id];
-
-            try {
-                const dir = path.dirname(AFK_FILE);
-                if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-                fs.writeFileSync(AFK_FILE, JSON.stringify(afkData, null, 2));
-            } catch {}
+            run('DELETE FROM afk_state WHERE guild_id = ? AND user_id = ?', message.guild.id, message.author.id);
 
             const nickname = message.member.nickname || message.author.username;
             if (nickname.startsWith('[AFK] ')) {

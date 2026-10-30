@@ -1,68 +1,79 @@
-const fs = require('fs');
-const path = require('path');
+const { first, query, run, transaction } = require('./database');
 
-const ACTIVITY_FILE = path.join(__dirname, '..', 'data', 'activity.json');
+function buildEntry(row) {
+    return {
+        messages: Number(row.messages) || 0,
+        vcTime: Number(row.vc_time) || 0,
+        lastVCJoin: Number(row.last_vc_join) || 0
+    };
+}
+
+function emptyEntry() {
+    return { messages: 0, vcTime: 0, lastVCJoin: 0 };
+}
 
 function loadActivity() {
-    if (!fs.existsSync(ACTIVITY_FILE)) return { guilds: {} };
-    return JSON.parse(fs.readFileSync(ACTIVITY_FILE, 'utf8'));
+    const guilds = {};
+    for (const row of query('SELECT guild_id, user_id, messages, vc_time, last_vc_join FROM activity_stats')) {
+        const guildId = String(row.guild_id);
+        if (!guilds[guildId]) guilds[guildId] = {};
+        guilds[guildId][String(row.user_id)] = buildEntry(row);
+    }
+    return { guilds };
 }
 
 function saveActivity(data) {
-    const dir = path.dirname(ACTIVITY_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(ACTIVITY_FILE, JSON.stringify(data, null, 2));
-}
-
-function ensureUser(data, guildId, userId) {
-    if (!data.guilds) data.guilds = {};
-    if (!data.guilds[guildId]) data.guilds[guildId] = {};
-    if (!data.guilds[guildId][userId]) {
-        data.guilds[guildId][userId] = {
-            messages: 0,
-            vcTime: 0,
-            lastVCJoin: 0
-        };
-    }
-    return data.guilds[guildId][userId];
+    const guilds = (data && data.guilds) || {};
+    transaction(() => {
+        run('DELETE FROM activity_stats');
+        for (const guildId of Object.keys(guilds)) {
+            const users = guilds[guildId];
+            if (!users || typeof users !== 'object') continue;
+            for (const userId of Object.keys(users)) {
+                const entry = users[userId] || {};
+                run('INSERT INTO activity_stats (guild_id, user_id, messages, vc_time, last_vc_join) VALUES (?, ?, ?, ?, ?)',
+                    guildId, userId,
+                    Number(entry.messages) || 0,
+                    Number(entry.vcTime) || 0,
+                    Number(entry.lastVCJoin) || 0);
+            }
+        }
+    });
 }
 
 function getUserActivity(guildId, userId) {
-    const data = loadActivity();
-    return ensureUser(data, guildId, userId);
+    const row = first('SELECT messages, vc_time, last_vc_join FROM activity_stats WHERE guild_id = ? AND user_id = ?', guildId, userId);
+    return row ? buildEntry(row) : emptyEntry();
 }
 
 function trackMessage(guildId, userId) {
-    const data = loadActivity();
-    const user = ensureUser(data, guildId, userId);
-    user.messages++;
-    saveActivity(data);
-    return user;
+    run('INSERT INTO activity_stats (guild_id, user_id, messages, vc_time, last_vc_join) VALUES (?, ?, 1, 0, 0) ' +
+        'ON CONFLICT(guild_id, user_id) DO UPDATE SET messages = messages + 1', guildId, userId);
+    return getUserActivity(guildId, userId);
 }
 
 function trackVCJoin(guildId, userId) {
-    const data = loadActivity();
-    const user = ensureUser(data, guildId, userId);
-    user.lastVCJoin = Date.now();
-    saveActivity(data);
-    return user;
+    run('INSERT INTO activity_stats (guild_id, user_id, messages, vc_time, last_vc_join) VALUES (?, ?, 0, 0, ?) ' +
+        'ON CONFLICT(guild_id, user_id) DO UPDATE SET last_vc_join = excluded.last_vc_join', guildId, userId, Date.now());
+    return getUserActivity(guildId, userId);
 }
 
 function trackVCLeave(guildId, userId) {
-    const data = loadActivity();
-    const user = ensureUser(data, guildId, userId);
-    if (user.lastVCJoin > 0) {
-        const duration = Date.now() - user.lastVCJoin;
-        user.vcTime += duration;
-        user.lastVCJoin = 0;
-        saveActivity(data);
+    const current = getUserActivity(guildId, userId);
+    if (current.lastVCJoin > 0) {
+        const duration = Date.now() - current.lastVCJoin;
+        run('INSERT INTO activity_stats (guild_id, user_id, messages, vc_time, last_vc_join) VALUES (?, ?, 0, ?, 0) ' +
+            'ON CONFLICT(guild_id, user_id) DO UPDATE SET vc_time = vc_time + excluded.vc_time, last_vc_join = 0',
+            guildId, userId, duration);
     }
-    return user;
+    return getUserActivity(guildId, userId);
 }
 
 function getGuildActivity(guildId) {
-    const data = loadActivity();
-    return (data.guilds && data.guilds[guildId]) || {};
+    const rows = query('SELECT user_id, messages, vc_time, last_vc_join FROM activity_stats WHERE guild_id = ?', guildId);
+    const out = {};
+    for (const row of rows) out[String(row.user_id)] = buildEntry(row);
+    return out;
 }
 
 module.exports = { loadActivity, saveActivity, getUserActivity, trackMessage, trackVCJoin, trackVCLeave, getGuildActivity };

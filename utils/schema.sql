@@ -804,3 +804,25 @@ CREATE TABLE IF NOT EXISTS roleplay (
     count INT DEFAULT 1,
     PRIMARY KEY (user_id,target_id,type)
 );
+CREATE TABLE IF NOT EXISTS guild_config (guild_id BIGINT NOT NULL,name TEXT NOT NULL,value TEXT,PRIMARY KEY (guild_id,name));
+CREATE TABLE IF NOT EXISTS economy_wallet (user_id BIGINT PRIMARY KEY,wallet REAL DEFAULT 0,bank REAL DEFAULT 0,last_daily REAL DEFAULT 0,last_work REAL DEFAULT 0,last_weekly REAL DEFAULT 0,last_monthly REAL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS economy_wallet_item (user_id BIGINT NOT NULL,item TEXT NOT NULL,quantity INT DEFAULT 0,PRIMARY KEY (user_id,item));
+CREATE TABLE IF NOT EXISTS activity_stats (guild_id BIGINT NOT NULL,user_id BIGINT NOT NULL,messages INT DEFAULT 0,vc_time REAL DEFAULT 0,last_vc_join REAL DEFAULT 0,PRIMARY KEY (guild_id,user_id));
+CREATE TABLE IF NOT EXISTS dev_user (user_id BIGINT PRIMARY KEY);
+CREATE TABLE IF NOT EXISTS dev_blacklist (user_id BIGINT PRIMARY KEY);
+CREATE TABLE IF NOT EXISTS dev_server (guild_id BIGINT PRIMARY KEY);
+CREATE TABLE IF NOT EXISTS dev_disabled (command TEXT PRIMARY KEY);
+CREATE TABLE IF NOT EXISTS dev_guild_disabled (guild_id BIGINT NOT NULL,command TEXT NOT NULL,PRIMARY KEY (guild_id,command));
+CREATE TABLE IF NOT EXISTS premium_user (user_id BIGINT PRIMARY KEY);
+CREATE TABLE IF NOT EXISTS premium_command (command TEXT PRIMARY KEY);
+CREATE TABLE IF NOT EXISTS devkit_state (name TEXT PRIMARY KEY,value TEXT);
+CREATE TABLE IF NOT EXISTS afk_state (guild_id BIGINT NOT NULL,user_id BIGINT NOT NULL,reason TEXT,timestamp REAL,PRIMARY KEY (guild_id,user_id));
+CREATE TABLE IF NOT EXISTS booster_setting (guild_id BIGINT PRIMARY KEY,boost_role BIGINT);
+CREATE TABLE IF NOT EXISTS booster_custom_role (guild_id BIGINT NOT NULL,user_id BIGINT NOT NULL,role_id BIGINT NOT NULL,PRIMARY KEY (guild_id,user_id));
+CREATE TABLE IF NOT EXISTS image_pool (category TEXT NOT NULL,url TEXT NOT NULL,PRIMARY KEY (category,url));
+CREATE TABLE IF NOT EXISTS business_owner (user_id BIGINT PRIMARY KEY,name TEXT,type TEXT,level INT,employees INT,income REAL,upkeep REAL,total_earned REAL,created_at REAL,last_collect REAL);
+CREATE TABLE IF NOT EXISTS company_owner (id TEXT PRIMARY KEY,name TEXT,type TEXT,level INT,treasury REAL,members TEXT DEFAULT '[]',max_members INT,projects TEXT DEFAULT '[]',created_at REAL);
+CREATE TABLE IF NOT EXISTS lab_owner (user_id BIGINT PRIMARY KEY,level INT DEFAULT 1,purchased_at REAL);
+CREATE TABLE IF NOT EXISTS lab_experiment (user_id BIGINT NOT NULL,exp_id TEXT NOT NULL,name TEXT,tier TEXT,cost REAL,status TEXT,reward REAL,started_at REAL,completes_at REAL,PRIMARY KEY (user_id,exp_id));
+CREATE TABLE IF NOT EXISTS card_catalog (owner_id BIGINT NOT NULL,card_id TEXT NOT NULL,character TEXT,series TEXT,tier TEXT,rarity TEXT,emoji TEXT,payload TEXT,PRIMARY KEY (owner_id,card_id));
+CREATE TABLE IF NOT EXISTS meta (name TEXT PRIMARY KEY,value TEXT);

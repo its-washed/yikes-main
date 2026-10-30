@@ -9,7 +9,7 @@ const TARGETS = [
     'your mom',
     "charlie's mud hut",
     '267 tries to wake trave up from hibernation',
-    'that new evelina.bot domain',
+    'washeds erectile dysfunction',
     'a connection to the server',
     "franzi's lovense",
     "kjell's skyblock cheats",

@@ -120,8 +120,11 @@ async function act(message, args, client, opts) {
     });
 }
 
+// NOTE: the id columns are BIGINT, so the column has to be on the left of the
+// comparison (`author = ?`) for SQLite to apply its affinity to the bound value.
+// `? IN (author, soulmate)` binds as TEXT and never matches an INTEGER column.
 function getMarriage(userId) {
-    return first('SELECT * FROM marry WHERE ? IN (author, soulmate)', userId);
+    return first('SELECT * FROM marry WHERE author = ? OR soulmate = ?', userId, userId);
 }
 
 function marriagePartner(row, userId) {
@@ -133,7 +136,7 @@ function insertMarriage(authorId, soulmateId) {
 }
 
 function deleteMarriage(userId) {
-    run('DELETE FROM marry WHERE ? IN (author, soulmate)', userId);
+    return run('DELETE FROM marry WHERE author = ? OR soulmate = ?', userId, userId).changes;
 }
 
 function progressBar(percent) {

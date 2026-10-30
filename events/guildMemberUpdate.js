@@ -1,13 +1,9 @@
 const { Events, EmbedBuilder } = require('discord.js');
-const fs = require('fs');
-const path = require('path');
 const { first, run, query } = require('../utils/database');
 
-const BOOST_FILE = path.join(__dirname, '../data/boosters.json');
-
-function loadJSON(file) {
-    if (!fs.existsSync(file)) return {};
-    return JSON.parse(fs.readFileSync(file, 'utf8'));
+function boostRoleOf(guildId) {
+    const row = first('SELECT boost_role FROM booster_setting WHERE guild_id = ?', guildId);
+    return row && row.boost_role ? String(row.boost_role) : null;
 }
 
 async function handleBoostGain(member) {
@@ -55,16 +51,16 @@ module.exports = {
         const isBoosting = newMember.premiumSince;
 
         if (!wasBoosting && isBoosting) {
-            const data = loadJSON(BOOST_FILE);
             const guildId = newMember.guild.id;
+            const boostRole = boostRoleOf(guildId);
 
             await handleBoostGain(newMember);
 
-            if (data[guildId] && data[guildId].boostRole) {
-                const boostRole = newMember.guild.roles.cache.get(data[guildId].boostRole);
-                if (boostRole) {
+            if (boostRole) {
+                const role = newMember.guild.roles.cache.get(boostRole);
+                if (role) {
                     try {
-                        await newMember.roles.add(boostRole);
+                        await newMember.roles.add(role);
                     } catch {}
                 }
             }
@@ -84,34 +80,29 @@ module.exports = {
         }
 
         if (wasBoosting && !isBoosting) {
-            const data = loadJSON(BOOST_FILE);
             const guildId = newMember.guild.id;
+            const boostRole = boostRoleOf(guildId);
 
             await handleBoostLost(newMember);
 
-            if (data[guildId] && data[guildId].boostRole) {
-                const boostRole = newMember.guild.roles.cache.get(data[guildId].boostRole);
-                if (boostRole && newMember.roles.cache.has(boostRole.id)) {
+            if (boostRole) {
+                const role = newMember.guild.roles.cache.get(boostRole);
+                if (role && newMember.roles.cache.has(role.id)) {
                     try {
-                        await newMember.roles.remove(boostRole);
+                        await newMember.roles.remove(role);
                     } catch {}
                 }
             }
 
-            if (data[guildId] && data[guildId].customRoles && data[guildId].customRoles[newMember.id]) {
-                const customRole = newMember.guild.roles.cache.get(data[guildId].customRoles[newMember.id]);
+            const custom = first('SELECT role_id FROM booster_custom_role WHERE guild_id = ? AND user_id = ?', guildId, newMember.id);
+            if (custom) {
+                const customRole = newMember.guild.roles.cache.get(String(custom.role_id));
                 if (customRole) {
                     try {
                         await customRole.delete();
                     } catch {}
                 }
-                delete data[guildId].customRoles[newMember.id];
-
-                try {
-                    const dir = path.dirname(BOOST_FILE);
-                    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-                    fs.writeFileSync(BOOST_FILE, JSON.stringify(data, null, 2));
-                } catch {}
+                run('DELETE FROM booster_custom_role WHERE guild_id = ? AND user_id = ?', guildId, newMember.id);
             }
         }
     }

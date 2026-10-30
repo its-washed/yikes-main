@@ -1,21 +1,56 @@
-const fs = require('fs');
-const path = require('path');
+const { query, run, transaction } = require('./database');
 
-const DEV_FILE = path.join(__dirname, '..', 'data', 'developer.json');
+function emptyData() {
+    return { developers: [], blacklist: [], blacklistedServers: [], globalDisabled: [], serverDisabled: {} };
+}
+
+let cache = null;
 
 function loadDevData() {
-    if (!fs.existsSync(DEV_FILE)) return { developers: [], blacklist: [], blacklistedServers: [], globalDisabled: [], serverDisabled: {} };
-    const d = JSON.parse(fs.readFileSync(DEV_FILE, 'utf8'));
-    if (!d.blacklistedServers) d.blacklistedServers = [];
-    if (!d.globalDisabled) d.globalDisabled = [];
-    if (!d.serverDisabled) d.serverDisabled = {};
-    return d;
+    if (cache) return cache;
+    const data = emptyData();
+    for (const row of query('SELECT user_id FROM dev_user')) data.developers.push(String(row.user_id));
+    for (const row of query('SELECT user_id FROM dev_blacklist')) data.blacklist.push(String(row.user_id));
+    for (const row of query('SELECT guild_id FROM dev_server')) data.blacklistedServers.push(String(row.guild_id));
+    for (const row of query('SELECT command FROM dev_disabled')) data.globalDisabled.push(String(row.command));
+    for (const row of query('SELECT guild_id, command FROM dev_guild_disabled ORDER BY guild_id')) {
+        const guildId = String(row.guild_id);
+        if (!data.serverDisabled[guildId]) data.serverDisabled[guildId] = [];
+        data.serverDisabled[guildId].push(String(row.command));
+    }
+    cache = data;
+    return data;
 }
 
 function saveDevData(data) {
-    const dir = path.dirname(DEV_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(DEV_FILE, JSON.stringify(data, null, 2));
+    transaction(() => {
+        if (Array.isArray(data.developers)) {
+            run('DELETE FROM dev_user');
+            for (const id of data.developers) run('INSERT OR IGNORE INTO dev_user (user_id) VALUES (?)', id);
+        }
+        if (Array.isArray(data.blacklist)) {
+            run('DELETE FROM dev_blacklist');
+            for (const id of data.blacklist) run('INSERT OR IGNORE INTO dev_blacklist (user_id) VALUES (?)', id);
+        }
+        if (Array.isArray(data.blacklistedServers)) {
+            run('DELETE FROM dev_server');
+            for (const id of data.blacklistedServers) run('INSERT OR IGNORE INTO dev_server (guild_id) VALUES (?)', id);
+        }
+        if (Array.isArray(data.globalDisabled)) {
+            run('DELETE FROM dev_disabled');
+            for (const name of data.globalDisabled) run('INSERT OR IGNORE INTO dev_disabled (command) VALUES (?)', name);
+        }
+        if (data.serverDisabled && typeof data.serverDisabled === 'object') {
+            run('DELETE FROM dev_guild_disabled');
+            for (const guildId of Object.keys(data.serverDisabled)) {
+                for (const command of (Array.isArray(data.serverDisabled[guildId]) ? data.serverDisabled[guildId] : [])) {
+                    run('INSERT OR IGNORE INTO dev_guild_disabled (guild_id, command) VALUES (?, ?)', guildId, command);
+                }
+            }
+        }
+    });
+    cache = null;
+    return data;
 }
 
 function isDeveloper(userId) {
@@ -31,9 +66,9 @@ function isServerBlacklisted(guildId) {
 }
 
 function isCommandDisabled(commandName, guildId, category) {
-    const d = loadDevData();
-    if (d.globalDisabled.includes(commandName) || (category && d.globalDisabled.includes(category))) return true;
-    if (guildId && d.serverDisabled[guildId]?.includes(commandName)) return true;
+    const data = loadDevData();
+    if (data.globalDisabled.includes(commandName) || (category && data.globalDisabled.includes(category))) return true;
+    if (guildId && data.serverDisabled[guildId]?.includes(commandName)) return true;
     return false;
 }
 

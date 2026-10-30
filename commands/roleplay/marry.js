@@ -51,12 +51,15 @@ module.exports = {
         collector.on('collect', async i => {
             if (i.customId === 'marry_no') {
                 collector.stop();
+                const canceled = i.user.id === message.author.id;
                 return i.update({
                     content: null,
                     embeds: [createEmbed({
                         color: COLORS.error,
                         timestamp: false,
-                        description: `💔 ${target} declined the proposal.`
+                        description: canceled
+                            ? `💔 ${message.author} canceled the proposal.`
+                            : `💔 ${target} declined the proposal.`
                     })],
                     components: []
                 });
@@ -65,7 +68,34 @@ module.exports = {
                 return i.reply({ content: 'Only the mentioned member can accept this proposal.', ephemeral: true });
             }
             collector.stop();
-            insertMarriage(message.author.id, target.id);
+
+            // the proposal sits open for a minute, so re-check that nobody got
+            // married in the meantime before writing the row
+            if (getMarriage(message.author.id) || getMarriage(target.id)) {
+                return i.update({
+                    content: null,
+                    embeds: [createEmbed({
+                        color: COLORS.error,
+                        timestamp: false,
+                        description: 'This proposal is no longer valid — someone involved is already **married**.'
+                    })],
+                    components: []
+                });
+            }
+
+            try {
+                insertMarriage(message.author.id, target.id);
+            } catch (err) {
+                return i.update({
+                    content: null,
+                    embeds: [createEmbed({
+                        color: COLORS.error,
+                        timestamp: false,
+                        description: 'The marriage couldn\'t be saved, please try again.'
+                    })],
+                    components: []
+                });
+            }
             return i.update({
                 content: null,
                 embeds: [createEmbed({

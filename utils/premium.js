@@ -1,57 +1,48 @@
-const fs = require('fs');
-const path = require('path');
-
-const PREMIUM_FILE = path.join(__dirname, '..', 'data', 'premium.json');
+const { first, query, run, transaction } = require('./database');
 
 function loadPremium() {
-    if (!fs.existsSync(PREMIUM_FILE)) return { premiumUsers: [], premiumCommands: [] };
-    return JSON.parse(fs.readFileSync(PREMIUM_FILE, 'utf8'));
+    return {
+        premiumUsers: query('SELECT user_id FROM premium_user').map(row => String(row.user_id)),
+        premiumCommands: query('SELECT command FROM premium_command').map(row => String(row.command))
+    };
 }
 
 function savePremium(data) {
-    const dir = path.dirname(PREMIUM_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(PREMIUM_FILE, JSON.stringify(data, null, 2));
+    const users = (data && data.premiumUsers) || [];
+    const commands = (data && data.premiumCommands) || [];
+    transaction(() => {
+        run('DELETE FROM premium_user');
+        run('DELETE FROM premium_command');
+        for (const userId of users) run('INSERT OR IGNORE INTO premium_user (user_id) VALUES (?)', userId);
+        for (const name of commands) run('INSERT OR IGNORE INTO premium_command (command) VALUES (?)', String(name).toLowerCase());
+    });
 }
 
 function isPremium(userId) {
-    return loadPremium().premiumUsers.includes(userId);
+    return Boolean(first('SELECT 1 AS ok FROM premium_user WHERE user_id = ?', userId));
 }
 
 function addPremium(userId) {
-    const d = loadPremium();
-    if (!d.premiumUsers.includes(userId)) {
-        d.premiumUsers.push(userId);
-        savePremium(d);
-    }
+    run('INSERT OR IGNORE INTO premium_user (user_id) VALUES (?)', userId);
 }
 
 function removePremium(userId) {
-    const d = loadPremium();
-    d.premiumUsers = d.premiumUsers.filter(id => id !== userId);
-    savePremium(d);
+    run('DELETE FROM premium_user WHERE user_id = ?', userId);
 }
 
 function isPremiumCommand(name) {
-    return loadPremium().premiumCommands.includes(name);
+    return Boolean(first('SELECT 1 AS ok FROM premium_command WHERE command = ?', String(name).toLowerCase()));
 }
 
 function addPremiumCommand(name) {
-    const d = loadPremium();
-    if (!d.premiumCommands.includes(name)) {
-        d.premiumCommands.push(name);
-        savePremium(d);
-    }
+    run('INSERT OR IGNORE INTO premium_command (command) VALUES (?)', String(name).toLowerCase());
 }
 
 function removePremiumCommand(name) {
-    const d = loadPremium();
-    d.premiumCommands = d.premiumCommands.filter(c => c !== name);
-    savePremium(d);
+    run('DELETE FROM premium_command WHERE command = ?', String(name).toLowerCase());
 }
 
 async function needPremium(message) {
-    const { first } = require('./database');
     const { warn } = require('./context');
     if (first('SELECT 1 AS ok FROM premium WHERE guild_id = ?', message.guild.id)) return true;
     await warn(message, 'You need to have **premium** to use this command');

@@ -10,24 +10,27 @@ const { permissionDenied, errorEmbed } = require('./embeds');
 const { query, first, run, closeDatabase } = require('./database');
 
 const ROOT = path.join(__dirname, '..');
-const STATE_FILE = path.join(ROOT, 'data', 'devkit.json');
 
 const OWN = Symbol('devkit: command already replied');
 
 function loadState() {
-    try {
-        return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
-    } catch (err) {
-        return {};
+    const state = {};
+    for (const row of query('SELECT name, value FROM devkit_state')) {
+        try {
+            state[row.name] = JSON.parse(row.value);
+        } catch (err) {
+            state[row.name] = null;
+        }
     }
+    return state;
 }
 
 function saveState(patch) {
     const state = { ...loadState(), ...patch };
-    try {
-        fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true });
-        fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
-    } catch (err) {}
+    for (const key of Object.keys(patch)) {
+        const value = patch[key] === undefined ? null : patch[key];
+        run('INSERT OR REPLACE INTO devkit_state (name, value) VALUES (?, ?)', key, JSON.stringify(value));
+    }
     return state;
 }
 

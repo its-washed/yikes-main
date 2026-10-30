@@ -16,8 +16,6 @@ const SAFE = 9007199254740991;
 
 let handle = null;
 const statements = new Map();
-let warnings = {};
-let warningsPath = path.join(DATA_DIR, 'warnings.json');
 
 function ensureDataDir() {
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -47,6 +45,7 @@ function shape(row) {
 }
 
 function prepare(sql) {
+    if (!handle) initDatabase();
     let stmt = statements.get(sql);
     if (!stmt) {
         stmt = handle.prepare(sql);
@@ -141,8 +140,13 @@ function warnStamp(date) {
 
 function insertWarns() {
     if (first('SELECT 1 AS ready FROM warns LIMIT 1')) return;
-    const migrated = readJson('warns_migrated.json');
-    if (migrated && migrated.done) return;
+    const migrated = first('SELECT value FROM meta WHERE name = ?', 'warns_migrated');
+    if (migrated && migrated.value === '1') return;
+    const legacyMarker = readJson('warns_migrated.json');
+    if (legacyMarker && legacyMarker.done) {
+        run('INSERT OR REPLACE INTO meta (name, value) VALUES (?, ?)', 'warns_migrated', '1');
+        return;
+    }
     const sources = [readJson('warns.json'), readJson('warnings.json')];
     for (const source of sources) {
         if (!source || typeof source !== 'object') continue;
@@ -161,12 +165,188 @@ function insertWarns() {
             }
         }
     }
-    writeJSON('warns_migrated.json', { done: true });
+    run('INSERT OR REPLACE INTO meta (name, value) VALUES (?, ?)', 'warns_migrated', '1');
 }
 
 function seedLegacyData() {
     try { insertLevels(); } catch (err) { console.error('level migration failed:', err.message); }
     try { insertEconomy(); } catch (err) { console.error('economy migration failed:', err.message); }
+}
+
+function tableEmpty(name) {
+    try {
+        const row = first(`SELECT COUNT(*) AS total FROM ${name}`);
+        return !row || Number(row.total) === 0;
+    } catch (err) {
+        return false;
+    }
+}
+
+function importJson(fileName, table, importFn) {
+    if (!tableEmpty(table)) return;
+    const data = readJson(fileName);
+    if (!data || typeof data !== 'object') return;
+    importFn(data);
+}
+
+function migrateJsonData() {
+    transaction(() => {
+        importJson('config.json', 'guild_config', data => {
+            for (const guildId of Object.keys(data)) {
+                const cfg = data[guildId];
+                if (!cfg || typeof cfg !== 'object') continue;
+                for (const key of Object.keys(cfg)) {
+                    run('INSERT OR REPLACE INTO guild_config (guild_id, name, value) VALUES (?, ?, ?)',
+                        guildId, key, JSON.stringify(cfg[key] === undefined ? null : cfg[key]));
+                }
+            }
+        });
+
+        importJson('economy.json', 'economy_wallet', data => {
+            const users = data.users;
+            if (!users || typeof users !== 'object') return;
+            for (const userId of Object.keys(users)) {
+                const user = users[userId] || {};
+                run('INSERT INTO economy_wallet (user_id, wallet, bank, last_daily, last_work, last_weekly, last_monthly) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    userId, Number(user.wallet) || 0, Number(user.bank) || 0,
+                    Number(user.lastDaily) || 0, Number(user.lastWork) || 0,
+                    Number(user.lastWeekly) || 0, Number(user.lastMonthly) || 0);
+                for (const item of (Array.isArray(user.inventory) ? user.inventory : [])) {
+                    if (!item || !item.name) continue;
+                    run('INSERT OR REPLACE INTO economy_wallet_item (user_id, item, quantity) VALUES (?, ?, ?)',
+                        userId, String(item.name), Number(item.quantity) || 0);
+                }
+            }
+        });
+
+        importJson('activity.json', 'activity_stats', data => {
+            const guilds = data.guilds;
+            if (!guilds || typeof guilds !== 'object') return;
+            for (const guildId of Object.keys(guilds)) {
+                const users = guilds[guildId];
+                if (!users || typeof users !== 'object') continue;
+                for (const userId of Object.keys(users)) {
+                    const entry = users[userId] || {};
+                    run('INSERT INTO activity_stats (guild_id, user_id, messages, vc_time, last_vc_join) VALUES (?, ?, ?, ?, ?)',
+                        guildId, userId, Number(entry.messages) || 0,
+                        Number(entry.vcTime) || 0, Number(entry.lastVCJoin) || 0);
+                }
+            }
+        });
+
+        importJson('developer.json', 'dev_user', data => {
+            for (const id of (Array.isArray(data.developers) ? data.developers : [])) run('INSERT OR IGNORE INTO dev_user (user_id) VALUES (?)', id);
+            for (const id of (Array.isArray(data.blacklist) ? data.blacklist : [])) run('INSERT OR IGNORE INTO dev_blacklist (user_id) VALUES (?)', id);
+            for (const id of (Array.isArray(data.blacklistedServers) ? data.blacklistedServers : [])) run('INSERT OR IGNORE INTO dev_server (guild_id) VALUES (?)', id);
+            for (const id of (Array.isArray(data.globalDisabled) ? data.globalDisabled : [])) run('INSERT OR IGNORE INTO dev_disabled (command) VALUES (?)', id);
+            const serverDisabled = data.serverDisabled || {};
+            for (const guildId of Object.keys(serverDisabled)) {
+                for (const command of (Array.isArray(serverDisabled[guildId]) ? serverDisabled[guildId] : [])) {
+                    run('INSERT OR IGNORE INTO dev_guild_disabled (guild_id, command) VALUES (?, ?)', guildId, command);
+                }
+            }
+        });
+
+        importJson('premium.json', 'premium_user', data => {
+            for (const id of (Array.isArray(data.premiumUsers) ? data.premiumUsers : [])) run('INSERT OR IGNORE INTO premium_user (user_id) VALUES (?)', id);
+            for (const name of (Array.isArray(data.premiumCommands) ? data.premiumCommands : [])) run('INSERT OR IGNORE INTO premium_command (command) VALUES (?)', String(name).toLowerCase());
+        });
+
+        importJson('devkit.json', 'devkit_state', data => {
+            for (const key of Object.keys(data)) run('INSERT OR REPLACE INTO devkit_state (name, value) VALUES (?, ?)', key, JSON.stringify(data[key]));
+        });
+
+        importJson('afk.json', 'afk_state', data => {
+            for (const guildId of Object.keys(data)) {
+                const guild = data[guildId];
+                if (!guild || typeof guild !== 'object') continue;
+                for (const userId of Object.keys(guild)) {
+                    const entry = guild[userId] || {};
+                    run('INSERT OR REPLACE INTO afk_state (guild_id, user_id, reason, timestamp) VALUES (?, ?, ?, ?)',
+                        guildId, userId, entry.reason || 'AFK', Number(entry.timestamp) || Date.now());
+                }
+            }
+        });
+
+        importJson('boosters.json', 'booster_setting', data => {
+            for (const guildId of Object.keys(data)) {
+                const guild = data[guildId];
+                if (!guild || typeof guild !== 'object') continue;
+                if (guild.boostRole) run('INSERT OR REPLACE INTO booster_setting (guild_id, boost_role) VALUES (?, ?)', guildId, guild.boostRole);
+                const custom = guild.customRoles || {};
+                for (const userId of Object.keys(custom)) {
+                    run('INSERT OR REPLACE INTO booster_custom_role (guild_id, user_id, role_id) VALUES (?, ?, ?)', guildId, userId, custom[userId]);
+                }
+            }
+        });
+
+        importJson('pfps.json', 'image_pool', data => {
+            for (const category of Object.keys(data)) {
+                const urls = data[category];
+                if (!Array.isArray(urls)) continue;
+                for (const url of urls) {
+                    if (typeof url === 'string' && url) run('INSERT OR IGNORE INTO image_pool (category, url) VALUES (?, ?)', category, url);
+                }
+            }
+        });
+
+        importJson('business.json', 'business_owner', data => {
+            const businesses = data.businesses;
+            if (!businesses || typeof businesses !== 'object') return;
+            for (const userId of Object.keys(businesses)) {
+                const entry = businesses[userId] || {};
+                run('INSERT OR REPLACE INTO business_owner (user_id, name, type, level, employees, income, upkeep, total_earned, created_at, last_collect) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    userId, entry.name || null, entry.type || null, Number(entry.level) || 0,
+                    Number(entry.employees) || 0, Number(entry.income) || 0, Number(entry.upkeep) || 0,
+                    Number(entry.totalEarned) || 0, Number(entry.createdAt) || 0, Number(entry.lastCollect) || 0);
+            }
+        });
+
+        importJson('company.json', 'company_owner', data => {
+            const companies = data.companies;
+            if (!companies || typeof companies !== 'object') return;
+            for (const id of Object.keys(companies)) {
+                const entry = companies[id] || {};
+                run('INSERT OR REPLACE INTO company_owner (id, name, type, level, treasury, members, max_members, projects, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    id, entry.name || null, entry.type || null, Number(entry.level) || 0,
+                    Number(entry.treasury) || 0, JSON.stringify(Array.isArray(entry.members) ? entry.members : []),
+                    Number(entry.maxMembers) || 0, JSON.stringify(Array.isArray(entry.projects) ? entry.projects : []),
+                    Number(entry.createdAt) || 0);
+            }
+        });
+
+        importJson('laboratory.json', 'lab_owner', data => {
+            const labs = data.labs || {};
+            for (const userId of Object.keys(labs)) {
+                const entry = labs[userId] || {};
+                run('INSERT OR REPLACE INTO lab_owner (user_id, level, purchased_at) VALUES (?, ?, ?)',
+                    userId, Number(entry.level) || 1, Number(entry.purchasedAt) || 0);
+            }
+            const experiments = data.experiments || {};
+            for (const userId of Object.keys(experiments)) {
+                for (const exp of (Array.isArray(experiments[userId]) ? experiments[userId] : [])) {
+                    if (!exp || !exp.id) continue;
+                    run('INSERT OR REPLACE INTO lab_experiment (user_id, exp_id, name, tier, cost, status, reward, started_at, completes_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                        userId, String(exp.id), exp.name || null, exp.tier || null,
+                        Number(exp.cost) || 0, exp.status || 'running', Number(exp.reward) || 0,
+                        Number(exp.startedAt) || 0, Number(exp.completesAt) || 0);
+                }
+            }
+        });
+
+        importJson('cards.json', 'card_catalog', data => {
+            for (const ownerId of Object.keys(data)) {
+                const cards = data[ownerId] && data[ownerId].cards;
+                if (!Array.isArray(cards)) continue;
+                for (const card of cards) {
+                    if (!card || !card.id) continue;
+                    run('INSERT OR REPLACE INTO card_catalog (owner_id, card_id, character, series, tier, rarity, emoji, payload) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                        ownerId, String(card.id), card.character || null, card.series || null,
+                        card.tier || null, card.rarity || null, card.emoji || null, JSON.stringify(card));
+                }
+            }
+        });
+    });
 }
 
 function fixWarnTables() {
@@ -512,11 +692,7 @@ function initDatabase() {
     try { seedEconomyData(); } catch (err) { console.error('economy seed failed:', err.message); }
     if (fresh) seedLegacyData();
     try { insertWarns(); } catch (err) { console.error('warn migration failed:', err.message); }
-    try {
-        if (fs.existsSync(warningsPath)) warnings = JSON.parse(fs.readFileSync(warningsPath, 'utf8'));
-    } catch (err) {
-        warnings = {};
-    }
+    try { migrateJsonData(); } catch (err) { console.error('json migration failed:', err.message); }
 }
 
 function closeDatabase() {
@@ -581,15 +757,6 @@ function getWarningCount(guildId, userId) {
     const row = first('SELECT COUNT(*) AS total FROM history WHERE server_id = ? AND user_id = ? AND punishment = ?',
         guildId, userId, 'warn');
     return row ? row.total : 0;
-}
-
-function saveWarnings() {
-    ensureDataDir();
-    try {
-        fs.writeFileSync(warningsPath, JSON.stringify(warnings, null, 2));
-    } catch (err) {
-        console.error('warnings save failed:', err);
-    }
 }
 
 module.exports = {

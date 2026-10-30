@@ -83,10 +83,10 @@
       ]
     },
     "1497395481591156808": {
-      "wallet": 600,
+      "wallet": 790,
       "bank": 12000000,
       "lastDaily": 1793053315697,
-      "lastWork": 1793273163947,
+      "lastWork": 1793276383604,
       "lastWeekly": 0,
       "lastMonthly": 0,
       "inventory": [
@@ -481,10 +481,10 @@
       "inventory": []
     },
     "716959849509945355": {
-      "wallet": 0,
+      "wallet": 67,
       "bank": 13604,
       "lastDaily": 1793124033999,
-      "lastWork": 1793123985678,
+      "lastWork": 1793277878544,
       "lastWeekly": 1793027240698,
       "lastMonthly": 1793029013938,
       "inventory": [

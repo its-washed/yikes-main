@@ -1,26 +1,9 @@
 const { createEmbed, errorEmbed, successEmbed } = require('../../utils/embeds');
 const { warn } = require('../../utils/context');
-const fs = require('fs');
-const path = require('path');
-
-const DATA_FILE = path.join(__dirname, '../../data/boosters.json');
-
-function loadData() {
-    if (!fs.existsSync(DATA_FILE)) return {};
-    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-}
-
-function saveData(data) {
-    const dir = path.dirname(DATA_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-}
+const { run } = require('../../utils/database');
 
 function saveBoosterRole(guildId, roleId) {
-    const data = loadData();
-    if (!data[guildId]) data[guildId] = {};
-    data[guildId].boostRole = roleId;
-    saveData(data);
+    run('INSERT OR REPLACE INTO booster_setting (guild_id, boost_role) VALUES (?, ?)', guildId, roleId);
 }
 
 module.exports = {
