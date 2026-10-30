@@ -23,7 +23,8 @@ module.exports = {
         try { saved = JSON.parse(check.roles) || []; } catch (err) { saved = []; }
 
         const me = message.guild.members.me;
-        const authorTop = message.author.roles.highest.position;
+        const authorMember = message.member || message.guild.members.cache.get(message.author.id);
+        const authorTop = authorMember && authorMember.roles ? authorMember.roles.highest.position : 0;
         const assignable = saved
             .map(id => message.guild.roles.cache.get(String(id)))
             .filter(r => r && !r.managed && r.id !== message.guild.id && r.position < authorTop && r.position < me.roles.highest.position);

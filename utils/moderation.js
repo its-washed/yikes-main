@@ -97,7 +97,9 @@ async function noStaff(message, value, commandName) {
         return null;
     }
     if (message.author.id === member.id) return member;
-    if (message.author.roles.highest.position <= targetTop) {
+    const authorMember = message.member || message.guild.members.cache.get(message.author.id);
+    const authorTop = authorMember && authorMember.roles ? authorMember.roles.highest.position : targetTop;
+    if (authorTop <= targetTop) {
         await warn(message, `You can't manage **${member}**`);
         return null;
     }

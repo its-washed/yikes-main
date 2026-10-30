@@ -104,7 +104,9 @@ async function findManageableRole(message, value) {
         await warn(message, `Role **${value}** is over my highest role`);
         return null;
     }
-    if (guild.ownerId !== message.author.id && role.position >= message.member.roles.highest.position) {
+    const authorMember = message.member || guild.members.cache.get(message.author.id);
+    const authorTop = authorMember && authorMember.roles ? authorMember.roles.highest.position : -1;
+    if (guild.ownerId !== message.author.id && role.position >= authorTop) {
         await warn(message, "You can't manage this role");
         return null;
     }

@@ -797,7 +797,6 @@ CREATE INDEX IF NOT EXISTS idx_invites_guild ON invites(guild_id);
 CREATE INDEX IF NOT EXISTS idx_invites_users_guild ON invites_users(guild_id);
 CREATE INDEX IF NOT EXISTS idx_giveaway_guild ON giveaway(guild_id);
 CREATE INDEX IF NOT EXISTS idx_autopost_guild ON autopost(guild_id);
--- company indexes are created after the table rebuild in utils/database.js
 
 CREATE TABLE IF NOT EXISTS roleplay (
     user_id BIGINT NOT NULL,

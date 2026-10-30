@@ -69,8 +69,6 @@ module.exports = {
             }
             collector.stop();
 
-            // the proposal sits open for a minute, so re-check that nobody got
-            // married in the meantime before writing the row
             if (getMarriage(message.author.id) || getMarriage(target.id)) {
                 return i.update({
                     content: null,
